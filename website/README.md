@@ -134,9 +134,12 @@ The visitor was `35.230.99.103`; `172.71.124.52` is Cloudflare. So `render.yaml`
 - `TRUST_PROXY_HOPS=2`: Express takes the visitor to be the second address from the end of
   `X-Forwarded-For`, which is what rate limiting counts by.
 
+With those set, a visit from Australia was logged with the visitor's own address, placed in
+Australia, agreeing with Cloudflare's own `cf-ipcountry`.
+
 `GEO_DEBUG=1` logs, for each request, the address used, the country found and these headers.
-It is on in `render.yaml` until a visit from a known place has been checked; remove it after.
-On another host, turn it on, read one line, and set the two values to suit. Only name a
+It is off in `render.yaml`, since it writes visitors' IP addresses to the log. On another host,
+or if visitors are being placed wrongly, turn it on, read one line, and set the two values to suit. Only name a
 header in `CLIENT_IP_HEADER` that the platform sets itself and visitors can't forge.
 
 ## Licence API

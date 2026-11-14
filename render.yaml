@@ -60,10 +60,10 @@ services:
       # the second address from the end of X-Forwarded-For. Used for rate limiting.
       - key: TRUST_PROXY_HOPS
         value: "2"
-      # Logs how each visitor's country was worked out. Remove once a visit from a known
-      # place has been checked against it.
+      # "1" logs how each visitor's country was worked out, with their IP address. Off now
+      # that the settings above have been checked against a visit from Australia.
       - key: GEO_DEBUG
-        value: "1"
+        value: "0"
       - key: LICENCE_MAX_MACHINES
         value: "2"
       - key: LICENCE_TOKEN_DAYS
