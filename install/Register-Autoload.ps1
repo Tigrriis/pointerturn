@@ -1,15 +1,15 @@
 <#
 .SYNOPSIS
-  Make BricsCAD load PointerTurn automatically at startup (current Windows user only).
+  Make BricsCAD load PointerPath automatically at startup (current Windows user only).
 
 .EXAMPLE
-  .\Register-Autoload.ps1 -DllPath "C:\Tools\PointerTurn\V25\PointerTurn.BricsCAD.dll" -BricsCADVersion 25
+  .\Register-Autoload.ps1 -DllPath "C:\Tools\PointerPath\V25\PointerPath.BricsCAD.dll" -BricsCADVersion 25
 
 .EXAMPLE
   .\Register-Autoload.ps1 -BricsCADVersion 25 -Remove
 
 .NOTES
-  Writes HKCU\Software\Bricsys\BricsCAD\V<ver>x64\<language>\Applications\PointerTurn
+  Writes HKCU\Software\Bricsys\BricsCAD\V<ver>x64\<language>\Applications\PointerPath
   with LOADER (DLL path), LOADCTRLS = 2 (load on startup) and MANAGED = 1 (.NET).
   This is the demand-load key format in the BricsCAD developer reference. Check the
   exact version key in regedit if your install differs (e.g. V26x64).
@@ -22,7 +22,7 @@ param(
     [switch]$Remove
 )
 
-$key = "HKCU:\Software\Bricsys\BricsCAD\V${BricsCADVersion}x64\$Language\Applications\PointerTurn"
+$key = "HKCU:\Software\Bricsys\BricsCAD\V${BricsCADVersion}x64\$Language\Applications\PointerPath"
 
 if ($Remove) {
     if (Test-Path $key) { Remove-Item $key -Recurse; Write-Host "Removed $key" }
@@ -31,7 +31,7 @@ if ($Remove) {
 }
 
 if (-not $DllPath -or -not (Test-Path $DllPath)) {
-    throw "Pass -DllPath with the full path to PointerTurn.BricsCAD.dll"
+    throw "Pass -DllPath with the full path to PointerPath.BricsCAD.dll"
 }
 
 $parent = Split-Path $key
@@ -43,5 +43,5 @@ New-Item -Path $key -Force | Out-Null
 New-ItemProperty -Path $key -Name "LOADER" -Value (Resolve-Path $DllPath).Path -PropertyType String -Force | Out-Null
 New-ItemProperty -Path $key -Name "LOADCTRLS" -Value 2 -PropertyType DWord -Force | Out-Null
 New-ItemProperty -Path $key -Name "MANAGED" -Value 1 -PropertyType DWord -Force | Out-Null
-New-ItemProperty -Path $key -Name "DESCRIPTION" -Value "PointerTurn (vehicle turning paths)" -PropertyType String -Force | Out-Null
+New-ItemProperty -Path $key -Name "DESCRIPTION" -Value "PointerPath (vehicle turning paths)" -PropertyType String -Force | Out-Null
 Write-Host "Registered $key. Restart BricsCAD."

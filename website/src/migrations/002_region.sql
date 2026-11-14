@@ -1,5 +1,5 @@
 -- A record of where accounts, purchases and activations came from, for the countries
--- PointerTurn is restricted to (ALLOWED_COUNTRIES). Country codes are two letters.
+-- PointerPath is restricted to (ALLOWED_COUNTRIES). Country codes are two letters.
 ALTER TABLE users
   ADD COLUMN signup_country text,
   -- When the person confirmed, at sign-up, that they are in an allowed country.

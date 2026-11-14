@@ -1,9 +1,9 @@
-# PointerTurn
+# PointerPath
 
-Vehicle turning paths for BricsCAD and AutoCAD. PointerTurn simulates a design vehicle through a
+Vehicle turning paths for BricsCAD and AutoCAD. PointerPath simulates a design vehicle through a
 manoeuvre and draws its swept path and clearance template in the drawing. It runs entirely inside
 the CAD program, with no other add-in needed. A released build is licensed: you sign in once with
-a PointerTurn account, and after that it works without an internet connection for up to two weeks
+a PointerPath account, and after that it works without an internet connection for up to two weeks
 at a time. See [Licence](#licence).
 
 These tools began as part of CSD-Bridge, Arete Engineering's BricsCAD assistant, and were moved
@@ -49,14 +49,14 @@ See [docs/architecture.md](docs/architecture.md) for the design, and "First thin
 ## Repository layout
 
 ```
-src/PointerTurn.Core/        CAD-independent: design vehicles, simulation, swept path, solver,
+src/PointerPath.Core/        CAD-independent: design vehicles, simulation, swept path, solver,
                              conflicts, ground clearance, the licence check
                              (netstandard2.0 + net8.0)
-src/PointerTurn.BricsCAD/    The add-in: commands, dialogs, ribbon, drawing in the CAD program,
+src/PointerPath.BricsCAD/    The add-in: commands, dialogs, ribbon, drawing in the CAD program,
                              settings. Builds for BricsCAD
   turn-paths.json            The vehicles and the defaults, shipped next to the add-in
-src/PointerTurn.AutoCAD/     A project file only: builds the same source for AutoCAD
-tests/PointerTurn.Core.Tests Unit tests (no CAD program needed)
+src/PointerPath.AutoCAD/     A project file only: builds the same source for AutoCAD
+tests/PointerPath.Core.Tests Unit tests (no CAD program needed)
 tools/icons/                 Generates the ribbon icons (Python + Pillow)
 installer/                   The installer: Inno Setup script, AutoCAD bundle manifest, build script
 install/                     For developers: update from source (pull, build, copy) and autoload
@@ -70,22 +70,22 @@ render.yaml                  How the website is deployed on Render
 
 ## Installing
 
-Run `PointerTurn-<version>-setup.exe`. It asks whether to install for everyone on the PC (needs
+Run `PointerPath-<version>-setup.exe`. It asks whether to install for everyone on the PC (needs
 an administrator) or just for you, and then:
 
-- **BricsCAD V24 and later**: registers PointerTurn with every BricsCAD version and language on
+- **BricsCAD V24 and later**: registers PointerPath with every BricsCAD version and language on
   the PC, so it loads when BricsCAD starts. A BricsCAD installed afterwards isn't registered
   until you run the installer again. BricsCAD V26 and later run add-ins on Microsoft's .NET 8
   Desktop Runtime, which BricsCAD doesn't bring: when it is missing, the installer downloads and
   installs it (installing for all users), or tells you where to get it.
 - **AutoCAD 2021 and later** (and Civil 3D, Map 3D and the other AutoCAD-based products): puts
-  PointerTurn where AutoCAD loads add-ins from by itself, so it also loads in an AutoCAD
+  PointerPath where AutoCAD loads add-ins from by itself, so it also loads in an AutoCAD
   installed afterwards. AutoCAD LT can't run add-ins of this kind.
 
-Start the CAD program and look for the **PointerTurn** ribbon tab, or type `PTPATH`. Remove it
-from Windows' installed apps. Your saved defaults (`%APPDATA%\PointerTurn`) are kept.
+Start the CAD program and look for the **PointerPath** ribbon tab, or type `PTPATH`. Remove it
+from Windows' installed apps. Your saved defaults (`%APPDATA%\PointerPath`) are kept.
 
-For an unattended install: `PointerTurn-<version>-setup.exe /VERYSILENT /ALLUSERS` (or
+For an unattended install: `PointerPath-<version>-setup.exe /VERYSILENT /ALLUSERS` (or
 `/CURRENTUSER`), with `/LOG=file` to keep a log.
 
 To build the installer, see [docs/packaging.md](docs/packaging.md).
@@ -97,7 +97,7 @@ To build the installer, see [docs/packaging.md](docs/packaging.md).
 Needs the .NET 8 SDK. From the repo folder:
 
 ```bash
-dotnet test tests/PointerTurn.Core.Tests
+dotnet test tests/PointerPath.Core.Tests
 ```
 
 ### 2. Build the add-in (Windows, BricsCAD installed)
@@ -105,7 +105,7 @@ dotnet test tests/PointerTurn.Core.Tests
 From the repo folder:
 
 ```bash
-dotnet build src/PointerTurn.BricsCAD -c Release
+dotnet build src/PointerPath.BricsCAD -c Release
 ```
 
 The build finds the newest BricsCAD under `C:\Program Files\Bricsys` and prints which one it
@@ -114,7 +114,7 @@ used. V24/V25 build for .NET Framework 4.8 and V26 onwards for .NET 8. To pick a
 `-p:BricsCADDir="D:\Apps\BricsCAD V25 en_US"`. If it can't find BricsCAD, the build stops
 with one message listing the BricsCAD folders it did find.
 
-The output goes to `src/PointerTurn.BricsCAD/bin/Release/V<version>/`. V26 and later need the
+The output goes to `src/PointerPath.BricsCAD/bin/Release/V<version>/`. V26 and later need the
 x64 .NET 8 Desktop Runtime on the user's machine.
 
 The AutoCAD add-in is the same source built by another project. It needs no AutoCAD installed
@@ -122,7 +122,7 @@ The AutoCAD add-in is the same source built by another project. It needs no Auto
 Linux distributions package leaves out the Windows desktop parts it needs):
 
 ```bash
-dotnet build src/PointerTurn.AutoCAD -c Release
+dotnet build src/PointerPath.AutoCAD -c Release
 ```
 
 That makes `bin/Release/net48/` for AutoCAD 2021 to 2024 and `bin/Release/net8.0-windows/` for
@@ -130,9 +130,9 @@ AutoCAD 2025 and later.
 
 ### 3. Load it
 
-In BricsCAD: `NETLOAD`, then pick `PointerTurn.BricsCAD.dll` from the output folder. A
-**PointerTurn** ribbon tab appears, with the commands on its **Vehicles** panel. In AutoCAD it
-is the same with `PointerTurn.AutoCAD.dll` (AutoCAD asks before loading an add-in from a folder
+In BricsCAD: `NETLOAD`, then pick `PointerPath.BricsCAD.dll` from the output folder. A
+**PointerPath** ribbon tab appears, with the commands on its **Vehicles** panel. In AutoCAD it
+is the same with `PointerPath.AutoCAD.dll` (AutoCAD asks before loading an add-in from a folder
 it doesn't trust).
 
 To load automatically at startup:
@@ -150,18 +150,18 @@ The script does four things:
 - pulls the latest code
 - builds for the newest BricsCAD installed (BricsCAD can stay open while it builds)
 - if the add-in is in use, asks you to close BricsCAD
-- copies the build to `C:\PointerTurn`
+- copies the build to `C:\PointerPath`
 
 Then start BricsCAD again, and `NETLOAD` unless autoload is registered. Useful options:
 - `-BricsCADVersion 25` builds for a specific version.
 - `-RegisterAutoload` also sets up loading at startup.
-- `-InstallDir D:\Tools\PointerTurn` installs somewhere else.
+- `-InstallDir D:\Tools\PointerPath` installs somewhere else.
 - `-SkipPull` builds what you already have, without pulling.
 
-If `C:\PointerTurn\turn-paths.json` was edited, the old copy is saved as `turn-paths.json.bak`.
-Defaults saved from the dialogs live in `%APPDATA%\PointerTurn` and are not touched.
+If `C:\PointerPath\turn-paths.json` was edited, the old copy is saved as `turn-paths.json.bak`.
+Defaults saved from the dialogs live in `%APPDATA%\PointerPath` and are not touched.
 
-`install\Register-AutoUpdate.ps1` sets up a Windows scheduled task, "PointerTurn auto-update",
+`install\Register-AutoUpdate.ps1` sets up a Windows scheduled task, "PointerPath auto-update",
 that runs the same update when you log in and daily at 07:30. Run it with `-Remove` to turn it off.
 
 ## Commands
@@ -173,24 +173,24 @@ that runs the same update when you log in and daily at 07:30. Run it with `-Remo
 | `PTINOUT` | In and out | Show forward entry and exit from a site: pick where the vehicle arrives, where it stops on the site and where it leaves. The same as `PTPATH` with **Solve in and out (3 points)** chosen. See [In and out of a site](#in-and-out-of-a-site-the-3-point-solve). |
 | `PTEDIT` | Edit path | Change a turning path (its vehicle, radius, clearances, layers or geometry) and regenerate it. See [Editing a turning path](#editing-a-turning-path). |
 | `PTCLEARANCE` | Clearance | Check a car's ground clearance along a plotted long section, or on a surface along a path. See [Ground clearance](#ground-clearance-appendix-c). |
-| `PTLICENCE` | Licence | Sign in with your PointerTurn account, see the licence on this computer, or sign out. `PTLICENSE` works too. See [Licence](#licence). |
-| `PTRIBBON` | | Add the PointerTurn ribbon tab again, if a workspace change removed it. |
+| `PTLICENCE` | Licence | Sign in with your PointerPath account, see the licence on this computer, or sign out. `PTLICENSE` works too. See [Licence](#licence). |
+| `PTRIBBON` | | Add the PointerPath ribbon tab again, if a workspace change removed it. |
 
 ## Licence
 
-PointerTurn installed from the installer needs a licence, which belongs to a PointerTurn account
+PointerPath installed from the installer needs a licence, which belongs to a PointerPath account
 on the website. A build made from source doesn't ask for one.
 
-- **Signing in.** The first time you run a command, PointerTurn asks for your account's email
+- **Signing in.** The first time you run a command, PointerPath asks for your account's email
   address and password. You stay signed in on that computer after that.
-- **Without a connection.** PointerTurn checks the licence with the website in the background
+- **Without a connection.** PointerPath checks the licence with the website in the background
   when the computer is online, about once a day. Offline, it keeps working for up to two weeks
   from the last check, then asks you to connect.
 - **Another computer.** A licence can be in use on a limited number of computers at once. To move
   it, run `PTLICENCE` and choose **Sign out** on the old computer, or sign that computer out on
   your account page on the website, then sign in on the new one.
 
-- **Australia only.** PointerTurn is sold for use in Australia. Signing in works only from an
+- **Australia only.** PointerPath is sold for use in Australia. Signing in works only from an
   Australian internet connection, and the licence is not renewed from anywhere else.
 
 What is sent to the website is your email address and password (when you sign in), the
@@ -203,9 +203,9 @@ The commands were `AITURN`, `AITURNSOLVE`, `AITURNINOUT`, `AITURNEDIT` and `AICL
 Two things carry over:
 
 - **Paths already in drawings.** A path drawn by CSD-Bridge can be edited with `PTEDIT`. Once
-  edited it is saved under PointerTurn's own names in the drawing.
-- **Saved defaults.** Until you use **Save as defaults** in PointerTurn, a copy saved from
-  CSD-Bridge (`%APPDATA%\CsdBridge\turn-paths.json`) is used. PointerTurn never writes to it.
+  edited it is saved under PointerPath's own names in the drawing.
+- **Saved defaults.** Until you use **Save as defaults** in PointerPath, a copy saved from
+  CSD-Bridge (`%APPDATA%\CsdBridge\turn-paths.json`) is used. PointerPath never writes to it.
 
 ## Turning paths
 
@@ -269,8 +269,8 @@ redraws the vehicle at the new scale.
 same fields), the drawing units, the default clearances, lead-in/lead-out, text height, what to draw and the layer for
 each part (`{vehicle}` in a layer name is replaced by the vehicle's name). Layer styles apply only
 when a layer doesn't exist yet. The dialog can change all of it per run; **Save as defaults** writes
-`%APPDATA%\PointerTurn\turn-paths.json`, which is then used instead of the shipped file (or point
-`turn_paths_file` in `%APPDATA%\PointerTurn\settings.json` at a shared copy). Vehicles that a saved or shared copy doesn't
+`%APPDATA%\PointerPath\turn-paths.json`, which is then used instead of the shipped file (or point
+`turn_paths_file` in `%APPDATA%\PointerPath\settings.json` at a shared copy). Vehicles that a saved or shared copy doesn't
 have are still taken from the shipped file, so new vehicles appear after an update.
 
 ### Trucks and trailers
@@ -315,7 +315,7 @@ angle the combination folds to, with a warning if it goes past the vehicle's lim
 #### Reversing with a trailer
 
 A trailer pushed backwards doesn't follow the vehicle. It folds one way or the other, faster the further it
-has folded, and the driver steers against that the whole way. PointerTurn drives it the same way: the prime
+has folded, and the driver steers against that the whole way. PointerPath drives it the same way: the prime
 mover backs up a step at a time, steered no tighter than the turn radius, and each trailer goes where its
 coupling pushes it. What it steers to comes from the fact that driving is reversible: **a reverse along a path
 leaves exactly the tracks of driving that path the other way**. So the swept path of reversing onto a dock
@@ -508,6 +508,6 @@ placed with both wheels on the ground and slid along in small steps; it must nev
 | The build stops with "BricsCAD V.. API files (BrxMgd.dll, TD_Mgd.dll) were not found" | Build with `-p:BricsCADVersion=NN` to pick an installed version, or `-p:BricsCADDir="full path to your BricsCAD folder"`. |
 | `NU1100` or `NU1101`: a package can't be found | NuGet can't reach nuget.org. The repo's `nuget.config` adds it as a source. If the error persists, run `dotnet nuget enable source nuget.org`. |
 | The ribbon tab is missing | Run `PTRIBBON`. If the ribbon itself is off, turn it on with `RIBBON` first. The commands work without it. |
-| "Sign in with your PointerTurn account to use this command" | Run `PTLICENCE` and sign in. If it says the licence is in use on other computers, sign one of them out on your account page. |
-| "PointerTurn has not been able to check your licence since ..." | The computer has been offline for longer than a licence lasts. Connect to the internet and run the command again. |
+| "Sign in with your PointerPath account to use this command" | Run `PTLICENCE` and sign in. If it says the licence is in use on other computers, sign one of them out on your account page. |
+| "PointerPath has not been able to check your licence since ..." | The computer has been offline for longer than a licence lasts. Connect to the internet and run the command again. |
 | "The turning path conventions couldn't be loaded" | The message names the file and the problem, usually a typo in an edited `turn-paths.json`. The built-in B99 and B85 are used until it is fixed. |

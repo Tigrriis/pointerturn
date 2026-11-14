@@ -1,6 +1,6 @@
-# PointerTurn brand files
+# PointerPath brand files
 
-The logo, icons and colours for PointerTurn's website and advertising ("Sheet": a light page,
+The logo, icons and colours for PointerPath's website and advertising ("Sheet": a light page,
 an amber accent, a lower-case wordmark).
 
 ## Files

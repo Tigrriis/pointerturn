@@ -114,7 +114,7 @@ test('download needs a sign-in, then goes to the installer', async () => {
   const { b } = await t.newAccount('dl@example.com');
   const res = await b.get('/download');
   assert.equal(res.status, 302);
-  assert.equal(res.location, 'https://downloads.example.com/PointerTurn-1.0.0-setup.exe');
+  assert.equal(res.location, 'https://downloads.example.com/PointerPath-1.0.0-setup.exe');
 });
 
 test('an unconfirmed account cannot buy', async () => {
@@ -329,7 +329,7 @@ test('Plausible is loaded only when configured, and allowed by the security poli
   await t.stop();
 
   for (const [env, src] of [
-    [{ PLAUSIBLE_DOMAIN: 'pointerturn.example' }, 'https://plausible.io/js/script.js'],
+    [{ PLAUSIBLE_DOMAIN: 'pointerpath.example' }, 'https://plausible.io/js/script.js'],
     [{ PLAUSIBLE_SCRIPT_URL: 'https://plausible.io/js/pa-abc123.js' }, 'https://plausible.io/js/pa-abc123.js'],
   ]) {
     t = await start(env);

@@ -9,11 +9,11 @@ function requireLogin(req, res, next) {
   res.redirect('/login');
 }
 
-// Refuses visitors outside the countries PointerTurn is offered in (ALLOWED_COUNTRIES).
+// Refuses visitors outside the countries PointerPath is offered in (ALLOWED_COUNTRIES).
 function requireRegion(req, res, next) {
   if (req.region.allowed) return next();
   res.status(403).render('message', {
-    title: `PointerTurn is available in ${res.locals.region.where} only`,
+    title: `PointerPath is available in ${res.locals.region.where} only`,
     body:
       `Accounts, licences and downloads are offered only to people in ${res.locals.region.where}, and you appear to be somewhere else. ` +
       `If you are in ${res.locals.region.where}, check whether a VPN is making it look otherwise.`,

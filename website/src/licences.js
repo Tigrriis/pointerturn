@@ -46,7 +46,7 @@ function createLicences({ db, config }) {
     const now = Math.floor(Date.now() / 1000);
     const exp = now + config.licence.tokenDays * 86400;
     const token = sign({
-      iss: 'pointerturn',
+      iss: 'pointerpath',
       sub: String(user.id),
       email: user.email,
       lic: String(licence.id),

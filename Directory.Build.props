@@ -4,7 +4,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>disable</ImplicitUsings>
     <Company>Arete Engineering</Company>
-    <Product>PointerTurn</Product>
+    <Product>PointerPath</Product>
     <Version>0.1.0</Version>
   </PropertyGroup>
 

@@ -31,7 +31,7 @@ function loadConfig(env = process.env) {
 
     resend: {
       apiKey: env.RESEND_API_KEY || '',
-      from: env.EMAIL_FROM || 'PointerTurn <onboarding@resend.dev>',
+      from: env.EMAIL_FROM || 'PointerPath <onboarding@resend.dev>',
     },
 
     plausible: {
@@ -42,7 +42,7 @@ function loadConfig(env = process.env) {
     },
 
     region: {
-      // Two-letter country codes PointerTurn is offered in, e.g. "AU". Empty: no restriction.
+      // Two-letter country codes PointerPath is offered in, e.g. "AU". Empty: no restriction.
       allowed: (env.ALLOWED_COUNTRIES || '')
         .split(',')
         .map((c) => c.trim().toUpperCase())

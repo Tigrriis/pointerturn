@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-  Build the PointerTurn installer: artifacts\PointerTurn-<version>-setup.exe.
+  Build the PointerPath installer: artifacts\PointerPath-<version>-setup.exe.
 
 .DESCRIPTION
   Run from the repo folder, on a PC with the .NET 8 SDK:
@@ -18,7 +18,7 @@
      of its kind on this PC (or a folder holding those two files, see -BricsCADNet48Dir and
      -BricsCADNet8Dir). Each build is compiled against the oldest BricsCAD of its kind found.
   3. Lays the builds out in artifacts\stage the way the installer installs them.
-  4. Compiles installer\PointerTurn.iss with Inno Setup, which is fetched from NuGet into
+  4. Compiles installer\PointerPath.iss with Inno Setup, which is fetched from NuGet into
      artifacts\tools the first time (nothing to install).
 
   A release must hold all four builds. To try the installer on a PC without both kinds of
@@ -80,7 +80,7 @@ $repo = Split-Path -Parent $PSScriptRoot
 $artifacts = [IO.Path]::Combine($repo, "artifacts")
 if (-not $OutputDir) { $OutputDir = $artifacts }
 $stage = [IO.Path]::Combine($artifacts, "stage")
-$bundle = [IO.Path]::Combine($stage, "AutoCAD", "PointerTurn.bundle")
+$bundle = [IO.Path]::Combine($stage, "AutoCAD", "PointerPath.bundle")
 
 function Write-Step([string]$text) { Write-Host ""; Write-Host "== $text" -ForegroundColor Cyan }
 
@@ -137,7 +137,7 @@ if (-not $Version) {
 
 if ($Version -notmatch "^\d+\.\d+\.\d+$") { Stop-Build "The version must be three numbers, like 1.2.0 (got '$Version')." }
 $versionProp = "-p:Version=$Version"
-Write-Host "PointerTurn $Version"
+Write-Host "PointerPath $Version"
 
 # ---------------------------------------------------------------- licence
 # The installer's add-in asks for a licence: it is built with -p:Licensed=true, which compiles
@@ -147,18 +147,18 @@ if ($Unlicensed) {
     $licensedProp = "-p:Licensed=false"
     Write-Warning "This installer's add-in does not ask for a licence (-Unlicensed). Not for a release."
 } else {
-    $licenceBuild = Get-Content ([IO.Path]::Combine($repo, "src", "PointerTurn.Core", "Licensing", "LicenceBuild.cs")) -Raw
+    $licenceBuild = Get-Content ([IO.Path]::Combine($repo, "src", "PointerPath.Core", "Licensing", "LicenceBuild.cs")) -Raw
     $licensedPart = ($licenceBuild -split "#else")[0]
     $unset = @("Website", "PublicKeyX", "PublicKeyY") | Where-Object { $licensedPart -notmatch "const string $_ = `"[^`"]+`";" }
     if ($unset) {
-        Stop-Build ("src\PointerTurn.Core\Licensing\LicenceBuild.cs has no value for " + ($unset -join ", ") + " in its licensed part. Fill them in (see docs/licensing.md), or pass -Unlicensed.")
+        Stop-Build ("src\PointerPath.Core\Licensing\LicenceBuild.cs has no value for " + ($unset -join ", ") + " in its licensed part. Fill them in (see docs/licensing.md), or pass -Unlicensed.")
     }
 }
 
 # ---------------------------------------------------------------- tests
 if (-not $SkipTests) {
     Write-Step "Running the unit tests"
-    Invoke-DotNet test ([IO.Path]::Combine($repo, "tests", "PointerTurn.Core.Tests")) -c Release -nologo -v q
+    Invoke-DotNet test ([IO.Path]::Combine($repo, "tests", "PointerPath.Core.Tests")) -c Release -nologo -v q
 }
 
 if (Test-Path $stage) { Remove-Item $stage -Recurse -Force }
@@ -168,17 +168,17 @@ $missing = @()
 
 # ---------------------------------------------------------------- AutoCAD
 Write-Step "Building for AutoCAD (2021 to 2024, and 2025 and later)"
-$autocad = [IO.Path]::Combine($repo, "src", "PointerTurn.AutoCAD")
+$autocad = [IO.Path]::Combine($repo, "src", "PointerPath.AutoCAD")
 Invoke-DotNet build $autocad -c Release -nologo -v q $versionProp $licensedProp
 $autocadOut = [IO.Path]::Combine($autocad, "bin", "Release")
-Copy-Build ([IO.Path]::Combine($autocadOut, "net48")) ([IO.Path]::Combine($bundle, "Contents", "net48")) "PointerTurn.AutoCAD.dll"
-Copy-Build ([IO.Path]::Combine($autocadOut, "net8.0-windows")) ([IO.Path]::Combine($bundle, "Contents", "net8")) "PointerTurn.AutoCAD.dll"
+Copy-Build ([IO.Path]::Combine($autocadOut, "net48")) ([IO.Path]::Combine($bundle, "Contents", "net48")) "PointerPath.AutoCAD.dll"
+Copy-Build ([IO.Path]::Combine($autocadOut, "net8.0-windows")) ([IO.Path]::Combine($bundle, "Contents", "net8")) "PointerPath.AutoCAD.dll"
 $built += "AutoCAD 2021 to 2024", "AutoCAD 2025 and later"
 
 # The bundle's manifest. Its product code is made from the version, so it is the same every
 # time a version is built and different for every version.
 $md5 = [Security.Cryptography.MD5]::Create()
-$productCode = (New-Object Guid (, $md5.ComputeHash([Text.Encoding]::UTF8.GetBytes("PointerTurn $Version")))).ToString().ToUpperInvariant()
+$productCode = (New-Object Guid (, $md5.ComputeHash([Text.Encoding]::UTF8.GetBytes("PointerPath $Version")))).ToString().ToUpperInvariant()
 $manifest = Get-Content ([IO.Path]::Combine($PSScriptRoot, "PackageContents.xml")) -Raw
 $manifest = $manifest.Replace("@VERSION@", $Version).Replace("@PRODUCTCODE@", $productCode)
 [IO.File]::WriteAllText([IO.Path]::Combine($bundle, "PackageContents.xml"), $manifest, (New-Object Text.UTF8Encoding $false))
@@ -191,7 +191,7 @@ foreach ($module in [regex]::Matches($manifest, 'ModuleName="\./([^"]+)"')) {
 
 # ---------------------------------------------------------------- BricsCAD
 $installed = Get-BricsCAD
-$bricscad = [IO.Path]::Combine($repo, "src", "PointerTurn.BricsCAD")
+$bricscad = [IO.Path]::Combine($repo, "src", "PointerPath.BricsCAD")
 $kinds = @(
     @{ Name = "BricsCAD V24 and V25"; Folder = "net48"; Dir = $BricsCADNet48Dir; Default = 25; Param = "-BricsCADNet48Dir"
        Pick = { param($v) $v -ge 24 -and $v -le 25 } },
@@ -223,7 +223,7 @@ foreach ($kind in $kinds) {
 
     Write-Host "Using the BricsCAD V$api API in $dir"
     Invoke-DotNet build $bricscad -c Release -nologo -v q $versionProp $licensedProp "-p:BricsCADVersion=$api" "-p:BricsCADDir=$dir"
-    Copy-Build ([IO.Path]::Combine($bricscad, "bin", "Release", "V$api")) ([IO.Path]::Combine($stage, "BricsCAD", $kind.Folder)) "PointerTurn.BricsCAD.dll"
+    Copy-Build ([IO.Path]::Combine($bricscad, "bin", "Release", "V$api")) ([IO.Path]::Combine($stage, "BricsCAD", $kind.Folder)) "PointerPath.BricsCAD.dll"
     $built += $kind.Name
 }
 
@@ -258,8 +258,8 @@ else {
 }
 
 New-Item -ItemType Directory -Path $OutputDir -Force | Out-Null
-$script = [IO.Path]::Combine($PSScriptRoot, "PointerTurn.iss")
-$setup = [IO.Path]::Combine($OutputDir, "PointerTurn-$Version-setup.exe")
+$script = [IO.Path]::Combine($PSScriptRoot, "PointerPath.iss")
+$setup = [IO.Path]::Combine($OutputDir, "PointerPath-$Version-setup.exe")
 if (Test-Path $setup) { Remove-Item $setup -Force }
 
 if ($onWindows) {

@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-  Update PointerTurn in BricsCAD: get the latest code, build it, and install it.
+  Update PointerPath in BricsCAD: get the latest code, build it, and install it.
 
 .DESCRIPTION
   Run from the repo folder:
@@ -13,7 +13,7 @@
   3. If the installed add-in is in use, waits until you close BricsCAD (Windows
      locks a loaded add-in), then copies the build to -InstallDir.
 
-  Not touched: your saved defaults and settings.json (%APPDATA%\PointerTurn). If the
+  Not touched: your saved defaults and settings.json (%APPDATA%\PointerPath). If the
   installed turn-paths.json was edited and differs from the repo copy, the installed
   one is saved as .bak before it is replaced.
 
@@ -27,12 +27,12 @@
   .\install\Update.ps1 -Unattended
   For scheduled runs (see Register-AutoUpdate.ps1): never prompts, does nothing if
   already up to date, skips the update if BricsCAD has the add-in loaded (it will
-  try again next time), and logs to %LOCALAPPDATA%\PointerTurn\logs\update.log.
+  try again next time), and logs to %LOCALAPPDATA%\PointerPath\logs\update.log.
 #>
 [CmdletBinding()]
 param(
     # Where BricsCAD loads the add-in from.
-    [string]$InstallDir = "C:\PointerTurn",
+    [string]$InstallDir = "C:\PointerPath",
 
     # Build for this BricsCAD version instead of the newest one installed.
     [int]$BricsCADVersion,
@@ -61,12 +61,12 @@ $stampName = "installed-commit.txt"
 
 if ($Unattended) {
     $logRoot = if ($env:LOCALAPPDATA) { $env:LOCALAPPDATA } else { [IO.Path]::GetTempPath() }
-    $logDir = [IO.Path]::Combine($logRoot, "PointerTurn", "logs")
+    $logDir = [IO.Path]::Combine($logRoot, "PointerPath", "logs")
     New-Item -ItemType Directory -Path $logDir -Force | Out-Null
     Start-Transcript -Path (Join-Path $logDir "update.log") -Append | Out-Null
-    Write-Host "PointerTurn unattended update, $(Get-Date -Format 'yyyy-MM-dd HH:mm')"
+    Write-Host "PointerPath unattended update, $(Get-Date -Format 'yyyy-MM-dd HH:mm')"
 }
-$project = [IO.Path]::Combine($repo, "src", "PointerTurn.BricsCAD", "PointerTurn.BricsCAD.csproj")
+$project = [IO.Path]::Combine($repo, "src", "PointerPath.BricsCAD", "PointerPath.BricsCAD.csproj")
 
 function Write-Step([string]$text) { Write-Host ""; Write-Host "== $text" -ForegroundColor Cyan }
 
@@ -110,7 +110,7 @@ function Test-FileLocked([string]$path) {
     }
 }
 
-if (-not (Test-Path $project)) { Stop-Update "Can't find $project. Run this script from the PointerTurn repo." }
+if (-not (Test-Path $project)) { Stop-Update "Can't find $project. Run this script from the PointerPath repo." }
 if (-not (Get-Command dotnet -ErrorAction SilentlyContinue)) { Stop-Update "The .NET SDK (dotnet) is not installed or not on PATH." }
 
 # Extra build settings passed through to the project.
@@ -130,7 +130,7 @@ if (-not $SkipPull) {
 }
 
 $commit = Get-Commit
-$installedDll = Join-Path $InstallDir "PointerTurn.BricsCAD.dll"
+$installedDll = Join-Path $InstallDir "PointerPath.BricsCAD.dll"
 $stamp = Join-Path $InstallDir $stampName
 if ($Unattended) {
     if ($commit -and (Test-Path $installedDll) -and (Test-Path $stamp) -and ((Get-Content $stamp -Raw).Trim() -eq $commit)) {
@@ -158,9 +158,9 @@ Write-Step "Building for BricsCAD V$version"
 & dotnet build $project -c Release -nologo @buildProps
 if ($LASTEXITCODE -ne 0) { Stop-Update "Build failed (see the errors above). Nothing was copied; your installed add-in is unchanged." }
 
-$outDir = [IO.Path]::Combine($repo, "src", "PointerTurn.BricsCAD", "bin", "Release", "V$version")
-if (-not (Test-Path (Join-Path $outDir "PointerTurn.BricsCAD.dll"))) {
-    Stop-Update "The build finished but PointerTurn.BricsCAD.dll is not in $outDir."
+$outDir = [IO.Path]::Combine($repo, "src", "PointerPath.BricsCAD", "bin", "Release", "V$version")
+if (-not (Test-Path (Join-Path $outDir "PointerPath.BricsCAD.dll"))) {
+    Stop-Update "The build finished but PointerPath.BricsCAD.dll is not in $outDir."
 }
 
 # ---------------------------------------------------------------- 3. install
@@ -184,7 +184,7 @@ foreach ($pair in @(, @("turn-paths.json", "turn_paths_file"))) {
         ((Get-FileHash $installed).Hash -ne (Get-FileHash $new).Hash)) {
         Copy-Item $installed "$installed.bak" -Force
         Write-Host "The installed $file was different from the repo copy, so it was saved as $file.bak." -ForegroundColor Yellow
-        Write-Host "To keep your edits across updates, put them in src\PointerTurn.BricsCAD\$file in the repo, or set $($pair[1]) in settings.json." -ForegroundColor Yellow
+        Write-Host "To keep your edits across updates, put them in src\PointerPath.BricsCAD\$file in the repo, or set $($pair[1]) in settings.json." -ForegroundColor Yellow
     }
 }
 
@@ -205,5 +205,5 @@ if ($RegisterAutoload) {
 }
 
 Write-Host ""
-Write-Host "Done: PointerTurn for BricsCAD V$version is installed in $InstallDir." -ForegroundColor Green
+Write-Host "Done: PointerPath for BricsCAD V$version is installed in $InstallDir." -ForegroundColor Green
 Write-Host "Start BricsCAD. If it doesn't load automatically, run NETLOAD and pick $installedDll"

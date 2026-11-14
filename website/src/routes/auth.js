@@ -66,7 +66,7 @@ module.exports = function auth({ db, mailer, geo, log, authLimiter }) {
     if (password.length < MIN_PASSWORD) {
       return res.status(400).render('signup', { error: `Choose a password of at least ${MIN_PASSWORD} characters.`, email });
     }
-    // Where PointerTurn is restricted to some countries, the person says they are in one.
+    // Where PointerPath is restricted to some countries, the person says they are in one.
     if (geo.restricted && req.body.in_region !== 'yes') {
       return res.status(400).render('signup', { error: `Tick the box to confirm you are in ${geo.where}.`, email });
     }

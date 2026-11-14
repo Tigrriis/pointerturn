@@ -1,14 +1,14 @@
 <#
 .SYNOPSIS
-  Keep PointerTurn up to date automatically (current Windows user only).
+  Keep PointerPath up to date automatically (current Windows user only).
 
 .DESCRIPTION
-  Creates a Windows scheduled task, "PointerTurn auto-update", that runs
+  Creates a Windows scheduled task, "PointerPath auto-update", that runs
   Update.ps1 -Unattended when you log in and once a day. Each run:
     - pulls the latest code; does nothing more if nothing changed
     - skips the update if BricsCAD has the add-in loaded (tries again next run)
     - otherwise builds and installs it; BricsCAD uses it from its next start
-  Output goes to %LOCALAPPDATA%\PointerTurn\logs\update.log.
+  Output goes to %LOCALAPPDATA%\PointerPath\logs\update.log.
 
 .EXAMPLE
   powershell -ExecutionPolicy Bypass -File install\Register-AutoUpdate.ps1
@@ -21,7 +21,7 @@
 #>
 param(
     # Must match where the add-in is installed.
-    [string]$InstallDir = "C:\PointerTurn",
+    [string]$InstallDir = "C:\PointerPath",
 
     # Time of the daily run (24-hour). Runs when the PC is next on if it was off.
     [string]$DailyAt = "07:30",
@@ -30,7 +30,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$taskName = "PointerTurn auto-update"
+$taskName = "PointerPath auto-update"
 
 if ($Remove) {
     if (Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue) {
@@ -59,8 +59,8 @@ $settings = New-ScheduledTaskSettingsSet -StartWhenAvailable -AllowStartIfOnBatt
 $principal = New-ScheduledTaskPrincipal -UserId $user -LogonType Interactive -RunLevel Limited
 
 Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $triggers -Settings $settings -Principal $principal `
-    -Description "Pulls, builds and installs the latest PointerTurn add-in for BricsCAD." -Force | Out-Null
+    -Description "Pulls, builds and installs the latest PointerPath add-in for BricsCAD." -Force | Out-Null
 
 Write-Host "Scheduled '$taskName': at log on and daily at $DailyAt."
-Write-Host "Log: $env:LOCALAPPDATA\PointerTurn\logs\update.log"
+Write-Host "Log: $env:LOCALAPPDATA\PointerPath\logs\update.log"
 Write-Host "Run it now with:  Start-ScheduledTask -TaskName '$taskName'"

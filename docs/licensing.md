@@ -1,15 +1,15 @@
 # Licensing
 
-How PointerTurn checks that it is licensed. The website side (accounts, sales, the licence API)
+How PointerPath checks that it is licensed. The website side (accounts, sales, the licence API)
 is in [website/README.md](../website/README.md); this is the add-in side.
 
 ## What the user sees
 
 - The first time a drawing command (`PTPATH`, `PTSOLVE`, `PTINOUT`, `PTEDIT`, `PTCLEARANCE`) is
-  run on a computer, a dialog asks for the email address and password of a PointerTurn account.
+  run on a computer, a dialog asks for the email address and password of a PointerPath account.
   Signing in succeeds if the account has an active licence with a free place.
 - After that the commands just run. The computer stays signed in across restarts.
-- `PTLICENCE` (ribbon: **Account > Licence**) shows who is signed in and until when PointerTurn
+- `PTLICENCE` (ribbon: **Account > Licence**) shows who is signed in and until when PointerPath
   works without a connection, and signs the computer out. `PTLICENSE` is the same command.
 - `PTRIBBON` needs no licence.
 
@@ -17,13 +17,13 @@ is in [website/README.md](../website/README.md); this is the add-in side.
 
 Signing in sends the email, password, an identifier for the computer and a name for it to the
 website (`POST /api/v1/activate`). The website sends back two things, which are saved in
-`%LOCALAPPDATA%\PointerTurn\licence.json`. The password is not kept.
+`%LOCALAPPDATA%\PointerPath\licence.json`. The password is not kept.
 
 - **A signed licence.** A small signed statement of which account and which computer it is for,
   and when it runs out: 14 days from when it was issued, unless the website is set otherwise.
-  PointerTurn checks the signature against a public key compiled into it, so it needs no
+  PointerPath checks the signature against a public key compiled into it, so it needs no
   connection to know the licence is real.
-- **An activation token.** What "signed in" means. PointerTurn trades it for a fresh signed
+- **An activation token.** What "signed in" means. PointerPath trades it for a fresh signed
   licence (`POST /api/v1/refresh`) in the background, when it loads and when a command runs, if
   the one it holds is more than 20 hours old.
 
@@ -31,7 +31,7 @@ So a computer that is online every so often never notices. One that is offline k
 until the licence it holds runs out, then asks to be connected.
 
 A command is allowed to run when the saved licence has a valid signature, is for this computer,
-and has not run out. If it has run out but the computer is signed in, PointerTurn tries one
+and has not run out. If it has run out but the computer is signed in, PointerPath tries one
 refresh before asking for the password again.
 
 The licence is given up straight away, without waiting for it to run out, when a refresh is
@@ -43,7 +43,7 @@ answered with:
 
 With no connection, or an answer that makes no sense, nothing changes.
 
-The website can be set to offer PointerTurn in some countries only (Australia, as deployed).
+The website can be set to offer PointerPath in some countries only (Australia, as deployed).
 Signing in from anywhere else is refused. A computer already signed in that asks for a fresh
 licence from elsewhere is refused one (`region_not_allowed`) but keeps the one it holds until
 it runs out, so a short trip abroad doesn't cut anyone off. The add-in itself doesn't try to
@@ -54,22 +54,22 @@ Two details:
 - **The computer's identifier** is a hash of Windows' machine GUID and the Windows user, so
   nothing about the PC is sent, and each Windows user on a shared PC takes their own place on
   the licence. The name shown on the account page is the computer's name and the user's name.
-- **The clock.** The latest time PointerTurn has seen is saved with the licence. Setting the
+- **The clock.** The latest time PointerPath has seen is saved with the licence. Setting the
   clock back to before it does not make an expired licence work again.
 
 ## The code
 
 | | |
 |---|---|
-| `src/PointerTurn.Core/Licensing/LicenceBuild.cs` | The website's address and public key this build is tied to |
+| `src/PointerPath.Core/Licensing/LicenceBuild.cs` | The website's address and public key this build is tied to |
 | `…/SignedLicence.cs` | Reads a signed licence and checks its signature (ES256) |
 | `…/LicenceStore.cs` | The saved file |
 | `…/LicenceServer.cs` | The three calls to the website |
 | `…/LicenceManager.cs` | Where a computer stands; signing in, refreshing, signing out |
-| `src/PointerTurn.BricsCAD/Licence.cs` | The check in front of the commands, the computer's identifier, the background refresh |
-| `src/PointerTurn.BricsCAD/LicenceDialog.cs` | The sign-in dialog |
+| `src/PointerPath.BricsCAD/Licence.cs` | The check in front of the commands, the computer's identifier, the background refresh |
+| `src/PointerPath.BricsCAD/LicenceDialog.cs` | The sign-in dialog |
 
-Everything in Core is unit-tested (`tests/PointerTurn.Core.Tests/LicensingTests.cs`), including
+Everything in Core is unit-tested (`tests/PointerPath.Core.Tests/LicensingTests.cs`), including
 reading a licence signed the way the website signs them.
 
 ## Licensed builds and source builds
@@ -101,7 +101,8 @@ Two things are fixed once an installer is in customers' hands, because each buil
 to the address, and only accepts licences signed by the key, compiled into it:
 
 - **The key.** Changing the website's `LICENCE_SIGNING_KEY` stops every installed copy working.
-- **The address.** If the website moves (to its own domain, say), keep the old address working
+- **The address.** It currently carries the product's earlier name (`pointerturn-website-…`),
+  because that is the address Render gave the site. If the website moves (to its own domain, say), keep the old address working
   for the builds already out, and put the new one in `LicenceBuild.cs` for the next release.
 
 ## Limits

@@ -51,7 +51,7 @@ module.exports = function api({ db, licences }) {
   router.post('/refresh', async (req, res) => {
     const token = text(req.body?.activation_token, 200);
     if (!token) return reply(res, { error: 'invalid_request' });
-    // From outside the countries PointerTurn is offered in, no new licence is issued. The
+    // From outside the countries PointerPath is offered in, no new licence is issued. The
     // one the computer holds is left to run out, so a short trip abroad doesn't cut it off.
     if (!req.region.allowed) return reply(res, { error: 'region_not_allowed' });
     reply(res, await licences.refresh(token, { country: req.region.country }));

@@ -1,6 +1,6 @@
-# PointerTurn website
+# PointerPath website
 
-The public site for PointerTurn: it describes the product, sells one licence through Stripe,
+The public site for PointerPath: it describes the product, sells one licence through Stripe,
 hands out the installer, and runs the licence API the add-in signs in to.
 
 - **Accounts.** Sign up with an email and password, confirm the address by email (Resend),
@@ -37,7 +37,7 @@ terminal instead of sent.
 To run the tests, point `TEST_DATABASE_URL` at a database that can be wiped:
 
 ```bash
-TEST_DATABASE_URL=postgres://postgres@localhost:5432/pointerturn_test npm test
+TEST_DATABASE_URL=postgres://postgres@localhost:5432/pointerpath_test npm test
 ```
 
 They drive the real app over HTTP: sign-up, sign-in, password reset, buying (with a stand-in for
@@ -57,7 +57,7 @@ All settings are environment variables. `.env.example` lists them with comments.
 | `STRIPE_AUTOMATIC_TAX` | No | `1` to have Stripe Tax work out GST at checkout |
 | `RESEND_API_KEY`, `EMAIL_FROM` | To send email | Resend API key and the From address (on a domain verified in Resend) |
 | `PLAUSIBLE_SCRIPT_URL` or `PLAUSIBLE_DOMAIN` | No | The script address from Plausible's installation page, or (older snippet) the site's domain |
-| `ALLOWED_COUNTRIES` | No | Two-letter country codes PointerTurn is offered in, e.g. `AU`. See [Restricting to a country](#restricting-to-a-country) |
+| `ALLOWED_COUNTRIES` | No | Two-letter country codes PointerPath is offered in, e.g. `AU`. See [Restricting to a country](#restricting-to-a-country) |
 | `INSTALLER_URL`, `INSTALLER_VERSION` | To offer the download | Where the installer is hosted, and the version shown beside the button |
 | `LICENCE_MAX_MACHINES` | No | Computers one licence can be active on at once. Default 2. Applies to licences sold after it is changed |
 | `LICENCE_TOKEN_DAYS` | No | How long a signed licence works before the add-in must reach the server again. Default 14 |
@@ -86,16 +86,16 @@ What to set up in the other services:
 3. **Resend.** Verify your sending domain, then set `RESEND_API_KEY` and `EMAIL_FROM`.
 4. **Plausible.** Add the site, set `PLAUSIBLE_SCRIPT_URL`, and add the goals `Signup`,
    `Purchase` and `Download`.
-5. **Installer.** Upload `PointerTurn-<version>-setup.exe` somewhere a browser can download it
+5. **Installer.** Upload `PointerPath-<version>-setup.exe` somewhere a browser can download it
    from (a public release, or a storage bucket) and set `INSTALLER_URL`.
 
 ## Restricting to a country
 
-With `ALLOWED_COUNTRIES` set (`AU` in `render.yaml`), PointerTurn is offered only there:
+With `ALLOWED_COUNTRIES` set (`AU` in `render.yaml`), PointerPath is offered only there:
 
 - **The site** can still be read from anywhere, but from outside the buy buttons are gone and a
   notice says where it is available. Signing up, buying and downloading are refused.
-- **Signing up** needs a ticked declaration: "I am in Australia and will use PointerTurn only in
+- **Signing up** needs a ticked declaration: "I am in Australia and will use PointerPath only in
   Australia". When it was ticked, and the country, are kept with the account.
 - **Buying** has Stripe collect the billing address. The country the buyer's connection was in
   and the billing address's country are kept with the licence.
@@ -164,7 +164,7 @@ signed in keeps its place and replaces its activation token.
 | 400 | `invalid_request` | A field is missing |
 | 401 | `invalid_credentials` | Wrong email or password |
 | 403 | `email_not_verified` | The account's email address hasn't been confirmed |
-| 403 | `region_not_allowed` | The request came from outside the countries PointerTurn is offered in |
+| 403 | `region_not_allowed` | The request came from outside the countries PointerPath is offered in |
 | 402 | `no_licence` | The account has no active licence |
 | 409 | `machine_limit` | The licence is in use on its maximum number of computers. The reply lists them in `machines`; the user frees one on their account page |
 | 429 | | Too many attempts; try later |
@@ -190,9 +190,9 @@ The public key licences are signed with, as PEM and JWK, with its key ID.
 `r‖s` form that .NET's `ECDsa.VerifyData` expects). The add-in, with the public key built in:
 
 1. Splits the token on `.`, and verifies the signature over `header.payload`.
-2. Checks `iss` is `pointerturn`, `mid` is this computer's `machine_id`, and `exp` is in the future.
+2. Checks `iss` is `pointerpath`, `mid` is this computer's `machine_id`, and `exp` is in the future.
 
-A licence that passes lets PointerTurn run with no connection until `exp`. If the licence has
+A licence that passes lets PointerPath run with no connection until `exp`. If the licence has
 ended, `refresh` is refused and the program stops working when the last signed licence expires:
 at most `LICENCE_TOKEN_DAYS` after the cancellation or refund.
 

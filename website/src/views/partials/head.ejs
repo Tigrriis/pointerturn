@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title><%= locals.title ? title + ' · PointerTurn' : 'PointerTurn: vehicle turning paths for BricsCAD and AutoCAD' %></title>
-<meta name="description" content="PointerTurn draws vehicle swept paths and clearances inside BricsCAD and AutoCAD.">
+<title><%= locals.title ? title + ' · PointerPath' : 'PointerPath: vehicle turning paths for BricsCAD and AutoCAD' %></title>
+<meta name="description" content="PointerPath draws vehicle swept paths and clearances inside BricsCAD and AutoCAD.">
 <link rel="icon" href="/brand/icon.svg" type="image/svg+xml">
 <link rel="icon" href="/brand/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="/brand/apple-touch-icon.png">
@@ -23,7 +23,7 @@
 <body<% if (pageEvent) { %> data-page-event="<%= pageEvent %>"<% } %><% if (plausible.scriptUrl) { %> data-plausible-init<% } %>>
 <header class="site-header">
 <div class="wrap site-header__row">
-<a class="logo" href="/"><img src="/brand/lockup.svg" alt="PointerTurn" width="162" height="44"></a>
+<a class="logo" href="/"><img src="/brand/lockup.svg" alt="PointerPath" width="167" height="44"></a>
 <nav class="nav" aria-label="Main">
 <a href="/#features">Features</a>
 <a href="/#vehicles">Vehicles</a>
@@ -41,5 +41,5 @@
 </div>
 </header>
 <main>
-<% if (region.blocked) { %><div class="wrap"><p class="flash" role="status">PointerTurn is available in <%= region.where %> only. Buying, downloading and activating it are switched off where you appear to be.</p></div><% } %>
+<% if (region.blocked) { %><div class="wrap"><p class="flash" role="status">PointerPath is available in <%= region.where %> only. Buying, downloading and activating it are switched off where you appear to be.</p></div><% } %>
 <% if (flash) { %><div class="wrap"><p class="flash" role="status"><%= flash %></p></div><% } %>

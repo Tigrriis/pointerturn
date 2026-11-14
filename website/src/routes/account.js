@@ -64,7 +64,7 @@ module.exports = function account({ config, stripe, licences, billing }) {
   router.post('/account/machines/:id/deactivate', requireLogin, async (req, res) => {
     if (/^\d+$/.test(req.params.id)) {
       await licences.deactivateForUser(req.user.id, req.params.id);
-      req.session.flash = 'That computer has been signed out of PointerTurn.';
+      req.session.flash = 'That computer has been signed out of PointerPath.';
     }
     res.redirect('/account');
   });

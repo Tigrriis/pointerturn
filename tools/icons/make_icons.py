@@ -1,4 +1,4 @@
-"""Generate the ribbon icons in src/PointerTurn.BricsCAD/Resources.
+"""Generate the ribbon icons in src/PointerPath.BricsCAD/Resources.
 
 Run from the repo root:  python tools/icons/make_icons.py   (needs Pillow)
 
@@ -11,7 +11,7 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw
 
-OUT = Path(__file__).resolve().parents[2] / "src" / "PointerTurn.BricsCAD" / "Resources"
+OUT = Path(__file__).resolve().parents[2] / "src" / "PointerPath.BricsCAD" / "Resources"
 S = 256  # drawing canvas; 8x the large size
 
 BLUE = (59, 130, 246, 255)

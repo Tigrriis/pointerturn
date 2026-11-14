@@ -116,7 +116,7 @@ function createApp({ config, db, stripe, mailer, log = console }) {
       res.locals.plausible = config.plausible;
       res.locals.path = req.path;
       res.locals.pageEvent = null;
-      // Where the visitor is, when PointerTurn is restricted to some countries.
+      // Where the visitor is, when PointerPath is restricted to some countries.
       req.region = geo.check(req);
       res.locals.region = { restricted: geo.restricted, where: geo.where, blocked: !req.region.allowed };
       res.locals.flash = req.session.flash || null;

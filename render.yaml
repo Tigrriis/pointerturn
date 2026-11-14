@@ -1,7 +1,11 @@
-# Render Blueprint for the PointerTurn website (the code in website/).
+# Render Blueprint for the PointerPath website (the code in website/).
 # Creates one web service and one Postgres database. Values marked `sync: false`
 # are secrets or settings Render asks for when the Blueprint is first applied.
 # See website/README.md, "Deploying on Render".
+
+# The resource names below still carry the product's earlier name, PointerTurn. They are left
+# alone on purpose: changing a name here makes Render create a new service or database, with
+# a new address and an empty database, rather than rename the one that exists.
 
 services:
   - type: web

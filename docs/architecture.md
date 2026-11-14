@@ -1,16 +1,16 @@
-# PointerTurn design notes
+# PointerPath design notes
 
 ## Three projects
 
 | Project | What it is | Targets |
 |---|---|---|
-| `PointerTurn.Core` | Everything that doesn't need a CAD program: design vehicles, the simulation, the swept path, the solver, conflicts, the ground clearance check, and turning the results into entities to draw. All of it is unit-tested. | `netstandard2.0` and `net8.0` |
-| `PointerTurn.BricsCAD` | The add-in: commands, dialogs, the live preview, the ribbon, reading and drawing in the CAD program, and saving each path's inputs in the drawing. | `net48` for BricsCAD V24/V25, `net8.0-windows` for V26 and later |
-| `PointerTurn.AutoCAD` | The same add-in for AutoCAD. A project file and nothing else: it compiles the source in `PointerTurn.BricsCAD` with `AUTOCAD` defined. | `net48` for AutoCAD 2021 to 2024, `net8.0-windows` for 2025 and later |
+| `PointerPath.Core` | Everything that doesn't need a CAD program: design vehicles, the simulation, the swept path, the solver, conflicts, the ground clearance check, and turning the results into entities to draw. All of it is unit-tested. | `netstandard2.0` and `net8.0` |
+| `PointerPath.BricsCAD` | The add-in: commands, dialogs, the live preview, the ribbon, reading and drawing in the CAD program, and saving each path's inputs in the drawing. | `net48` for BricsCAD V24/V25, `net8.0-windows` for V26 and later |
+| `PointerPath.AutoCAD` | The same add-in for AutoCAD. A project file and nothing else: it compiles the source in `PointerPath.BricsCAD` with `AUTOCAD` defined. | `net48` for AutoCAD 2021 to 2024, `net8.0-windows` for 2025 and later |
 
 Core has two targets because BricsCAD V24/V25 and AutoCAD up to 2024 run on .NET Framework 4.8,
 and BricsCAD V26 and AutoCAD 2025 onwards on .NET 8. The BricsCAD add-in builds against one
-BricsCAD version at a time (see the comment at the top of `PointerTurn.BricsCAD.csproj`), from
+BricsCAD version at a time (see the comment at the top of `PointerPath.BricsCAD.csproj`), from
 the API files in a BricsCAD install. The AutoCAD add-in builds both of its targets at once, from
 Autodesk's `AutoCAD.NET` NuGet package, each against the oldest release it supports.
 
@@ -28,8 +28,8 @@ differs is small, and is either in `Host.cs` or under `#if AUTOCAD` where it is 
 - TIN surfaces, reached by reflection in both: BricsCAD's `TinSurfaceStatic`, Civil 3D's
   `TinSurface`. Plain AutoCAD has no surfaces, so there the check works on a long section only.
 
-The namespace in the source is `PointerTurn.BricsCAD` for both builds; only the DLL is named for
-the program (`PointerTurn.BricsCAD.dll`, `PointerTurn.AutoCAD.dll`).
+The namespace in the source is `PointerPath.BricsCAD` for both builds; only the DLL is named for
+the program (`PointerPath.BricsCAD.dll`, `PointerPath.AutoCAD.dll`).
 
 Core works in **metres**, always. `DrawingUnits` converts at the edges: points, curves, obstructions
 and surface levels from the drawing are scaled on the way in, and everything drawn is scaled on the
@@ -95,8 +95,8 @@ A command runs like this, all on BricsCAD's main thread and as one UNDO step:
 ### What is kept in the drawing
 
 - Every entity of a path carries the path's id as extended data, under the application name
-  `POINTERTURN`.
-- The path's record is an Xrecord in the dictionary `POINTERTURN_PATHS` in the drawing's named
+  `POINTERPATH`.
+- The path's record is an Xrecord in the dictionary `POINTERPATH_PATHS` in the drawing's named
   objects dictionary, keyed by that id. The JSON is split into 240 character pieces.
 - Paths drawn by CSD-Bridge used `CSDBRIDGE_TURN` and `CSDBRIDGE_TURNPATHS`. Those are still read,
   so the paths can be edited. An edited path is saved under the new names.
@@ -111,8 +111,8 @@ saved in the user's profile and needs no connection. [licensing.md](licensing.md
 
 The turning path conventions are read from the first of these that exists:
 
-1. the file named by `turn_paths_file` in `%APPDATA%\PointerTurn\settings.json`;
-2. `%APPDATA%\PointerTurn\turn-paths.json`, written by **Save as defaults**;
+1. the file named by `turn_paths_file` in `%APPDATA%\PointerPath\settings.json`;
+2. `%APPDATA%\PointerPath\turn-paths.json`, written by **Save as defaults**;
 3. `%APPDATA%\CsdBridge\turn-paths.json`, a copy saved from CSD-Bridge (read only);
 4. `turn-paths.json` next to the add-in DLL.
 
@@ -134,7 +134,7 @@ None of the add-in has been run in BricsCAD or AutoCAD yet. In this order, in Br
 (then steps 2 to 7 again in AutoCAD, with a Civil 3D surface for step 7):
 
 1. **It builds** against the installed BricsCAD, for V26 and for V24/V25 if both are in use.
-2. **It loads**: `NETLOAD` the DLL. The command line should say `PointerTurn loaded` and the ribbon
+2. **It loads**: `NETLOAD` the DLL. The command line should say `PointerPath loaded` and the ribbon
    tab should appear.
 3. **`PTPATH`, template**: a B99 90 degree turn in a metre drawing, then the same in a millimetre
    drawing. Check the layers, the radius and that it is one UNDO step.
@@ -144,7 +144,7 @@ None of the add-in has been run in BricsCAD or AutoCAD yet. In this order, in Br
 6. **`PTEDIT`**: regenerate a path, change its vehicle, and edit one drawn as a block that has been
    moved. Then a path that was drawn by CSD-Bridge.
 7. **`PTCLEARANCE`**: on a plotted long section, then on a BricsCAD TIN surface.
-8. **Both add-ins together**: load CSD-Bridge and PointerTurn in the same session.
+8. **Both add-ins together**: load CSD-Bridge and PointerPath in the same session.
 9. **A truck**: the 19 m semi-trailer at 12.5 m, overlaid on the Austroads turning template.
 10. **Reversing a truck**: `PTPATH`, Drive, the 19 m semi-trailer: a leg forward, then a click behind
     the trailer, then one with an arrival direction. Check the live preview keeps up, and that a

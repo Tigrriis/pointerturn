@@ -1,17 +1,17 @@
-# Packaging PointerTurn
+# Packaging PointerPath
 
-One installer, `PointerTurn-<version>-setup.exe`, for BricsCAD and AutoCAD. It holds four builds
+One installer, `PointerPath-<version>-setup.exe`, for BricsCAD and AutoCAD. It holds four builds
 of the add-in and decides nothing at install time: every build is installed, and each CAD program
 loads the one meant for it.
 
 | Build | For | Runs on |
 |---|---|---|
-| `BricsCAD\net48\PointerTurn.BricsCAD.dll` | BricsCAD V24 and V25 | .NET Framework 4.8 |
-| `BricsCAD\net8\PointerTurn.BricsCAD.dll` | BricsCAD V26 and later | .NET 8 |
-| `PointerTurn.bundle\Contents\net48\PointerTurn.AutoCAD.dll` | AutoCAD 2021 to 2024 | .NET Framework 4.8 |
-| `PointerTurn.bundle\Contents\net8\PointerTurn.AutoCAD.dll` | AutoCAD 2025 and later | .NET 8 |
+| `BricsCAD\net48\PointerPath.BricsCAD.dll` | BricsCAD V24 and V25 | .NET Framework 4.8 |
+| `BricsCAD\net8\PointerPath.BricsCAD.dll` | BricsCAD V26 and later | .NET 8 |
+| `PointerPath.bundle\Contents\net48\PointerPath.AutoCAD.dll` | AutoCAD 2021 to 2024 | .NET Framework 4.8 |
+| `PointerPath.bundle\Contents\net8\PointerPath.AutoCAD.dll` | AutoCAD 2025 and later | .NET 8 |
 
-Each DLL sits with `PointerTurn.Core.dll`, `turn-paths.json` and, for .NET Framework, the
+Each DLL sits with `PointerPath.Core.dll`, `turn-paths.json` and, for .NET Framework, the
 `System.Text.Json` libraries. No debug symbols are shipped.
 
 ## What is installed, and where
@@ -20,11 +20,11 @@ The installer asks whether to install for everyone on the PC or just the current
 
 | | All users (needs an administrator) | Just me |
 |---|---|---|
-| BricsCAD builds, uninstaller | `C:\Program Files\PointerTurn` | `%LOCALAPPDATA%\Programs\PointerTurn` |
-| AutoCAD bundle | `%ProgramData%\Autodesk\ApplicationPlugins\PointerTurn.bundle` | `%APPDATA%\Autodesk\ApplicationPlugins\PointerTurn.bundle` |
+| BricsCAD builds, uninstaller | `C:\Program Files\PointerPath` | `%LOCALAPPDATA%\Programs\PointerPath` |
+| AutoCAD bundle | `%ProgramData%\Autodesk\ApplicationPlugins\PointerPath.bundle` | `%APPDATA%\Autodesk\ApplicationPlugins\PointerPath.bundle` |
 | BricsCAD registry entries | under `HKEY_LOCAL_MACHINE` | under `HKEY_CURRENT_USER` |
 
-Nothing is written to `%APPDATA%\PointerTurn`, where the add-in keeps a user's saved defaults, and
+Nothing is written to `%APPDATA%\PointerPath`, where the add-in keeps a user's saved defaults, and
 uninstalling leaves that folder alone.
 
 ### How AutoCAD finds it
@@ -32,7 +32,7 @@ uninstalling leaves that folder alone.
 AutoCAD, and the products built on it, load every `.bundle` folder in an `ApplicationPlugins`
 folder when they start. `PackageContents.xml` in the bundle says which DLL goes with which
 release: `R24.0` to `R24.3` (2021 to 2024) get the .NET Framework build, `R25.0` (2025) and later
-the .NET 8 build. Nothing is registered, so an AutoCAD installed after PointerTurn loads it too.
+the .NET 8 build. Nothing is registered, so an AutoCAD installed after PointerPath loads it too.
 
 ### How BricsCAD finds it
 
@@ -41,11 +41,11 @@ add-in at startup. The installer writes one for every BricsCAD version (V24 and 
 language it finds, looking in both `HKEY_LOCAL_MACHINE` and `HKEY_CURRENT_USER`:
 
 ```
-Software\Bricsys\BricsCAD\V25x64\en_US\Applications\PointerTurn
-    LOADER      C:\Program Files\PointerTurn\BricsCAD\net48\PointerTurn.BricsCAD.dll
+Software\Bricsys\BricsCAD\V25x64\en_US\Applications\PointerPath
+    LOADER      C:\Program Files\PointerPath\BricsCAD\net48\PointerPath.BricsCAD.dll
     LOADCTRLS   2      load at startup
     MANAGED     1      a .NET assembly
-    DESCRIPTION PointerTurn (vehicle turning paths)
+    DESCRIPTION PointerPath (vehicle turning paths)
 ```
 
 V26 and later get the `net8` path. Uninstalling removes the entries, and any registry key that
@@ -53,7 +53,7 @@ registering created and nothing else uses.
 
 BricsCAD does have an AutoCAD-style bundle loader (`APPAUTOLOADER`), but reports of it working
 are mixed, so it isn't relied on. The cost of the registry is that **a BricsCAD installed after
-PointerTurn isn't registered until the installer is run again.**
+PointerPath isn't registered until the installer is run again.**
 
 ### The .NET 8 Desktop Runtime
 
@@ -61,13 +61,13 @@ BricsCAD V26 and later run add-ins on Microsoft's .NET 8 Desktop Runtime (x64) a
 it. When such a BricsCAD is found and the runtime isn't (no
 `C:\Program Files\dotnet\shared\Microsoft.WindowsDesktop.App\8.*`), an all-users install downloads
 it from Microsoft (`aka.ms/dotnet/8.0/windowsdesktop-runtime-win-x64.exe`) and runs it quietly.
-A just-me install can't, and says so. If the download fails, PointerTurn is still installed and
+A just-me install can't, and says so. If the download fails, PointerPath is still installed and
 the last page says where to get the runtime. AutoCAD 2025 and later install their own.
 
 ### Unattended installs
 
 ```
-PointerTurn-<version>-setup.exe /VERYSILENT /SUPPRESSMSGBOXES /ALLUSERS /LOG=C:\Temp\pointerturn.log
+PointerPath-<version>-setup.exe /VERYSILENT /SUPPRESSMSGBOXES /ALLUSERS /LOG=C:\Temp\pointerpath.log
 ```
 
 `/CURRENTUSER` instead of `/ALLUSERS` installs for one user without an administrator. The log
@@ -82,7 +82,7 @@ powershell -ExecutionPolicy Bypass -File installer\Build-Installer.ps1
 ```
 
 It runs the unit tests, builds the four add-ins, lays them out in `artifacts\stage`, and compiles
-`installer\PointerTurn.iss` into `artifacts\PointerTurn-<version>-setup.exe`. It prints the
+`installer\PointerPath.iss` into `artifacts\PointerPath-<version>-setup.exe`. It prints the
 file's SHA-256 and which builds are in it.
 
 What it needs:
@@ -107,7 +107,7 @@ how the installer was developed. There the BricsCAD builds need the two folder o
 
 Set `<Version>` in `Directory.Build.props` (or pass `-Version 1.2.0`) and build. The version goes
 on the DLLs, the bundle and the installer. Running a newer installer over an older one upgrades in
-place; it is the `AppId` in `PointerTurn.iss` that makes Windows see them as the same product, so
+place; it is the `AppId` in `PointerPath.iss` that makes Windows see them as the same product, so
 that must never change. Neither must the `UpgradeCode` in `PackageContents.xml`.
 
 ## Checked, and not
@@ -136,7 +136,7 @@ Not checked, because it needs Windows and the real programs:
    oldest of V24 and V25 on the build PC, is assumed to load in both; the .NET 8 build, compiled
    against V26, in later versions. The same is assumed of AutoCAD within 2021 to 2024 and from
    2025 on, which is Autodesk's stated compatibility.
-4. **Closing a running CAD program.** If BricsCAD or AutoCAD has PointerTurn loaded, Windows
+4. **Closing a running CAD program.** If BricsCAD or AutoCAD has PointerPath loaded, Windows
    holds its files open. Setup should list the program and offer to close it.
 5. **The real runtime download**, through a company proxy in particular.
 

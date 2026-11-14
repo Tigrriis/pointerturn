@@ -1,6 +1,6 @@
 'use strict';
 
-// Which country a request comes from, and whether PointerTurn is offered there.
+// Which country a request comes from, and whether PointerPath is offered there.
 //
 // With ALLOWED_COUNTRIES set (e.g. "AU"), signing up, buying, downloading and activating
 // are refused from anywhere else. The country is worked out from the visitor's IP address

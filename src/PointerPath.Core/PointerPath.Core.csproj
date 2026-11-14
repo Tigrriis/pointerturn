@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The CAD-independent part: design vehicles, the turning simulation, the swept path,
+    the multi-point turn solver, conflict detection and the ground clearance check.
+    Nothing in here knows about BricsCAD, so all of it is unit-tested.
+
+    Two targets on purpose:
+    - netstandard2.0 for BricsCAD V24/V25 (.NET Framework 4.8).
+    - net8.0 for BricsCAD V26 and later (.NET 8).
+  -->
+  <PropertyGroup>
+    <TargetFrameworks>netstandard2.0;net8.0</TargetFrameworks>
+    <RootNamespace>PointerPath.Core</RootNamespace>
+    <AssemblyName>PointerPath.Core</AssemblyName>
+  </PropertyGroup>
+
+  <!-- System.Text.Json is part of .NET 8; .NET Framework needs the package. -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+    <PackageReference Include="System.Text.Json" Version="10.0.6" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="PointerPath.Core.Tests" />
+  </ItemGroup>
+
+</Project>

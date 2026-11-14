@@ -1,6 +1,6 @@
 'use strict';
 
-// PointerTurn restricted to Australia (ALLOWED_COUNTRIES=AU): what works from inside and
+// PointerPath restricted to Australia (ALLOWED_COUNTRIES=AU): what works from inside and
 // what is refused from outside. Countries come from the bundled IP database, for real.
 
 const test = require('node:test');
@@ -51,7 +51,7 @@ test('from elsewhere the site can be read but nothing can be bought, joined or d
 
     const form = await b.get('/signup');
     assert.equal(form.status, 403);
-    assert.match(form.text, /PointerTurn is available in Australia only/);
+    assert.match(form.text, /PointerPath is available in Australia only/);
     const post = await b.post('/signup', { email: 'abroad@example.com', password: 'correct horse battery', in_region: 'yes' }, '/login');
     assert.equal(post.status, 403);
   }
@@ -61,7 +61,7 @@ test('from elsewhere the site can be read but nothing can be bought, joined or d
 test('signing up needs the declaration, and records it with the country', async () => {
   const b = t.browser(AU);
   const form = await b.get('/signup');
-  assert.match(form.text, /I am in Australia and will use PointerTurn only in Australia/);
+  assert.match(form.text, /I am in Australia and will use PointerPath only in Australia/);
 
   const without = await b.post('/signup', { email: 'declare@example.com', password: 'correct horse battery' }, '/signup');
   assert.equal(without.status, 400);

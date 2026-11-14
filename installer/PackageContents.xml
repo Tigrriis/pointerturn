@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Tells AutoCAD what is in PointerTurn.bundle and which build to load. AutoCAD (and its
+  Tells AutoCAD what is in PointerPath.bundle and which build to load. AutoCAD (and its
   verticals: Civil 3D, Map 3D...) loads every bundle it finds in an ApplicationPlugins folder
   when it starts; the installer puts this one in %ProgramData%\Autodesk\ApplicationPlugins, or
   %APPDATA%\Autodesk\ApplicationPlugins when installed for one user.
@@ -15,7 +15,7 @@
     SchemaVersion="1.0"
     AutodeskProduct="AutoCAD"
     ProductType="Application"
-    Name="PointerTurn"
+    Name="PointerPath"
     Description="Vehicle turning paths: swept paths for design cars and trucks, multi-point turns, conflicts with kerbs and walls, and ground clearance."
     Author="Arete Engineering"
     AppVersion="@VERSION@"
@@ -29,20 +29,20 @@
   <Components Description="AutoCAD 2021 to 2024">
     <RuntimeRequirements OS="Win64" Platform="AutoCAD*" SeriesMin="R24.0" SeriesMax="R24.3" />
     <ComponentEntry
-        AppName="PointerTurn"
-        AppDescription="PointerTurn vehicle turning paths"
+        AppName="PointerPath"
+        AppDescription="PointerPath vehicle turning paths"
         Version="@VERSION@"
-        ModuleName="./Contents/net48/PointerTurn.AutoCAD.dll"
+        ModuleName="./Contents/net48/PointerPath.AutoCAD.dll"
         LoadOnAutoCADStartup="True" />
   </Components>
 
   <Components Description="AutoCAD 2025 and later">
     <RuntimeRequirements OS="Win64" Platform="AutoCAD*" SeriesMin="R25.0" />
     <ComponentEntry
-        AppName="PointerTurn"
-        AppDescription="PointerTurn vehicle turning paths"
+        AppName="PointerPath"
+        AppDescription="PointerPath vehicle turning paths"
         Version="@VERSION@"
-        ModuleName="./Contents/net8/PointerTurn.AutoCAD.dll"
+        ModuleName="./Contents/net8/PointerPath.AutoCAD.dll"
         LoadOnAutoCADStartup="True" />
   </Components>
 

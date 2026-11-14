@@ -47,7 +47,7 @@ async function start(overrides = {}) {
     DISABLE_RATE_LIMIT: '1',
     STRIPE_PRICE_ID: 'price_1',
     STRIPE_WEBHOOK_SECRET: WEBHOOK_SECRET,
-    INSTALLER_URL: 'https://downloads.example.com/PointerTurn-1.0.0-setup.exe',
+    INSTALLER_URL: 'https://downloads.example.com/PointerPath-1.0.0-setup.exe',
     BASE_URL: 'http://site.test',
     ...overrides,
   });
@@ -139,7 +139,7 @@ async function start(overrides = {}) {
       mode: 'payment',
       payment_status: 'paid',
       client_reference_id: String(userId),
-      metadata: { user_id: String(userId), product: 'pointerturn-licence' },
+      metadata: { user_id: String(userId), product: 'pointerpath-licence' },
       payment_intent: `pi_${id}`,
       subscription: null,
       ...extra,

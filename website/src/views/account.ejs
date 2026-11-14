@@ -9,7 +9,7 @@ const statusText = { active: 'Active', past_due: 'Payment overdue', cancelled: '
 
 <% if (!user.email_verified_at) { %>
 <div class="notice">
-<p>Confirm your email address to buy a licence and activate PointerTurn. We sent a link to <%= user.email %>.</p>
+<p>Confirm your email address to buy a licence and activate PointerPath. We sent a link to <%= user.email %>.</p>
 <form method="post" action="/verify/resend">
 <input type="hidden" name="_csrf" value="<%= csrfToken %>">
 <button class="button button--small" type="submit">Send the link again</button>
@@ -23,7 +23,7 @@ const statusText = { active: 'Active', past_due: 'Payment overdue', cancelled: '
 <% if (usable) { %>
 <p class="status status--<%= licence.status %>"><%= statusText[licence.status] %></p>
 <% if (licence.kind === 'subscription') { %>
-<p><% if (licence.status === 'past_due') { %>The last payment did not go through. Update your card to keep PointerTurn working.<% } else if (licence.current_period_end) { %>Paid until <%= date(licence.current_period_end) %>.<% } %></p>
+<p><% if (licence.status === 'past_due') { %>The last payment did not go through. Update your card to keep PointerPath working.<% } else if (licence.current_period_end) { %>Paid until <%= date(licence.current_period_end) %>.<% } %></p>
 <% } else { %>
 <p>Bought <%= date(licence.created_at) %>. It does not expire.</p>
 <% } %>
@@ -51,7 +51,7 @@ const statusText = { active: 'Active', past_due: 'Payment overdue', cancelled: '
 
 <article class="panel">
 <h2>Download</h2>
-<p>The installer sets PointerTurn up for BricsCAD and AutoCAD on this PC.</p>
+<p>The installer sets PointerPath up for BricsCAD and AutoCAD on this PC.</p>
 <% if (installer.url) { %>
 <p><a class="button" href="/download" data-event="Download">Download the installer</a></p>
 <% if (installer.version) { %><p class="hint">Version <%= installer.version %>, for Windows.</p><% } %>
@@ -63,7 +63,7 @@ const statusText = { active: 'Active', past_due: 'Payment overdue', cancelled: '
 <% if (usable) { %>
 <article class="panel panel--wide">
 <h2>Computers</h2>
-<p>PointerTurn is signed in on <%= machines.length %> of <%= licence.max_machines %> computers. Sign one out here to use its place on another.</p>
+<p>PointerPath is signed in on <%= machines.length %> of <%= licence.max_machines %> computers. Sign one out here to use its place on another.</p>
 <% if (machines.length) { %>
 <ul class="machines">
 <% machines.forEach((m) => { %>

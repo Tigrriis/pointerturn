@@ -15,7 +15,7 @@ function layout({ heading, lines, button }) {
     : '';
   return `<!doctype html><html><body style="margin:0;background:#F5F6F4;font-family:Inter,'Helvetica Neue',Arial,sans-serif">
 <div style="max-width:520px;margin:0 auto;padding:32px 24px">
-<p style="margin:0 0 24px;font-size:22px;font-weight:700;letter-spacing:-0.02em;color:#111A22">pointerturn</p>
+<p style="margin:0 0 24px;font-size:22px;font-weight:700;letter-spacing:-0.02em;color:#111A22">pointerpath</p>
 <div style="background:#FFFFFF;border:1px solid #D5D9DC;border-radius:20px;padding:28px">
 <h1 style="margin:0 0 16px;font-size:22px;line-height:1.25;color:#111A22">${escapeHtml(heading)}</h1>
 ${paragraphs}${cta}
@@ -60,18 +60,18 @@ function createMailer(config, { fetchImpl = fetch, log = console.log } = {}) {
     sendVerification: (to, token) =>
       send({
         to,
-        subject: 'Confirm your email for PointerTurn',
+        subject: 'Confirm your email for PointerPath',
         heading: 'Confirm your email address',
-        lines: ['Thanks for creating a PointerTurn account. Confirm this address to finish setting it up.', 'The link works for 24 hours.'],
+        lines: ['Thanks for creating a PointerPath account. Confirm this address to finish setting it up.', 'The link works for 24 hours.'],
         button: { label: 'Confirm email', url: `${base}/verify?token=${encodeURIComponent(token)}` },
       }),
     sendAlreadyRegistered: (to) =>
       send({
         to,
-        subject: 'You already have a PointerTurn account',
+        subject: 'You already have a PointerPath account',
         heading: 'You already have an account',
         lines: [
-          'Someone, probably you, tried to create a PointerTurn account with this email address, but one already exists.',
+          'Someone, probably you, tried to create a PointerPath account with this email address, but one already exists.',
           'Sign in with it, or reset the password if you have forgotten it. If this was not you, ignore this email.',
         ],
         button: { label: 'Sign in', url: `${base}/login` },
@@ -79,7 +79,7 @@ function createMailer(config, { fetchImpl = fetch, log = console.log } = {}) {
     sendPasswordReset: (to, token) =>
       send({
         to,
-        subject: 'Reset your PointerTurn password',
+        subject: 'Reset your PointerPath password',
         heading: 'Reset your password',
         lines: ['Use the link below to choose a new password. It works for one hour.', 'If you did not ask for this, ignore this email and your password stays as it is.'],
         button: { label: 'Choose a new password', url: `${base}/reset?token=${encodeURIComponent(token)}` },
@@ -87,11 +87,11 @@ function createMailer(config, { fetchImpl = fetch, log = console.log } = {}) {
     sendLicenceActive: (to) =>
       send({
         to,
-        subject: 'Your PointerTurn licence is active',
+        subject: 'Your PointerPath licence is active',
         heading: 'Your licence is active',
         lines: [
-          'Thanks for buying PointerTurn. Your licence is attached to this email address.',
-          'Download the installer from your account, then sign in to PointerTurn inside BricsCAD or AutoCAD with this email address and your password to activate it.',
+          'Thanks for buying PointerPath. Your licence is attached to this email address.',
+          'Download the installer from your account, then sign in to PointerPath inside BricsCAD or AutoCAD with this email address and your password to activate it.',
         ],
         button: { label: 'Go to your account', url: `${base}/account` },
       }),

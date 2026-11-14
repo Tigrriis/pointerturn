@@ -5,7 +5,7 @@
 
 const PRICE_CACHE_MS = 10 * 60 * 1000;
 // Marks the checkouts this site started, so other sales on the same Stripe account are ignored.
-const PRODUCT = 'pointerturn-licence';
+const PRODUCT = 'pointerpath-licence';
 
 function licenceStatusFor(subscriptionStatus) {
   if (subscriptionStatus === 'active' || subscriptionStatus === 'trialing') return 'active';
@@ -58,7 +58,7 @@ function createBilling({ stripe, db, config, mailer, log = console }) {
     return customer.id;
   }
 
-  // `country` is where the buyer's connection is, when PointerTurn is restricted to some countries.
+  // `country` is where the buyer's connection is, when PointerPath is restricted to some countries.
   async function createCheckout(user, { country = null } = {}) {
     const price = await stripe.prices.retrieve(config.stripe.priceId);
     const recurring = price.type === 'recurring';

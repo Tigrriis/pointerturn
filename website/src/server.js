@@ -18,7 +18,7 @@ async function main() {
   if (!config.resend.apiKey) console.warn('[mail] RESEND_API_KEY is not set: emails are printed here instead of sent.');
 
   const app = createApp({ config, db, stripe, mailer: createMailer(config) });
-  const server = app.listen(config.port, () => console.log(`PointerTurn website listening on ${config.baseUrl}`));
+  const server = app.listen(config.port, () => console.log(`PointerPath website listening on ${config.baseUrl}`));
 
   const stop = () => server.close(() => db.end().finally(() => process.exit(0)));
   process.on('SIGTERM', stop);
