@@ -220,7 +220,7 @@ namespace PointerTurn.Core.Vehicles
                 if (v.IsArticulated)
                 {
                     sb.Append(", towing ").Append(string.Join(" and ", v.Trailers.Select(t => $"a {t.Length:0.##} m {t.Name}")))
-                      .Append(" (").Append(v.OverallLength.ToString("0.##")).Append(" m overall; forwards only)");
+                      .Append(" (").Append(v.OverallLength.ToString("0.##")).Append(" m overall)");
                 }
 
                 if (!string.IsNullOrWhiteSpace(v.Description))

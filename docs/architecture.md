@@ -23,11 +23,22 @@ way out. Nothing in between knows what the drawing is drawn in.
 - **Simulation** (`TurnPathSimulator`): a kinematic bicycle model. A reference point on the vehicle
   follows the path and the rear axle tracks in behind it with no side slip. Each trailer is dragged
   by its coupling under the same rule.
+- **Reversing trailers** (`TurnPathSimulator.Push`): a pushed trailer is unstable, so a reverse is
+  driven, not traced. The line to hold is the forward drive along the path from its far end, played
+  backwards (driving is reversible), which finishes with the combination in line. Started on that
+  line, the reverse is exactly that. Started off it, the vehicle backs up a step at a time, steered
+  within its lock from the back of the combination forwards: the last trailer is turned onto its
+  line, which asks for a fold at its coupling, which asks the unit in front to turn, and so on to
+  the steering. A fold takes metres to wind on and longer to wind off, so this only closes small
+  gaps: getting the trailers set up is the leg's job.
 - **Swept path**: the exact boundary of the union of the body over every pose, not an offset of the
   path. For a combination it is the union over every unit.
 - **Templates and driving** (`TurnPathBuilder`, `ManoeuvrePlanner`): a standard turn from a start
   point, a vehicle along an existing curve, or a drive leg by leg (turn at the radius, then
-  straight; forwards or in reverse; optionally arriving on a set heading).
+  straight; forwards or in reverse; optionally arriving on a set heading). A reverse with trailers
+  (`TurnPathBuilder.ReverseTowed`) takes the last trailer's axle group to the destination, and
+  starts with a swing of the vehicle, one way then if need be the other, whose lengths are found
+  so that the leg's line starts with the trailers folded exactly as they are.
 - **Solver** (`ManoeuvreSolver`): a hybrid A* search over position, heading and direction of travel,
   on a 0.25 m and 5 degree grid, stepping along full-lock arcs and straights, and finishing with
   turn-straight-turn paths to the target or to a straight run-in to it. Every step is tested by
@@ -104,10 +115,17 @@ None of the add-in has been run in BricsCAD yet. In this order:
 7. **`PTCLEARANCE`**: on a plotted long section, then on a BricsCAD TIN surface.
 8. **Both add-ins together**: load CSD-Bridge and PointerTurn in the same session.
 9. **A truck**: the 19 m semi-trailer at 12.5 m, overlaid on the Austroads turning template.
+10. **Reversing a truck**: `PTPATH`, Drive, the 19 m semi-trailer: a leg forward, then a click behind
+    the trailer, then one with an arrival direction. Check the live preview keeps up, and that a
+    click the trailer can't line up on is refused with the reason.
 
 ## Known limits
 
-- Vehicles with trailers drive forwards only. Reversing them, and solving for them, are refused.
+- The solver is for rigid vehicles. A vehicle with trailers is driven leg by leg.
+- A reverse with trailers is one a driver could make, found by a simple rule (swing, turn, straight,
+  turn), not a search: where that can't start from the way the trailers are, no leg is offered.
+- Reversing with trailers has been checked against the forward simulation (the same tracks, played
+  backwards), not against another program or a real vehicle.
 - The solver finds a good manoeuvre, not always the one with the very fewest movements.
 - The Austroads vehicles were entered from the guide's dimension drawings and have not been
   compared against the published turning templates.

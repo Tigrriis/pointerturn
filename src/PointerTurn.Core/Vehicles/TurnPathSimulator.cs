@@ -17,7 +17,11 @@ namespace PointerTurn.Core.Vehicles
         /// <summary>The point of the vehicle (vehicle frame) that follows the path.</summary>
         public VehiclePoint Reference { get; set; }
 
-        /// <summary>The vehicle travels backwards along the path.</summary>
+        /// <summary>
+        /// The vehicle travels backwards along the path. A vehicle with trailers is then steered
+        /// along it by its rear axle, whatever <see cref="Reference"/> says, and finishes with the
+        /// combination in line at the end of the path.
+        /// </summary>
         public bool Reverse { get; set; }
 
         /// <summary>Heading at the start, radians. Null: the path's start tangent (plus 180 degrees when reversing).</summary>
@@ -25,9 +29,17 @@ namespace PointerTurn.Core.Vehicles
 
         /// <summary>
         /// Which way each trailer faces at the start (radians), front to back. Null: straight behind
-        /// the vehicle. A manoeuvre drawn leg by leg passes on where the last leg left them.
+        /// the vehicle, or, reversing, where reversing along the path needs them (see
+        /// <see cref="TurnPathSimulator.TrailerHeadingsToReverse"/>). A manoeuvre drawn leg by leg
+        /// passes on where the last leg left them.
         /// </summary>
         public IReadOnlyList<double>? InitialTrailerHeadings { get; set; }
+
+        /// <summary>
+        /// The tightest the vehicle may be steered while reversing with trailers, as the radius of
+        /// its outer front wheel (m). Null: the vehicle's minimum.
+        /// </summary>
+        public double? TurnRadius { get; set; }
 
         /// <summary>Distance the reference point moves per step (m).</summary>
         public double Step { get; set; } = 0.02;
@@ -115,6 +127,21 @@ namespace PointerTurn.Core.Vehicles
         /// <summary>The sharpest angle between two coupled units during the manoeuvre, degrees. 0 for a rigid vehicle.</summary>
         public double MaxArticulationDeg { get; set; }
 
+        /// <summary>
+        /// Reversing with trailers: the furthest the vehicle's rear axle left the path to steer the
+        /// trailers (m). 0 otherwise.
+        /// </summary>
+        public double MaxPathDeviation { get; set; }
+
+        /// <summary>
+        /// Reversing with trailers: how far off its line the last trailer's axle group finishes (m).
+        /// 0 when the combination finishes where the path ends.
+        /// </summary>
+        public double EndOffset { get; set; }
+
+        /// <summary>Distance the vehicle's reference point travelled (m): the path's length, unless the manoeuvre stopped short.</summary>
+        public double Travelled => Chainages.Count > 0 ? Chainages[Chainages.Count - 1] : 0;
+
         /// <summary>Which way each trailer faces at the end (radians): where the next leg of a manoeuvre starts them.</summary>
         public List<double> EndTrailerHeadings => Trailers.Select(t => t.Poses[t.Poses.Count - 1].Heading).ToList();
 
@@ -179,8 +206,10 @@ namespace PointerTurn.Core.Vehicles
             }
 
             // Leading end: forward = the nose (front-left to front-right, bulging ahead, clockwise);
-            // reverse = the tail (rear-left to rear-right, bulging behind, anticlockwise).
-            bulges[bulges.Count - 1] = forward ? -frontBulge : rearBulge;
+            // reverse = the tail (rear-left to rear-right, bulging behind, anticlockwise). The tail
+            // of a combination is its last trailer's, which is square.
+            bool towing = Trailers.Count > 0;
+            bulges[bulges.Count - 1] = forward ? -frontBulge : towing ? 0 : rearBulge;
             for (int i = RightBody.Count - 1; i >= 0; i--)
             {
                 pts.Add(RightBody[i]);
@@ -188,7 +217,7 @@ namespace PointerTurn.Core.Vehicles
             }
 
             // Trailing end closes the loop back to the first left point. Behind a trailer it is square.
-            bulges[bulges.Count - 1] = Trailers.Count > 0 ? 0 : forward ? -rearBulge : frontBulge;
+            bulges[bulges.Count - 1] = forward ? (towing ? 0 : -rearBulge) : frontBulge;
             return new PolylineSpec { Points = pts, Bulges = bulges, Closed = true };
         }
     }
@@ -204,6 +233,10 @@ namespace PointerTurn.Core.Vehicles
     /// at each pose the swept path's inner edge is traced by the body point nearest to that
     /// centre and the outer edge by the point farthest from it; between poses where that
     /// point changes, the body's own outline joins the two.
+    ///
+    /// Trailers are dragged behind by their couplings under the same no-slip rule. Reversing, they
+    /// are pushed instead, and the vehicle is steered to keep them in hand: see the notes above
+    /// the Push method.
     /// </summary>
     public static class TurnPathSimulator
     {
@@ -224,21 +257,32 @@ namespace PointerTurn.Core.Vehicles
                 throw new ArgumentException($"Vehicle {v.Name}: {string.Join("; ", problems)}.");
             }
 
-            if (v.IsArticulated && req.Reverse)
-            {
-                throw new ArgumentException($"The {v.Name} tows a trailer, and reversing with a trailer isn't supported: a trailer pushed backwards doesn't follow a path without being steered into it.");
-            }
-
             double step = req.Step > 0 ? Math.Min(req.Step, 0.5) : 0.02;
             if (req.Path.Length < step)
             {
                 throw new ArgumentException("The path is shorter than one simulation step.");
             }
 
-            var result = new TurnPathResult { Vehicle = v, Path = req.Path, Reference = req.Reference, Reverse = req.Reverse };
-            Integrate(req, step, result);
+            // Reversing with trailers, the vehicle's rear axle is what is steered along the path.
+            bool pushing = v.IsArticulated && req.Reverse;
+            var result = new TurnPathResult { Vehicle = v, Path = req.Path, Reference = pushing ? v.RearAxleCentre : req.Reference, Reverse = req.Reverse };
+            if (pushing)
+            {
+                Push(req, step, result);
+            }
+            else
+            {
+                Integrate(req, step, result);
+                result.Trailers.AddRange(Tow(v, result.Poses, req.InitialTrailerHeadings));
+            }
+
             result.Curvatures.AddRange(CurvaturesOf(result.Poses, result.Reverse));
-            Tow(req, result);
+            foreach (TrailerTrack track in result.Trailers)
+            {
+                track.Curvatures.AddRange(CurvaturesOf(track.Poses, result.Reverse));
+            }
+
+            result.MaxArticulationDeg = SharpestFold(result) * 180 / Math.PI;
             Envelopes(req, result);
             Checks(result);
             return result;
@@ -298,44 +342,398 @@ namespace PointerTurn.Core.Vehicles
         /// trailer's left normal. That is the same law that makes the vehicle's rear axle follow its
         /// front, applied again for every trailer down the line.
         /// </summary>
-        private static void Tow(TurnPathRequest req, TurnPathResult r)
+        private static List<TrailerTrack> Tow(DesignVehicle v, List<VehiclePose> towing, IReadOnlyList<double>? initialHeadings)
         {
-            DesignVehicle v = r.Vehicle;
-            List<VehiclePose> towing = r.Poses;
+            var tracks = new List<TrailerTrack>();
             double hitch = v.Hitch;
-            double sharpest = 0;
             for (int t = 0; t < v.Trailers.Count; t++)
             {
                 TrailerUnit unit = v.Trailers[t];
                 var track = new TrailerTrack(unit);
                 double length = unit.Wheelbase;
-                double heading = req.InitialTrailerHeadings != null && t < req.InitialTrailerHeadings.Count ? req.InitialTrailerHeadings[t] : towing[0].Heading;
+                double heading = initialHeadings != null && t < initialHeadings.Count ? initialHeadings[t] : towing[0].Heading;
                 Point2 prev = towing[0].ToWorld(hitch, 0);
                 for (int i = 0; i < towing.Count; i++)
                 {
                     Point2 coupling = towing[i].ToWorld(hitch, 0);
                     if (i > 0)
                     {
-                        double dx = coupling.X - prev.X, dy = coupling.Y - prev.Y;
-                        // Heun's method, as for the vehicle itself.
-                        double d1 = (-dx * Math.Sin(heading) + dy * Math.Cos(heading)) / length;
-                        double mid = heading + d1 / 2;
-                        heading += (-dx * Math.Sin(mid) + dy * Math.Cos(mid)) / length;
+                        heading = Drag(heading, coupling.X - prev.X, coupling.Y - prev.Y, length);
                     }
 
                     heading = Angles.Normalize(heading);
                     track.Poses.Add(new VehiclePose(new Point2(coupling.X - length * Math.Cos(heading), coupling.Y - length * Math.Sin(heading)), heading));
-                    sharpest = Math.Max(sharpest, Math.Abs(Angles.Wrap(towing[i].Heading - heading)));
                     prev = coupling;
                 }
 
-                track.Curvatures.AddRange(CurvaturesOf(track.Poses, false));
-                r.Trailers.Add(track);
+                tracks.Add(track);
                 towing = track.Poses;
                 hitch = unit.Hitch;
             }
 
-            r.MaxArticulationDeg = sharpest * 180 / Math.PI;
+            return tracks;
+        }
+
+        /// <summary>A trailer's heading after its coupling has moved by (dx, dy): Heun's method, as for the vehicle itself.</summary>
+        private static double Drag(double heading, double dx, double dy, double length)
+        {
+            double d1 = (-dx * Math.Sin(heading) + dy * Math.Cos(heading)) / length;
+            double mid = heading + d1 / 2;
+            return heading + (-dx * Math.Sin(mid) + dy * Math.Cos(mid)) / length;
+        }
+
+        /// <summary>The sharpest angle between two coupled units over the manoeuvre, radians.</summary>
+        private static double SharpestFold(TurnPathResult r)
+        {
+            double sharpest = 0;
+            List<VehiclePose> towing = r.Poses;
+            foreach (TrailerTrack track in r.Trailers)
+            {
+                for (int i = 0; i < track.Poses.Count; i++)
+                {
+                    sharpest = Math.Max(sharpest, Math.Abs(Angles.Wrap(towing[i].Heading - track.Poses[i].Heading)));
+                }
+
+                towing = track.Poses;
+            }
+
+            return sharpest;
+        }
+
+        // ------------------------------------------------------ reversing trailers
+        //
+        // A trailer pushed backwards doesn't follow the vehicle: it folds one way or the other,
+        // faster the further it has folded, and the driver steers against that all the way. So a
+        // reverse can't be worked out the way a forward drive is, unit by unit behind a point on
+        // the path. Two things make it tractable.
+        //
+        // Driving is reversible. The tracks a combination leaves driving a path forwards are exactly
+        // the tracks it would leave reversing back along it, so the reverse that finishes with
+        // everything in line at the end of the path is the forward drive from that end, played
+        // backwards. That gives the line to hold: where every unit should be, and how hard each is
+        // turning, at every point of the path.
+        //
+        // The combination doesn't start on that line (it starts wherever the last leg left it, or
+        // straight), so it is driven: the vehicle's rear axle moves back a step at a time, steered
+        // no tighter than its lock, and every trailer is pushed by its coupling under the no-slip
+        // rule. The steering comes from the back of the combination forwards. The last trailer's
+        // axle group is brought onto its line by turning it a little more or less than the line
+        // does; a trailer turns as the fold at its coupling dictates, so that asks for a fold; and
+        // a fold is changed by turning the unit in front more or less than it otherwise would. At
+        // the front that is the steering. Each fold is corrected a few times faster than the one
+        // behind it, which is what keeps the chain from hunting.
+
+        /// <summary>Distance over which the fold at the first coupling is corrected (m); each coupling further back takes <see cref="PushSlower"/> times longer.</summary>
+        private const double PushSettle = 1.5;
+
+        private const double PushSlower = 4;
+
+        /// <summary>A fold past this can't be simulated on: the trailer has stopped moving back and is being pushed sideways.</summary>
+        private const double JackknifeFold = 85 * Math.PI / 180;
+
+        /// <summary>
+        /// The line a reverse along the path holds: the vehicle's rear axle on the path, facing back
+        /// along it, and the trailers where driving the path the other way, from in line at its end,
+        /// would have them.
+        /// </summary>
+        private static TurnPathResult LineToHold(DesignVehicle v, Path2 path, double step, out List<TrailerTrack> trailers)
+        {
+            var lead = new TurnPathResult { Vehicle = v, Path = path, Reverse = true };
+            Integrate(new TurnPathRequest { Vehicle = v, Path = path, Reference = v.RearAxleCentre, Reverse = true }, step, lead);
+            var outward = new List<VehiclePose>(lead.Poses);
+            outward.Reverse();
+            trailers = Tow(v, outward, null);
+            foreach (TrailerTrack t in trailers)
+            {
+                t.Poses.Reverse();
+            }
+
+            return lead;
+        }
+
+        /// <summary>
+        /// Which way each trailer has to face (radians, front to back) at the start of a reverse
+        /// along the path for the vehicle's rear axle to stay on the path and the combination to
+        /// finish in line at its end.
+        /// </summary>
+        public static List<double> TrailerHeadingsToReverse(DesignVehicle v, Path2 path, double step = 0.02)
+        {
+            step = step > 0 ? Math.Min(step, 0.5) : 0.02;
+            if (path == null || path.Segments.Count == 0 || path.Length < step)
+            {
+                throw new ArgumentException("The path is empty, or shorter than one simulation step.");
+            }
+
+            LineToHold(v, path, step, out List<TrailerTrack> trailers);
+            return trailers.Select(t => t.Poses[0].Heading).ToList();
+        }
+
+        private static void Push(TurnPathRequest req, double step, TurnPathResult r)
+        {
+            DesignVehicle v = r.Vehicle;
+            int n = v.Trailers.Count;
+            TurnPathResult lead = LineToHold(v, req.Path, step, out List<TrailerTrack> line);
+
+            // Where it starts: as the last leg left it. Not told, the trailers start on the line.
+            int last = lead.Poses.Count - 1;
+            var th = new double[n + 1];
+            th[0] = req.InitialHeading ?? lead.Poses[0].Heading;
+            bool onLine = Math.Abs(Angles.Wrap(th[0] - lead.Poses[0].Heading)) < 1e-7;
+            for (int k = 1; k <= n; k++)
+            {
+                th[k] = req.InitialTrailerHeadings != null && k - 1 < req.InitialTrailerHeadings.Count ? req.InitialTrailerHeadings[k - 1] : line[k - 1].Poses[0].Heading;
+                onLine &= Math.Abs(Angles.Wrap(th[k] - line[k - 1].Poses[0].Heading)) < 1e-7;
+            }
+
+            if (onLine)
+            {
+                // Already where the line starts: the reverse is the forward drive played backwards.
+                r.Poses.AddRange(lead.Poses);
+                r.Chainages.AddRange(lead.Chainages);
+                r.NetTurnDeg = lead.NetTurnDeg;
+                r.Trailers.AddRange(line);
+                if (req.InitialTrailerHeadings == null)
+                {
+                    // Nobody said where the trailers start, so they start where the path needs them. Say so when that isn't straight.
+                    double front = th[0];
+                    for (int k = 1; k <= n; k++)
+                    {
+                        double fold = Math.Abs(Angles.Wrap(front - th[k])) * 180 / Math.PI;
+                        if (fold > 1)
+                        {
+                            r.Warnings.Add($"To reverse along this path the {v.Trailers[k - 1].Name} starts folded {fold:0} degrees against the unit in front of it, as drawn: where it would be had the {v.Name} driven the path the other way. Start the path with a straight to start it in line.");
+                        }
+
+                        front = th[k];
+                    }
+                }
+
+                return;
+            }
+
+            // What the line asks of each unit (0 = the vehicle) at each pose: its heading and how
+            // hard it turns (positive = to its left).
+            var lineHeading = new double[n + 1][];
+            var lineTurn = new double[n + 1][];
+            for (int k = 0; k <= n; k++)
+            {
+                List<VehiclePose> poses = k == 0 ? lead.Poses : line[k - 1].Poses;
+                lineHeading[k] = poses.Select(p => p.Heading).ToArray();
+                lineTurn[k] = CurvaturesOf(poses, reverse: true).ToArray();
+            }
+
+            List<VehiclePose> tail = line[n - 1].Poses;
+            double At(double[] values, double j)
+            {
+                int i = Math.Min(last - 1, (int)j);
+                return values[i] + (values[i + 1] - values[i]) * (j - i);
+            }
+
+            double HeadingAt(double[] values, double j)
+            {
+                int i = Math.Min(last - 1, (int)j);
+                return values[i] + Angles.Wrap(values[i + 1] - values[i]) * (j - i);
+            }
+
+            // Where along its line the last trailer's axle group is: the nearest point of the line
+            // near where it was, never going back. Past the end of the line counts as past the end.
+            int window = Math.Max(3, (int)Math.Ceiling(2 / step));
+            double Progress(Point2 p, double from)
+            {
+                double best = double.MaxValue, at = from;
+                int i0 = Math.Max(0, Math.Min(last - 1, (int)from - 1)), i1 = Math.Min(last - 1, (int)from + window);
+                for (int i = i0; i <= i1; i++)
+                {
+                    Point2 a = tail[i].RearAxle, b = tail[i + 1].RearAxle;
+                    double dx = b.X - a.X, dy = b.Y - a.Y, len2 = dx * dx + dy * dy;
+                    double t = len2 < 1e-18 ? 0 : ((p.X - a.X) * dx + (p.Y - a.Y) * dy) / len2;
+                    t = Math.Max(0, i == last - 1 ? t : Math.Min(1, t));
+                    double ex = p.X - (a.X + dx * Math.Min(1, t)), ey = p.Y - (a.Y + dy * Math.Min(1, t));
+                    double d2 = ex * ex + ey * ey;
+                    if (d2 < best)
+                    {
+                        best = d2;
+                        at = i + t;
+                    }
+                }
+
+                return Math.Max(from, at);
+            }
+
+            // The same, as a distance along the line (its last step is usually a short one).
+            var run = new double[last + 1];
+            for (int i = 1; i <= last; i++)
+            {
+                run[i] = run[i - 1] + Segment.Dist(tail[i - 1].RearAxle, tail[i].RearAxle);
+            }
+
+            double Along(double j)
+            {
+                int i = Math.Min(last - 1, (int)j);
+                return run[i] + (run[i + 1] - run[i]) * (j - i);
+            }
+
+            // The combination: where each unit's axle is and which way it faces.
+            var length = new double[n + 1];   // coupling to axle group, of trailer k
+            var hitch = new double[n + 1];    // where trailer k couples on, ahead of the axle of the unit in front
+            for (int k = 1; k <= n; k++)
+            {
+                length[k] = v.Trailers[k - 1].Wheelbase;
+                hitch[k] = k == 1 ? v.Hitch : v.Trailers[k - 2].Hitch;
+            }
+
+            var axle = new Point2[n + 1];
+            axle[0] = req.Path.PointAt(0);
+            Point2 Coupling(int k) => new Point2(axle[k - 1].X + hitch[k] * Math.Cos(th[k - 1]), axle[k - 1].Y + hitch[k] * Math.Sin(th[k - 1]));
+            for (int k = 1; k <= n; k++)
+            {
+                Point2 c = Coupling(k);
+                axle[k] = new Point2(c.X - length[k] * Math.Cos(th[k]), c.Y - length[k] * Math.Sin(th[k]));
+            }
+
+            var before = new Point2[n + 1];
+            void Back(double ds, double turn)
+            {
+                for (int k = 1; k <= n; k++)
+                {
+                    before[k] = Coupling(k);
+                }
+
+                // The rear axle backs along an arc: reversing, a turn to the left swings the heading right.
+                double dth = -turn * ds, half = dth / 2;
+                double chord = Math.Abs(half) < 1e-9 ? ds : ds * Math.Sin(half) / half;
+                axle[0] = new Point2(axle[0].X - chord * Math.Cos(th[0] + half), axle[0].Y - chord * Math.Sin(th[0] + half));
+                th[0] += dth;
+                for (int k = 1; k <= n; k++)
+                {
+                    Point2 c = Coupling(k);
+                    th[k] = Drag(th[k], c.X - before[k].X, c.Y - before[k].Y, length[k]);
+                    axle[k] = new Point2(c.X - length[k] * Math.Cos(th[k]), c.Y - length[k] * Math.Sin(th[k]));
+                }
+            }
+
+            double travelled = 0;
+            void Record()
+            {
+                r.Poses.Add(new VehiclePose(axle[0], Angles.Normalize(th[0])));
+                r.Chainages.Add(travelled);
+                for (int k = 1; k <= n; k++)
+                {
+                    r.Trailers[k - 1].Poses.Add(new VehiclePose(axle[k], Angles.Normalize(th[k])));
+                }
+            }
+
+            r.Trailers.AddRange(v.Trailers.Select(t => new TrailerTrack(t)));
+            Record();
+
+            double fullLock = 1 / v.RearAxleRadius(req.TurnRadius ?? v.MinTurnRadius);
+            double settle = Math.Max(PushSettle, 3 * step);
+            // The last trailer comes onto its line slowest of all: a fold takes metres to wind on and
+            // longer to wind off, so anything brisker than about its own length asks for folds that
+            // can't be taken off again in time.
+            double look = Math.Max(settle * Math.Pow(PushSlower, n), length[n]);
+            double maxFold = Math.Max(10, v.MaxArticulationDeg - 5) * Math.PI / 180;
+            var savedAxle = new Point2[n + 1];
+            var savedTh = new double[n + 1];
+            double j = Progress(axle[n], 0);
+            double worst = 0;
+            bool folded = false;
+            int limit = 2 * last + (int)(20 / step);   // well past the length of the path: it isn't getting there
+            for (int count = 0; j < last && count < limit; count++)
+            {
+                // The last trailer: off its line by e to its left, and facing psi to the left of it.
+                double refHeading = HeadingAt(lineHeading[n], j);
+                int i = Math.Min(last - 1, (int)j);
+                double f = j - i;
+                double px = tail[i].RearAxle.X + (tail[i + 1].RearAxle.X - tail[i].RearAxle.X) * f;
+                double py = tail[i].RearAxle.Y + (tail[i + 1].RearAxle.Y - tail[i].RearAxle.Y) * f;
+                double e = -(axle[n].X - px) * Math.Sin(refHeading) + (axle[n].Y - py) * Math.Cos(refHeading);
+                double psi = Angles.Wrap(th[n] - refHeading);
+                worst = Math.Max(worst, Math.Abs(e));
+
+                // Backing, it drifts left when it faces right of the line, and turning left swings it
+                // right: so it turns as the line does, less for being left of it, more for facing left.
+                double turn = At(lineTurn[n], j) - Math.Max(-look / 2, Math.Min(look / 2, e)) / (look * look) + 2 * psi / look;
+                double pace = settle * Math.Pow(PushSlower, n - 1);
+                for (int k = n; k >= 1; k--)
+                {
+                    // The fold at this coupling that turns the trailer that hard, and the turn of the
+                    // unit in front that brings the fold there.
+                    double fold = Angles.Wrap(th[k - 1] - th[k]);
+                    double lineFold = Angles.Wrap(HeadingAt(lineHeading[k - 1], j) - HeadingAt(lineHeading[k], j));
+                    double lineFront = At(lineTurn[k - 1], j);
+                    double most = Math.Max(maxFold, Math.Abs(lineFold));
+                    double want = Math.Max(-most, Math.Min(most, Math.Atan(length[k] * turn) - Math.Atan(hitch[k] * lineFront)));
+                    double grip = 1 - hitch[k] * Math.Cos(fold) / length[k];
+                    double lineGrip = 1 - hitch[k] * Math.Cos(lineFold) / length[k];
+                    turn = (lineFront * lineGrip + (Math.Sin(fold) - Math.Sin(lineFold)) / length[k] + (fold - want) / pace) / (Math.Abs(grip) < 0.2 ? 0.2 : grip);
+                    pace /= PushSlower;
+                }
+
+                turn = Math.Max(-fullLock, Math.Min(fullLock, turn));
+
+                Array.Copy(axle, savedAxle, n + 1);
+                Array.Copy(th, savedTh, n + 1);
+                Back(step, turn);
+                double next = Progress(axle[n], j);
+                double ds = step;
+                if (next >= last && Along(next) - Along(j) > 1e-9)
+                {
+                    // The last step, cut short so the trailer stops at the end of its line.
+                    ds = step * Math.Min(1, (run[last] - Along(j)) / (Along(next) - Along(j)));
+                    Array.Copy(savedAxle, axle, n + 1);
+                    Array.Copy(savedTh, th, n + 1);
+                    Back(ds, turn);
+                }
+
+                j = next;
+                travelled += ds;
+                Record();
+
+                for (int k = 1; k <= n; k++)
+                {
+                    folded |= Math.Abs(Angles.Wrap(th[k - 1] - th[k])) > JackknifeFold;
+                }
+
+                if (folded)
+                {
+                    break;
+                }
+            }
+
+            double net = 0;
+            for (int i = 1; i < r.Poses.Count; i++)
+            {
+                net += Angles.Wrap(r.Poses[i].Heading - r.Poses[i - 1].Heading);
+            }
+
+            r.NetTurnDeg = net * 180 / Math.PI;
+            int stride = Math.Max(1, (int)(0.1 / step));
+            for (int i = 0; i < r.Poses.Count; i += stride)
+            {
+                r.MaxPathDeviation = Math.Max(r.MaxPathDeviation, r.Path.Closest(r.Poses[i].RearAxle).Distance);
+            }
+
+            if (folded)
+            {
+                r.Warnings.Add($"Reversing stopped after {travelled:0.0} m of {r.Path.Length:0.0} m: a trailer folded right round against the unit pushing it (a jackknife). Reverse a gentler turn, or start with the combination straighter.");
+                return;
+            }
+
+            if (j < last)
+            {
+                r.Warnings.Add($"Reversing stopped after {travelled:0.0} m: the {v.Trailers[n - 1].Name} couldn't be pushed any further along the path.");
+                return;
+            }
+
+            Point2 end = tail[last].RearAxle;
+            double endHeading = tail[last].Heading;
+            r.EndOffset = Math.Abs(-(axle[n].X - end.X) * Math.Sin(endHeading) + (axle[n].Y - end.Y) * Math.Cos(endHeading));
+            double askew = Math.Abs(Angles.Wrap(th[n] - endHeading)) * 180 / Math.PI;
+            if (r.EndOffset > 0.05 || askew > 1)
+            {
+                r.Warnings.Add($"Reversing, the {v.Trailers[n - 1].Name} finishes {r.EndOffset:0.00} m off the line of the path and {askew:0} degrees out of line with it (it was up to {worst:0.0} m off on the way): there isn't the length, or the steering, to bring it round. Give the reverse a longer or gentler path, or start it with the trailer set up for the turn.");
+            }
         }
 
         /// <summary>Curvature of an axle's path at each pose, from neighbouring headings.</summary>
