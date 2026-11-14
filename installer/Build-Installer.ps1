@@ -140,14 +140,20 @@ $versionProp = "-p:Version=$Version"
 Write-Host "PointerTurn $Version"
 
 # ---------------------------------------------------------------- licence
-# A build with no licence server and key compiled in runs without a licence. That is right for
-# development and wrong for anything handed to a customer, so it has to be asked for.
-$licenceBuild = Get-Content ([IO.Path]::Combine($repo, "src", "PointerTurn.Core", "Licensing", "LicenceBuild.cs")) -Raw
-$unset = @("Website", "PublicKeyX", "PublicKeyY") | Where-Object { $licenceBuild -match "const string $_ = `"`";" }
-if ($unset -and -not $Unlicensed) {
-    Stop-Build ("src\PointerTurn.Core\Licensing\LicenceBuild.cs has no value for " + ($unset -join ", ") + ", so this build would run without a licence. Fill them in (see docs/licensing.md), or pass -Unlicensed to build it anyway.")
+# The installer's add-in asks for a licence: it is built with -p:Licensed=true, which compiles
+# in the licence server and key from LicenceBuild.cs. -Unlicensed leaves them out.
+$licensedProp = "-p:Licensed=true"
+if ($Unlicensed) {
+    $licensedProp = "-p:Licensed=false"
+    Write-Warning "This installer's add-in does not ask for a licence (-Unlicensed). Not for a release."
+} else {
+    $licenceBuild = Get-Content ([IO.Path]::Combine($repo, "src", "PointerTurn.Core", "Licensing", "LicenceBuild.cs")) -Raw
+    $licensedPart = ($licenceBuild -split "#else")[0]
+    $unset = @("Website", "PublicKeyX", "PublicKeyY") | Where-Object { $licensedPart -notmatch "const string $_ = `"[^`"]+`";" }
+    if ($unset) {
+        Stop-Build ("src\PointerTurn.Core\Licensing\LicenceBuild.cs has no value for " + ($unset -join ", ") + " in its licensed part. Fill them in (see docs/licensing.md), or pass -Unlicensed.")
+    }
 }
-if ($unset) { Write-Warning "This installer's add-in does not ask for a licence (-Unlicensed). Not for a release." }
 
 # ---------------------------------------------------------------- tests
 if (-not $SkipTests) {
@@ -163,7 +169,7 @@ $missing = @()
 # ---------------------------------------------------------------- AutoCAD
 Write-Step "Building for AutoCAD (2021 to 2024, and 2025 and later)"
 $autocad = [IO.Path]::Combine($repo, "src", "PointerTurn.AutoCAD")
-Invoke-DotNet build $autocad -c Release -nologo -v q $versionProp
+Invoke-DotNet build $autocad -c Release -nologo -v q $versionProp $licensedProp
 $autocadOut = [IO.Path]::Combine($autocad, "bin", "Release")
 Copy-Build ([IO.Path]::Combine($autocadOut, "net48")) ([IO.Path]::Combine($bundle, "Contents", "net48")) "PointerTurn.AutoCAD.dll"
 Copy-Build ([IO.Path]::Combine($autocadOut, "net8.0-windows")) ([IO.Path]::Combine($bundle, "Contents", "net8")) "PointerTurn.AutoCAD.dll"
@@ -216,7 +222,7 @@ foreach ($kind in $kinds) {
     }
 
     Write-Host "Using the BricsCAD V$api API in $dir"
-    Invoke-DotNet build $bricscad -c Release -nologo -v q $versionProp "-p:BricsCADVersion=$api" "-p:BricsCADDir=$dir"
+    Invoke-DotNet build $bricscad -c Release -nologo -v q $versionProp $licensedProp "-p:BricsCADVersion=$api" "-p:BricsCADDir=$dir"
     Copy-Build ([IO.Path]::Combine($bricscad, "bin", "Release", "V$api")) ([IO.Path]::Combine($stage, "BricsCAD", $kind.Folder)) "PointerTurn.BricsCAD.dll"
     $built += $kind.Name
 }

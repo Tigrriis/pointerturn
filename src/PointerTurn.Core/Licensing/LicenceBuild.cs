@@ -1,25 +1,34 @@
 namespace PointerTurn.Core.Licensing
 {
     /// <summary>
-    /// What ties this build of PointerTurn to the licence server: the website's address and the
-    /// public half of the key the website signs licences with. Both are compiled in, so they
+    /// What ties a build of PointerTurn to the licence server: the website's address and the
+    /// public half of the key the website signs licences with. They are compiled in, so they
     /// can't be swapped by editing a file next to the add-in.
     ///
-    /// While they are empty the add-in does not ask for a licence at all: that is how it is
-    /// built for development. The installer build (installer/Build-Installer.ps1) refuses to
-    /// package a build without them unless told to.
+    /// They are only compiled into a licensed build: one made with -p:Licensed=true, which is
+    /// what the installer build (installer/Build-Installer.ps1) does. An ordinary build from
+    /// source leaves them empty and does not ask for a licence at all, so the add-in can be
+    /// developed and tried without an account.
     /// </summary>
     public static class LicenceBuild
     {
-        /// <summary>The website, e.g. "https://www.example.com" (no trailing slash).</summary>
-        public const string Website = "";
+#if LICENSED
+        /// <summary>The website (no trailing slash).</summary>
+        public const string Website = "https://pointerturn-website-dn6i.onrender.com";
 
         /// <summary>
-        /// The "x" and "y" of the public key: printed by `npm run licence-key` in website/, and
-        /// served by the website at /api/v1/licence-key.
+        /// The "x" and "y" of the website's public key: printed by `npm run licence-key` in
+        /// website/, and served by the website at /api/v1/licence-key.
         /// </summary>
+        public const string PublicKeyX = "TyfwJ-CUpMMSihX7dnNzzM1wkkaORvKIHd70kRD2DIM";
+
+        public const string PublicKeyY = "j8XPWOkAn46jFtoxn9rv5ZXa3p-oFlBfWm-EsT6eK-c";
+#else
+        public const string Website = "";
+
         public const string PublicKeyX = "";
 
         public const string PublicKeyY = "";
+#endif
     }
 }

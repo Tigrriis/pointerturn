@@ -7,4 +7,10 @@
     <Product>PointerTurn</Product>
     <Version>0.1.0</Version>
   </PropertyGroup>
+
+  <!-- -p:Licensed=true compiles in the licence server and key (LicenceBuild.cs), making a
+       build that asks for a licence. The installer build passes it. -->
+  <PropertyGroup Condition="'$(Licensed)' == 'true'">
+    <DefineConstants>$(DefineConstants);LICENSED</DefineConstants>
+  </PropertyGroup>
 </Project>

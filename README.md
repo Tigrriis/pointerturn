@@ -37,11 +37,11 @@ This is a first cut as a separate add-in, not a finished product.
 
 | Part | State |
 |---|---|
-| Core (vehicles, simulation, swept path, solver, conflicts, ground clearance, licence check) | Built and unit-tested: 111 tests |
+| Core (vehicles, simulation, swept path, solver, conflicts, ground clearance, licence check) | Built and unit-tested: 113 tests |
 | BricsCAD add-in | **Not yet compiled against BricsCAD, and not yet run in it.** Its files are type-checked against stand-in copies of the BricsCAD API, except `CadDrawing.cs`, which is a cut-down copy of CSD-Bridge's drawing code |
 | AutoCAD add-in | The same source, compiled against Autodesk's AutoCAD 2021 and AutoCAD 2025 APIs: it builds clean for both. **Not yet run in AutoCAD.** Reading Civil 3D surfaces is written from the API reference and untried |
 | Installer | Builds, and has been run under Wine: install for all users and for one user, upgrade, uninstall, and the BricsCAD registry entries, against stand-in BricsCAD and AutoCAD registry keys. **Not yet run on Windows, or with a real BricsCAD or AutoCAD.** Not code-signed |
-| Licence check | The checking, signing in and refreshing are unit-tested, and have been run against the website on a test database. The add-in side compiles for AutoCAD on .NET Framework; **it has not been compiled for .NET 8 or against BricsCAD, the sign-in dialog has not been seen on screen, and nothing has been run inside BricsCAD or AutoCAD.** Off until the website's address and key are filled in: see [docs/licensing.md](docs/licensing.md) |
+| Licence check | The checking, signing in and refreshing are unit-tested, and have been run against the website on a test database. The add-in side compiles for AutoCAD on .NET Framework; **it has not been compiled for .NET 8 or against BricsCAD, the sign-in dialog has not been seen on screen, and nothing has been run inside BricsCAD or AutoCAD.** Only the installer's build asks for a licence; a build from source doesn't: see [docs/licensing.md](docs/licensing.md) |
 | Austroads vehicles | Entered from the dimension drawings in AP-G34-23. **Not yet compared against the published turning templates** |
 
 See [docs/architecture.md](docs/architecture.md) for the design, and "First things to test" there.
@@ -178,8 +178,8 @@ that runs the same update when you log in and daily at 07:30. Run it with `-Remo
 
 ## Licence
 
-A released build of PointerTurn needs a licence, which belongs to a PointerTurn account on the
-website. A build made from source with no licence server filled in doesn't ask for one.
+PointerTurn installed from the installer needs a licence, which belongs to a PointerTurn account
+on the website. A build made from source doesn't ask for one.
 
 - **Signing in.** The first time you run a command, PointerTurn asks for your account's email
   address and password. You stay signed in on that computer after that.

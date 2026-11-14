@@ -72,9 +72,20 @@ Two details:
 Everything in Core is unit-tested (`tests/PointerTurn.Core.Tests/LicensingTests.cs`), including
 reading a licence signed the way the website signs them.
 
-## Turning it on
+## Licensed builds and source builds
 
-A build asks for a licence only when `LicenceBuild.cs` has all three values:
+The website's address and public key are in `LicenceBuild.cs`, but they are only compiled into
+a **licensed build**: one made with `-p:Licensed=true`.
+
+- **The installer** is a licensed build. `installer/Build-Installer.ps1` passes
+  `-p:Licensed=true` itself, and stops if `LicenceBuild.cs` has no values. `-Unlicensed` makes an
+  installer whose add-in doesn't ask for a licence; that is not for a release.
+- **A build from source** (`dotnet build`, the update script in `install/`) is not licensed and
+  never asks to sign in, so the add-in can be developed and tried without an account.
+- **To try the licence check itself** from source, add `-p:Licensed=true` to the build command.
+  You then need an account on the website with a licence to get past the sign-in.
+
+The values in `LicenceBuild.cs`:
 
 ```csharp
 public const string Website = "https://your-site";   // no trailing slash
@@ -86,12 +97,12 @@ public const string PublicKeyY = "…";
 `npm run licence-key` when the key is made, and served by the running website at
 `/api/v1/licence-key`. They are the public half of the key and are safe to commit.
 
-While they are empty the add-in runs without a licence, which is how it is built for
-development. `installer/Build-Installer.ps1` refuses to build an installer in that state unless
-it is passed `-Unlicensed`.
+Two things are fixed once an installer is in customers' hands, because each build only talks
+to the address, and only accepts licences signed by the key, compiled into it:
 
-The website's key must not change once builds are in customers' hands: a build only accepts
-licences signed by the key compiled into it.
+- **The key.** Changing the website's `LICENCE_SIGNING_KEY` stops every installed copy working.
+- **The address.** If the website moves (to its own domain, say), keep the old address working
+  for the builds already out, and put the new one in `LicenceBuild.cs` for the next release.
 
 ## Limits
 
