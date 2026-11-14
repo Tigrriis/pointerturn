@@ -1,6 +1,12 @@
+#if AUTOCAD
+using Autodesk.AutoCAD.ApplicationServices;
+using Autodesk.AutoCAD.Runtime;
+using CadApp = Autodesk.AutoCAD.ApplicationServices.Application;
+#else
 using Bricscad.ApplicationServices;
 using Teigha.Runtime;
 using CadApp = Bricscad.ApplicationServices.Application;
+#endif
 
 [assembly: CommandClass(typeof(PointerTurn.BricsCAD.Commands))]
 

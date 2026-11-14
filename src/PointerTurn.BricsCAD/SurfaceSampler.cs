@@ -2,19 +2,32 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+#if AUTOCAD
+using Autodesk.AutoCAD.ApplicationServices;
+using Autodesk.AutoCAD.DatabaseServices;
+using Autodesk.AutoCAD.Geometry;
+#else
 using Bricscad.ApplicationServices;
 using Teigha.DatabaseServices;
 using Teigha.Geometry;
+#endif
 
 namespace PointerTurn.BricsCAD
 {
     /// <summary>
-    /// Reads ground levels from a BricsCAD TIN surface, for the ground clearance check along a
-    /// path. Runs on the main thread. The Civil types are reached by reflection so the add-in
-    /// still loads on BricsCAD versions or editions without them.
+    /// Reads ground levels from a TIN surface (BricsCAD's own, or Civil 3D's in AutoCAD), for the
+    /// ground clearance check along a path. Runs on the main thread. The Civil types are reached
+    /// by reflection, so the add-in still loads where they don't exist: older or lighter
+    /// BricsCAD editions, and plain AutoCAD.
     /// </summary>
     internal static class SurfaceSampler
     {
+#if AUTOCAD
+        private const string TinSurfaceType = "Autodesk.Civil.DatabaseServices.TinSurface";
+#else
+        private const string TinSurfaceType = "Bricscad.Civil.TinSurfaceStatic";
+#endif
+
         /// <summary>
         /// Levels of a TIN surface at many plan points in one transaction; null where a point is off
         /// the surface. <paramref name="surface"/> null means the only surface.
@@ -27,19 +40,27 @@ namespace PointerTurn.BricsCAD
                 List<Entity> surfaces = FindSurfaces(db, tr);
                 if (surfaces.Count == 0)
                 {
-                    throw new ArgumentException("There is no BricsCAD TIN surface in this drawing. For a Civil Site Design surface, make a BricsCAD copy of it with CSD's Surface Exchange first.");
+                    throw new ArgumentException(Host.NoSurfaceToSample);
                 }
 
                 Entity ent = PickSurface(surfaces, surface);
                 resolvedName = SurfaceName(ent);
-                MethodInfo elevationAt = ent.GetType().GetMethod("GetElevationAtPoint", new[] { typeof(Point3d) })
-                    ?? throw new ArgumentException("This BricsCAD version can't read surface elevations.");
+                // BricsCAD: GetElevationAtPoint(Point3d). Civil 3D: FindElevationAtXY(x, y), which throws off the surface.
+                MethodInfo? atPoint = ent.GetType().GetMethod("GetElevationAtPoint", new[] { typeof(Point3d) });
+                MethodInfo? atXY = atPoint == null ? ent.GetType().GetMethod("FindElevationAtXY", new[] { typeof(double), typeof(double) }) : null;
+                if (atPoint == null && atXY == null)
+                {
+                    throw new ArgumentException($"This {Host.Name} version can't read surface elevations.");
+                }
+
                 var levels = new List<double?>(points.Count);
                 foreach (PointerTurn.Core.Drawing.Point2 p in points)
                 {
                     try
                     {
-                        double z = (double)elevationAt.Invoke(ent, new object[] { new Point3d(p.X, p.Y, 0) })!;
+                        double z = atPoint != null
+                            ? (double)atPoint.Invoke(ent, new object[] { new Point3d(p.X, p.Y, 0) })!
+                            : (double)atXY!.Invoke(ent, new object[] { p.X, p.Y })!;
                         levels.Add(double.IsNaN(z) || double.IsInfinity(z) || Math.Abs(z) > 1e7 ? (double?)null : z);
                     }
                     catch (Exception)
@@ -75,7 +96,7 @@ namespace PointerTurn.BricsCAD
 
                 for (Type? t = e.GetType(); t != null; t = t.BaseType)
                 {
-                    if (t.FullName == "Bricscad.Civil.TinSurfaceStatic")
+                    if (t.FullName == TinSurfaceType)
                     {
                         list.Add(e);
                         break;

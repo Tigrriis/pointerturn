@@ -2,12 +2,19 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using Bricscad.EditorInput;
 using PointerTurn.Core.Drawing;
 using PointerTurn.Core.Vehicles;
+#if AUTOCAD
+using Autodesk.AutoCAD.EditorInput;
+using Autodesk.AutoCAD.DatabaseServices;
+using Autodesk.AutoCAD.Geometry;
+using Autodesk.AutoCAD.GraphicsInterface;
+#else
+using Bricscad.EditorInput;
 using Teigha.DatabaseServices;
 using Teigha.Geometry;
 using Teigha.GraphicsInterface;
+#endif
 
 namespace PointerTurn.BricsCAD
 {

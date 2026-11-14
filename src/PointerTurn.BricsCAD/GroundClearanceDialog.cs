@@ -152,7 +152,7 @@ namespace PointerTurn.BricsCAD
                 _surface.SelectedIndex = 0;
             }
 
-            Row(check, Caption("Surface (BricsCAD TIN)"), _surface, null);
+            Row(check, Caption($"Surface ({Host.Surfaces})"), _surface, null);
             _reverse = new CheckBox { Text = "Reverse along the path", AutoSize = true };
             Row(check, null, _reverse, null);
             check.SetColumnSpan(_reverse, 2);
@@ -165,11 +165,7 @@ namespace PointerTurn.BricsCAD
             Row(check, Caption("Plot vertical exaggeration"), _plotVe, null);
             left.Controls.Add(Group("Check", check));
 
-            left.Controls.Add(Note(
-                surfaces.Count == 0
-                    ? "No BricsCAD TIN surface was found in this drawing, so only a plotted long section can be checked. Civil Site Design keeps " +
-                      "its own surfaces: make a BricsCAD copy with CSD's Surface Exchange (Surfaces tab > BricsCAD Surfaces) and run this again."
-                    : "Only BricsCAD TIN surfaces are listed. For a Civil Site Design surface, make a BricsCAD copy with CSD's Surface Exchange first.", 420));
+            left.Controls.Add(Note(surfaces.Count == 0 ? Host.NoSurface : Host.SurfacesListed, 420));
 
             // ----------------------------------------------------------- right column
             TableLayoutPanel right = Column();
@@ -428,7 +424,7 @@ namespace PointerTurn.BricsCAD
                 string layer = kv.Value.Text.Trim();
                 if (layer.Length == 0 || layer.IndexOfAny(new[] { '<', '>', '/', '\\', '"', ':', ';', '?', '*', '|', ',', '=', '`' }) >= 0)
                 {
-                    problem = $"Layer name '{layer}' is empty or has characters BricsCAD doesn't allow.";
+                    problem = $"Layer name '{layer}' is empty or has characters {Host.Name} doesn't allow.";
                     return false;
                 }
 

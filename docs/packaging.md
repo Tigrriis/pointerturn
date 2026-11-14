@@ -1,0 +1,152 @@
+# Packaging PointerTurn
+
+One installer, `PointerTurn-<version>-setup.exe`, for BricsCAD and AutoCAD. It holds four builds
+of the add-in and decides nothing at install time: every build is installed, and each CAD program
+loads the one meant for it.
+
+| Build | For | Runs on |
+|---|---|---|
+| `BricsCAD\net48\PointerTurn.BricsCAD.dll` | BricsCAD V24 and V25 | .NET Framework 4.8 |
+| `BricsCAD\net8\PointerTurn.BricsCAD.dll` | BricsCAD V26 and later | .NET 8 |
+| `PointerTurn.bundle\Contents\net48\PointerTurn.AutoCAD.dll` | AutoCAD 2021 to 2024 | .NET Framework 4.8 |
+| `PointerTurn.bundle\Contents\net8\PointerTurn.AutoCAD.dll` | AutoCAD 2025 and later | .NET 8 |
+
+Each DLL sits with `PointerTurn.Core.dll`, `turn-paths.json` and, for .NET Framework, the
+`System.Text.Json` libraries. No debug symbols are shipped.
+
+## What is installed, and where
+
+The installer asks whether to install for everyone on the PC or just the current user.
+
+| | All users (needs an administrator) | Just me |
+|---|---|---|
+| BricsCAD builds, uninstaller | `C:\Program Files\PointerTurn` | `%LOCALAPPDATA%\Programs\PointerTurn` |
+| AutoCAD bundle | `%ProgramData%\Autodesk\ApplicationPlugins\PointerTurn.bundle` | `%APPDATA%\Autodesk\ApplicationPlugins\PointerTurn.bundle` |
+| BricsCAD registry entries | under `HKEY_LOCAL_MACHINE` | under `HKEY_CURRENT_USER` |
+
+Nothing is written to `%APPDATA%\PointerTurn`, where the add-in keeps a user's saved defaults, and
+uninstalling leaves that folder alone.
+
+### How AutoCAD finds it
+
+AutoCAD, and the products built on it, load every `.bundle` folder in an `ApplicationPlugins`
+folder when they start. `PackageContents.xml` in the bundle says which DLL goes with which
+release: `R24.0` to `R24.3` (2021 to 2024) get the .NET Framework build, `R25.0` (2025) and later
+the .NET 8 build. Nothing is registered, so an AutoCAD installed after PointerTurn loads it too.
+
+### How BricsCAD finds it
+
+BricsCAD is told in the registry, with the entry its developer reference describes for loading an
+add-in at startup. The installer writes one for every BricsCAD version (V24 and later) and
+language it finds, looking in both `HKEY_LOCAL_MACHINE` and `HKEY_CURRENT_USER`:
+
+```
+Software\Bricsys\BricsCAD\V25x64\en_US\Applications\PointerTurn
+    LOADER      C:\Program Files\PointerTurn\BricsCAD\net48\PointerTurn.BricsCAD.dll
+    LOADCTRLS   2      load at startup
+    MANAGED     1      a .NET assembly
+    DESCRIPTION PointerTurn (vehicle turning paths)
+```
+
+V26 and later get the `net8` path. Uninstalling removes the entries, and any registry key that
+registering created and nothing else uses.
+
+BricsCAD does have an AutoCAD-style bundle loader (`APPAUTOLOADER`), but reports of it working
+are mixed, so it isn't relied on. The cost of the registry is that **a BricsCAD installed after
+PointerTurn isn't registered until the installer is run again.**
+
+### The .NET 8 Desktop Runtime
+
+BricsCAD V26 and later run add-ins on Microsoft's .NET 8 Desktop Runtime (x64) and don't install
+it. When such a BricsCAD is found and the runtime isn't (no
+`C:\Program Files\dotnet\shared\Microsoft.WindowsDesktop.App\8.*`), an all-users install downloads
+it from Microsoft (`aka.ms/dotnet/8.0/windowsdesktop-runtime-win-x64.exe`) and runs it quietly.
+A just-me install can't, and says so. If the download fails, PointerTurn is still installed and
+the last page says where to get the runtime. AutoCAD 2025 and later install their own.
+
+### Unattended installs
+
+```
+PointerTurn-<version>-setup.exe /VERYSILENT /SUPPRESSMSGBOXES /ALLUSERS /LOG=C:\Temp\pointerturn.log
+```
+
+`/CURRENTUSER` instead of `/ALLUSERS` installs for one user without an administrator. The log
+records which BricsCAD versions were registered and ends with the same summary the last page shows.
+
+## Building the installer
+
+On a Windows PC with the .NET 8 SDK, from the repo folder:
+
+```
+powershell -ExecutionPolicy Bypass -File installer\Build-Installer.ps1
+```
+
+It runs the unit tests, builds the four add-ins, lays them out in `artifacts\stage`, and compiles
+`installer\PointerTurn.iss` into `artifacts\PointerTurn-<version>-setup.exe`. It prints the
+file's SHA-256 and which builds are in it.
+
+What it needs:
+
+- **For the AutoCAD builds, nothing.** The AutoCAD API comes from Autodesk's `AutoCAD.NET` NuGet
+  package: 24.0.0 (AutoCAD 2021) for .NET Framework, 25.0.1 (AutoCAD 2025) for .NET 8.
+- **For the BricsCAD builds, BricsCAD.** Its API files, `BrxMgd.dll` and `TD_Mgd.dll`, only come
+  with BricsCAD. The .NET Framework build needs a V24 or V25 under `C:\Program Files\Bricsys`, the
+  .NET 8 build a V26 or later; the oldest of each is used. Or pass `-BricsCADNet48Dir` and
+  `-BricsCADNet8Dir` with any folder that holds the two files.
+- **Inno Setup, fetched for you.** The first run downloads the pinned version (6.7.3) from NuGet
+  (package `Tools.InnoSetup`) into `artifacts\tools`. Pass `-ISCC` to use another.
+
+A release has to hold all four builds, so the script stops if a BricsCAD build can't be made.
+`-AllowMissing` builds the installer without it, for trying things out: that installer leaves the
+BricsCAD versions it has no build for unregistered. `-SkipTests` skips the unit tests.
+
+The script also runs under PowerShell 7 on Linux or macOS with Wine (for Inno Setup), which is
+how the installer was developed. There the BricsCAD builds need the two folder options.
+
+### A new version
+
+Set `<Version>` in `Directory.Build.props` (or pass `-Version 1.2.0`) and build. The version goes
+on the DLLs, the bundle and the installer. Running a newer installer over an older one upgrades in
+place; it is the `AppId` in `PointerTurn.iss` that makes Windows see them as the same product, so
+that must never change. Neither must the `UpgradeCode` in `PackageContents.xml`.
+
+## Checked, and not
+
+The installer was built and run under Wine, with registry keys made up to look like BricsCAD V23
+to V26 and AutoCAD 2024 and 2025. Checked there:
+
+- all-users and just-me installs put the files and registry entries where the tables above say;
+- BricsCAD V23 is skipped, V24 and V25 get the .NET Framework build and V26 the .NET 8 build, for
+  each language;
+- the runtime is downloaded and run when missing (from a local stand-in server), skipped when
+  present, and a failed download doesn't stop the install;
+- installing over an existing install replaces it and clears out files no longer shipped;
+- uninstalling removes every file and leaves the registry exactly as it was before installing.
+
+Not checked, because it needs Windows and the real programs:
+
+1. **A real BricsCAD and a real AutoCAD loading it.** Nothing here has been loaded by either.
+   The BricsCAD builds in the test installer were stand-ins, since BricsCAD's API files weren't
+   available: the BricsCAD project still has to be built for real.
+2. **The registry layout.** `Software\Bricsys\BricsCAD\V25x64\en_US` is taken from the existing
+   `Register-Autoload.ps1` and the developer reference. Confirm it in `regedit` for V24, V25 and
+   V26, and that BricsCAD loads from the `HKEY_LOCAL_MACHINE` entry as well as the
+   `HKEY_CURRENT_USER` one.
+3. **One build for several versions.** The .NET Framework BricsCAD build, compiled against the
+   oldest of V24 and V25 on the build PC, is assumed to load in both; the .NET 8 build, compiled
+   against V26, in later versions. The same is assumed of AutoCAD within 2021 to 2024 and from
+   2025 on, which is Autodesk's stated compatibility.
+4. **Closing a running CAD program.** If BricsCAD or AutoCAD has PointerTurn loaded, Windows
+   holds its files open. Setup should list the program and offer to close it.
+5. **The real runtime download**, through a company proxy in particular.
+
+## Not done yet
+
+- **Code signing.** The installer and DLLs are unsigned, so Windows SmartScreen will warn on
+  download and some companies' policies will block it. Selling it needs a code-signing
+  certificate, and signing both the DLLs and the installer.
+- **A licence agreement** page in the installer.
+- **Accounts and licensing.** The add-in runs for anyone who installs it.
+- **Updates.** A user gets a new version by running a new installer.
+- **A build server.** A hosted Windows build can make the AutoCAD half, but the BricsCAD half
+  needs BricsCAD's API files, which can't go in the repository.

@@ -2,16 +2,24 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using Bricscad.ApplicationServices;
-using Bricscad.EditorInput;
 using PointerTurn.Core.Drawing;
 using PointerTurn.Core.Geometry;
+#if AUTOCAD
+using Autodesk.AutoCAD.ApplicationServices;
+using Autodesk.AutoCAD.EditorInput;
+using Autodesk.AutoCAD.Colors;
+using Autodesk.AutoCAD.DatabaseServices;
+using Autodesk.AutoCAD.Geometry;
+#else
+using Bricscad.ApplicationServices;
+using Bricscad.EditorInput;
 using Teigha.Colors;
 using Teigha.DatabaseServices;
 using Teigha.Geometry;
+#endif
 
-// Porting note: this file uses the AutoCAD-compatible API. To build it for AutoCAD,
-// swap Bricscad.* / Teigha.* for Autodesk.AutoCAD.* namespaces.
+// This file uses the API the two programs share. The AutoCAD build (src/PointerTurn.AutoCAD)
+// compiles it with AUTOCAD defined, which swaps the namespaces above.
 
 namespace PointerTurn.BricsCAD
 {
@@ -777,8 +785,13 @@ namespace PointerTurn.BricsCAD
                 return table[name];
             }
 
+#if AUTOCAD
+            // AutoCAD ships acadiso.lin (metric) and acad.lin (imperial).
+            foreach (string file in new[] { "acadiso.lin", "acad.lin" })
+#else
             // BricsCAD ships iso.lin (metric) and default.lin (imperial).
             foreach (string file in new[] { "iso.lin", "default.lin" })
+#endif
             {
                 try
                 {

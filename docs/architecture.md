@@ -1,15 +1,35 @@
 # PointerTurn design notes
 
-## Two projects
+## Three projects
 
 | Project | What it is | Targets |
 |---|---|---|
-| `PointerTurn.Core` | Everything that doesn't need BricsCAD: design vehicles, the simulation, the swept path, the solver, conflicts, the ground clearance check, and turning the results into entities to draw. All of it is unit-tested. | `netstandard2.0` and `net8.0` |
-| `PointerTurn.BricsCAD` | The add-in: commands, dialogs, the live preview, the ribbon, reading and drawing in BricsCAD, and saving each path's inputs in the drawing. | `net48` for BricsCAD V24/V25, `net8.0-windows` for V26 and later |
+| `PointerTurn.Core` | Everything that doesn't need a CAD program: design vehicles, the simulation, the swept path, the solver, conflicts, the ground clearance check, and turning the results into entities to draw. All of it is unit-tested. | `netstandard2.0` and `net8.0` |
+| `PointerTurn.BricsCAD` | The add-in: commands, dialogs, the live preview, the ribbon, reading and drawing in the CAD program, and saving each path's inputs in the drawing. | `net48` for BricsCAD V24/V25, `net8.0-windows` for V26 and later |
+| `PointerTurn.AutoCAD` | The same add-in for AutoCAD. A project file and nothing else: it compiles the source in `PointerTurn.BricsCAD` with `AUTOCAD` defined. | `net48` for AutoCAD 2021 to 2024, `net8.0-windows` for 2025 and later |
 
-Core has two targets because BricsCAD V24/V25 run on .NET Framework 4.8 and V26 onwards on .NET 8.
-The add-in builds against one BricsCAD version at a time (see the comment at the top of
-`PointerTurn.BricsCAD.csproj`).
+Core has two targets because BricsCAD V24/V25 and AutoCAD up to 2024 run on .NET Framework 4.8,
+and BricsCAD V26 and AutoCAD 2025 onwards on .NET 8. The BricsCAD add-in builds against one
+BricsCAD version at a time (see the comment at the top of `PointerTurn.BricsCAD.csproj`), from
+the API files in a BricsCAD install. The AutoCAD add-in builds both of its targets at once, from
+Autodesk's `AutoCAD.NET` NuGet package, each against the oldest release it supports.
+
+### One source, two CAD programs
+
+BricsCAD's .NET API mirrors AutoCAD's name for name, in different namespaces (`Teigha.*` and
+`Bricscad.*` for `Autodesk.AutoCAD.*`). So each file that touches the CAD program imports one
+set or the other under `#if AUTOCAD`, and the code below the imports is shared. What actually
+differs is small, and is either in `Host.cs` or under `#if AUTOCAD` where it is used:
+
+- the wording that names the program;
+- the ribbon button that shows its text under a large icon (a button style in BricsCAD, an
+  orientation in AutoCAD);
+- the linetype files to load from (`iso.lin` in BricsCAD, `acadiso.lin` in AutoCAD);
+- TIN surfaces, reached by reflection in both: BricsCAD's `TinSurfaceStatic`, Civil 3D's
+  `TinSurface`. Plain AutoCAD has no surfaces, so there the check works on a long section only.
+
+The namespace in the source is `PointerTurn.BricsCAD` for both builds; only the DLL is named for
+the program (`PointerTurn.BricsCAD.dll`, `PointerTurn.AutoCAD.dll`).
 
 Core works in **metres**, always. `DrawingUnits` converts at the edges: points, curves, obstructions
 and surface levels from the drawing are scaled on the way in, and everything drawn is scaled on the
@@ -100,7 +120,8 @@ after an update.
 
 ## First things to test
 
-None of the add-in has been run in BricsCAD yet. In this order:
+None of the add-in has been run in BricsCAD or AutoCAD yet. In this order, in BricsCAD first
+(then steps 2 to 7 again in AutoCAD, with a Civil 3D surface for step 7):
 
 1. **It builds** against the installed BricsCAD, for V26 and for V24/V25 if both are in use.
 2. **It loads**: `NETLOAD` the DLL. The command line should say `PointerTurn loaded` and the ribbon

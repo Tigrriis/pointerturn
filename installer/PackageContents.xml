@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Tells AutoCAD what is in PointerTurn.bundle and which build to load. AutoCAD (and its
+  verticals: Civil 3D, Map 3D...) loads every bundle it finds in an ApplicationPlugins folder
+  when it starts; the installer puts this one in %ProgramData%\Autodesk\ApplicationPlugins, or
+  %APPDATA%\Autodesk\ApplicationPlugins when installed for one user.
+
+  Build-Installer.ps1 fills in @VERSION@ and @PRODUCTCODE@. ProductCode changes with every
+  version; UpgradeCode never does.
+
+  Series: R24.0 to R24.3 are AutoCAD 2021 to 2024 (.NET Framework 4.8); R25.0 is AutoCAD 2025,
+  the first on .NET 8.
+-->
+<ApplicationPackage
+    SchemaVersion="1.0"
+    AutodeskProduct="AutoCAD"
+    ProductType="Application"
+    Name="PointerTurn"
+    Description="Vehicle turning paths: swept paths for design cars and trucks, multi-point turns, conflicts with kerbs and walls, and ground clearance."
+    Author="Arete Engineering"
+    AppVersion="@VERSION@"
+    ProductCode="{@PRODUCTCODE@}"
+    UpgradeCode="{E8E629A8-E4F1-4E8A-985A-37274C0B41CC}">
+
+  <CompanyDetails Name="Arete Engineering" />
+
+  <RuntimeRequirements OS="Win64" Platform="AutoCAD*" SeriesMin="R24.0" />
+
+  <Components Description="AutoCAD 2021 to 2024">
+    <RuntimeRequirements OS="Win64" Platform="AutoCAD*" SeriesMin="R24.0" SeriesMax="R24.3" />
+    <ComponentEntry
+        AppName="PointerTurn"
+        AppDescription="PointerTurn vehicle turning paths"
+        Version="@VERSION@"
+        ModuleName="./Contents/net48/PointerTurn.AutoCAD.dll"
+        LoadOnAutoCADStartup="True" />
+  </Components>
+
+  <Components Description="AutoCAD 2025 and later">
+    <RuntimeRequirements OS="Win64" Platform="AutoCAD*" SeriesMin="R25.0" />
+    <ComponentEntry
+        AppName="PointerTurn"
+        AppDescription="PointerTurn vehicle turning paths"
+        Version="@VERSION@"
+        ModuleName="./Contents/net8/PointerTurn.AutoCAD.dll"
+        LoadOnAutoCADStartup="True" />
+  </Components>
+
+</ApplicationPackage>
