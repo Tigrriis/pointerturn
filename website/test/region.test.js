@@ -132,3 +132,18 @@ test('a visitor cannot pick their own country when no platform header is configu
   const res = await t.browser({ 'x-client-ip': '1.0.0.1', 'cf-connecting-ip': '1.0.0.1', 'cf-ipcountry': 'AU' }).get('/signup');
   assert.equal(res.status, 403);
 });
+
+test('behind two proxies, as on Render, the visitor is found and a forged address is ignored', async () => {
+  await t.stop();
+  t = await start({ ALLOWED_COUNTRIES: 'AU', CLIENT_IP_HEADER: 'cf-connecting-ip', TRUST_PROXY_HOPS: '2' });
+  const signup = async (headers) => (await t.browser(headers).get('/signup')).status;
+
+  // What Render delivers: Cloudflare names the visitor, and appends its own address.
+  assert.equal(await signup({ 'cf-connecting-ip': '1.0.0.1', 'x-forwarded-for': '1.0.0.1, 172.71.124.52' }), 200);
+  assert.equal(await signup({ 'cf-connecting-ip': '8.8.8.8', 'x-forwarded-for': '8.8.8.8, 172.71.124.52' }), 403);
+
+  // A visitor abroad who sends their own X-Forwarded-For only adds to the front of the list.
+  assert.equal(await signup({ 'cf-connecting-ip': '8.8.8.8', 'x-forwarded-for': '1.0.0.1, 8.8.8.8, 172.71.124.52' }), 403);
+  await t.stop();
+  t = { stop: async () => {} };
+});

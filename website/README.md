@@ -117,18 +117,27 @@ What this does not do:
   issued outside Australia, add a rule in Stripe Radar; that is set in Stripe, not here.
 - It is not a licence term. The terms of sale need to say the licence is for use in Australia.
 
-### Checking it after the first deploy
+### How the visitor's address reaches the app
 
 The lookup is only as good as the IP address the app is given, and that depends on the hosting
-platform's proxies. `render.yaml` sets `GEO_DEBUG=1`, which logs, for each request, the address
-used, the country found, and the headers the platform sent. Open the site once from a known
-place and read the log:
+platform's proxies. On Render, traffic comes through Cloudflare and then Render's own proxy, so
+left to itself the app sees a Cloudflare address. The first deploy's log showed this:
 
-- If `ip=` is your own address and the country is right, remove `GEO_DEBUG`. Nothing else to do.
-- If `ip=` is a proxy's address and one of the headers logged (`cf-connecting-ip`, say) has
-  yours, set `CLIENT_IP_HEADER` to that header's name. Only do this for a header the platform
-  sets itself and visitors can't forge.
-- If your address is in `x-forwarded-for` but not last, raise `TRUST_PROXY_HOPS`.
+```
+ip=172.71.124.52 country=SG  x-forwarded-for=35.230.99.103, 172.71.124.52  cf-connecting-ip=35.230.99.103
+```
+
+The visitor was `35.230.99.103`; `172.71.124.52` is Cloudflare. So `render.yaml` sets:
+
+- `CLIENT_IP_HEADER=cf-connecting-ip`: the country is looked up from the address Cloudflare
+  reports. Cloudflare sets this header itself and overwrites one a visitor sends.
+- `TRUST_PROXY_HOPS=2`: Express takes the visitor to be the second address from the end of
+  `X-Forwarded-For`, which is what rate limiting counts by.
+
+`GEO_DEBUG=1` logs, for each request, the address used, the country found and these headers.
+It is on in `render.yaml` until a visit from a known place has been checked; remove it after.
+On another host, turn it on, read one line, and set the two values to suit. Only name a
+header in `CLIENT_IP_HEADER` that the platform sets itself and visitors can't forge.
 
 ## Licence API
 

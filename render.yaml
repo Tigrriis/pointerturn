@@ -51,8 +51,17 @@ services:
       # Offered in Australia only. See "Restricting to a country" in website/README.md.
       - key: ALLOWED_COUNTRIES
         value: AU
-      # Logs how each visitor's country was worked out. Check it once after the first
-      # deploy, then remove this.
+      # Render's traffic comes through Cloudflare, which puts the visitor's own address in
+      # this header (and overwrites any a visitor sends). Without it the app sees a
+      # Cloudflare address and places every visitor wherever that happens to be.
+      - key: CLIENT_IP_HEADER
+        value: cf-connecting-ip
+      # Two proxies sit in front of the app (Cloudflare, then Render), so the visitor is
+      # the second address from the end of X-Forwarded-For. Used for rate limiting.
+      - key: TRUST_PROXY_HOPS
+        value: "2"
+      # Logs how each visitor's country was worked out. Remove once a visit from a known
+      # place has been checked against it.
       - key: GEO_DEBUG
         value: "1"
       - key: LICENCE_MAX_MACHINES
