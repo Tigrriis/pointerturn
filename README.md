@@ -58,6 +58,7 @@ installer/                   The installer: Inno Setup script, AutoCAD bundle ma
 install/                     For developers: update from source (pull, build, copy) and autoload
 docs/architecture.md         Design notes, what is kept in the drawing, first things to test
 docs/packaging.md            What the installer installs and where, building it, what is left to do
+brand/                       Logo, icons and colours for the website and advertising
 ```
 
 ## Installing

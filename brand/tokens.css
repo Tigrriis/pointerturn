@@ -1,0 +1,26 @@
+/* PointerTurn brand tokens. See README.md in this folder. */
+:root {
+  /* Colour */
+  --pt-amber: #FFC21A;      /* the accent: icon tile, highlights, buttons on ink */
+  --pt-ink: #111A22;        /* logomark, headings, primary buttons, dark bands */
+  --pt-paper: #F5F6F4;      /* page background */
+  --pt-white: #FFFFFF;      /* cards and panels */
+  --pt-highlight: #FFEFB0;  /* pale amber fill, e.g. a clearance envelope */
+  --pt-slate: #36414B;      /* body text on paper or white */
+  --pt-graphite: #55606B;   /* secondary text and small labels */
+  --pt-line: #D5D9DC;       /* borders and dividers */
+  --pt-on-ink-muted: #C5CBD1; /* secondary text on ink */
+
+  /* Type: Outfit for headlines and the wordmark, Inter for body and UI */
+  --pt-font-display: 'Outfit', 'Helvetica Neue', Arial, sans-serif;
+  --pt-font-body: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+  --pt-display-weight: 600;
+  --pt-display-tracking: -0.03em;
+
+  /* Shape */
+  --pt-radius-card: 20px;
+  --pt-radius-button: 14px;
+  --pt-radius-highlight: 12px;
+  --pt-radius-pill: 999px;
+  --pt-icon-radius: 23.5%;  /* the icon tile's corner radius, as a share of its side */
+}
