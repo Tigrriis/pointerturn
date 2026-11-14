@@ -1,0 +1,77 @@
+<%- include('partials/head') %>
+<section class="wrap hero">
+<div class="hero__text">
+<h1><span class="mark">Turning paths</span> without leaving your drawing.</h1>
+<p class="lead">PointerTurn draws a design vehicle's swept path and clearance right inside BricsCAD or AutoCAD. Pick a vehicle, pick a start point, and the path is in your drawing.</p>
+<div class="actions">
+<a class="button" href="/buy">Buy a licence</a>
+<a class="text-link" href="#features">See what it does</a>
+</div>
+</div>
+<div class="hero__art">
+<figure class="sheet">
+<%- include('partials/sweep') %>
+<figcaption class="sheet__block">
+<div><span class="label">Vehicle</span><span>19 m semi-trailer</span></div>
+<div><span class="label">Radius</span><span>15 m</span></div>
+<div><span class="label">Units</span><span>Metres</span></div>
+</figcaption>
+</figure>
+</div>
+</section>
+
+<section id="features" class="wrap cards">
+<article class="card">
+<div class="card__bar"></div>
+<h2>Solve turn</h2>
+<p>Pick where the vehicle starts and where it ends up. The forward and reverse movements between the kerbs, walls and columns are found for you.</p>
+</article>
+<article class="card">
+<div class="card__bar"></div>
+<h2>In and out</h2>
+<p>The same through a stop on a site, so the vehicle enters forwards and leaves forwards.</p>
+</article>
+<article class="card">
+<div class="card__bar"></div>
+<h2>Conflicts</h2>
+<p>Where the swept path or its clearance meets linework on the layers you name, the spot is marked on the drawing.</p>
+</article>
+<article class="card">
+<div class="card__bar"></div>
+<h2>Editable paths</h2>
+<p>Every path remembers how it was made. Change its vehicle, radius, clearances or layers and regenerate it.</p>
+</article>
+</section>
+
+<section id="vehicles" class="band">
+<div class="wrap band__inner">
+<h2>From a B85 car to a 26 m B-double</h2>
+<ul class="chips">
+<li>B85 car</li>
+<li>B99 car</li>
+<li>8.8 m service vehicle</li>
+<li>12.5 m truck</li>
+<li>19 m semi-trailer</li>
+<li>25 m B-double</li>
+<li>26 m B-double</li>
+</ul>
+<p>Cars to AS/NZS 2890.1. Trucks from the Austroads design vehicle guide. Works in metres or millimetres.</p>
+</div>
+</section>
+
+<section id="buy" class="wrap buy">
+<div class="buy__panel">
+<div class="buy__text">
+<h2>One licence, everything included</h2>
+<p>Every vehicle and every tool, for BricsCAD and AutoCAD. Sign in to PointerTurn with your account to activate it.</p>
+</div>
+<div class="buy__price">
+<% if (price) { %>
+<p class="price"><span class="price__amount"><%= price.amount %></span><% if (price.recurring) { %> <span class="price__unit">per <%= price.interval %></span><% } %></p>
+<p class="price__note"><%= [price.currency, price.tax].filter(Boolean).join(', ') %></p>
+<% } %>
+<a class="button button--amber" href="/buy">Buy a licence</a>
+</div>
+</div>
+</section>
+<%- include('partials/foot') %>

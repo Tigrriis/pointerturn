@@ -1,0 +1,84 @@
+<%- include('partials/head', { title: 'Your account' }) %>
+<%
+const date = (d) => new Date(d).toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' });
+const statusText = { active: 'Active', past_due: 'Payment overdue', cancelled: 'Ended', refunded: 'Refunded' };
+%>
+<section class="wrap account">
+<h1>Your account</h1>
+<p class="account__email">Signed in as <strong><%= user.email %></strong></p>
+
+<% if (!user.email_verified_at) { %>
+<div class="notice">
+<p>Confirm your email address to buy a licence and activate PointerTurn. We sent a link to <%= user.email %>.</p>
+<form method="post" action="/verify/resend">
+<input type="hidden" name="_csrf" value="<%= csrfToken %>">
+<button class="button button--small" type="submit">Send the link again</button>
+</form>
+</div>
+<% } %>
+
+<div class="account__grid">
+<article id="licence" class="panel">
+<h2>Licence</h2>
+<% if (usable) { %>
+<p class="status status--<%= licence.status %>"><%= statusText[licence.status] %></p>
+<% if (licence.kind === 'subscription') { %>
+<p><% if (licence.status === 'past_due') { %>The last payment did not go through. Update your card to keep PointerTurn working.<% } else if (licence.current_period_end) { %>Paid until <%= date(licence.current_period_end) %>.<% } %></p>
+<% } else { %>
+<p>Bought <%= date(licence.created_at) %>. It does not expire.</p>
+<% } %>
+<% } else { %>
+<% if (licence) { %><p class="status status--<%= licence.status %>"><%= statusText[licence.status] %></p><% } %>
+<p>This account has no active licence.</p>
+<% if (price) { %><p class="price"><span class="price__amount"><%= price.amount %></span><% if (price.recurring) { %> <span class="price__unit">per <%= price.interval %></span><% } %></p>
+<p class="price__note"><%= [price.currency, price.tax].filter(Boolean).join(', ') %></p><% } %>
+<% if (billingEnabled) { %>
+<form method="post" action="/buy">
+<input type="hidden" name="_csrf" value="<%= csrfToken %>">
+<button class="button" type="submit"<% if (!user.email_verified_at) { %> disabled<% } %>>Buy a licence</button>
+</form>
+<% } else { %>
+<p class="hint">Buying a licence is not available yet.</p>
+<% } %>
+<% } %>
+<% if (user.stripe_customer_id && billingEnabled) { %>
+<form method="post" action="/billing" class="panel__foot">
+<input type="hidden" name="_csrf" value="<%= csrfToken %>">
+<button class="link-button" type="submit">Invoices and billing</button>
+</form>
+<% } %>
+</article>
+
+<article class="panel">
+<h2>Download</h2>
+<p>The installer sets PointerTurn up for BricsCAD and AutoCAD on this PC.</p>
+<% if (installer.url) { %>
+<p><a class="button" href="/download" data-event="Download">Download the installer</a></p>
+<% if (installer.version) { %><p class="hint">Version <%= installer.version %>, for Windows.</p><% } %>
+<% } else { %>
+<p class="hint">The download has not been published yet.</p>
+<% } %>
+</article>
+
+<% if (usable) { %>
+<article class="panel panel--wide">
+<h2>Computers</h2>
+<p>PointerTurn is signed in on <%= machines.length %> of <%= licence.max_machines %> computers. Sign one out here to use its place on another.</p>
+<% if (machines.length) { %>
+<ul class="machines">
+<% machines.forEach((m) => { %>
+<li>
+<div><strong><%= m.machine_name || 'Unnamed computer' %></strong><span class="hint">Last used <%= date(m.last_seen_at) %></span></div>
+<form method="post" action="/account/machines/<%= m.id %>/deactivate">
+<input type="hidden" name="_csrf" value="<%= csrfToken %>">
+<button class="link-button" type="submit" aria-label="Sign out <%= m.machine_name || 'this computer' %>">Sign out</button>
+</form>
+</li>
+<% }) %>
+</ul>
+<% } %>
+</article>
+<% } %>
+</div>
+</section>
+<%- include('partials/foot') %>

@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title><%= locals.title ? title + ' · PointerTurn' : 'PointerTurn: vehicle turning paths for BricsCAD and AutoCAD' %></title>
+<meta name="description" content="PointerTurn draws vehicle swept paths and clearances inside BricsCAD and AutoCAD.">
+<link rel="icon" href="/brand/icon.svg" type="image/svg+xml">
+<link rel="icon" href="/brand/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/brand/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/brand/tokens.css">
+<link rel="stylesheet" href="/css/site.css">
+<% if (plausible.scriptUrl) { %>
+<script async src="<%= plausible.scriptUrl %>"></script>
+<% } else if (plausible.domain) { %>
+<script defer data-domain="<%= plausible.domain %>" src="https://plausible.io/js/script.js"></script>
+<% } %>
+<script defer src="/js/site.js"></script>
+</head>
+<body<% if (pageEvent) { %> data-page-event="<%= pageEvent %>"<% } %><% if (plausible.scriptUrl) { %> data-plausible-init<% } %>>
+<header class="site-header">
+<div class="wrap site-header__row">
+<a class="logo" href="/"><img src="/brand/lockup.svg" alt="PointerTurn" width="162" height="44"></a>
+<nav class="nav" aria-label="Main">
+<a href="/#features">Features</a>
+<a href="/#vehicles">Vehicles</a>
+<% if (user) { %>
+<a href="/account"<% if (path === '/account') { %> aria-current="page"<% } %>>Account</a>
+<form method="post" action="/logout" class="inline-form">
+<input type="hidden" name="_csrf" value="<%= csrfToken %>">
+<button class="link-button" type="submit">Sign out</button>
+</form>
+<% } else { %>
+<a href="/login">Sign in</a>
+<a class="button button--small" href="/buy">Buy a licence</a>
+<% } %>
+</nav>
+</div>
+</header>
+<main>
+<% if (flash) { %><div class="wrap"><p class="flash" role="status"><%= flash %></p></div><% } %>

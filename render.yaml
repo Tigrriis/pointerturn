@@ -1,0 +1,56 @@
+# Render Blueprint for the PointerTurn website (the code in website/).
+# Creates one web service and one Postgres database. Values marked `sync: false`
+# are secrets or settings Render asks for when the Blueprint is first applied.
+# See website/README.md, "Deploying on Render".
+
+services:
+  - type: web
+    name: pointerturn-website
+    runtime: node
+    region: singapore # the Render region nearest Australia
+    plan: starter # the free plan sleeps when idle, which delays Stripe webhooks and licence checks
+    rootDir: website
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: "22"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: pointerturn-db
+          property: connectionString
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: LICENCE_SIGNING_KEY
+        sync: false
+      - key: BASE_URL
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: STRIPE_PRICE_ID
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
+      - key: PLAUSIBLE_SCRIPT_URL
+        sync: false
+      - key: INSTALLER_URL
+        sync: false
+      - key: INSTALLER_VERSION
+        sync: false
+      - key: LICENCE_MAX_MACHINES
+        value: "2"
+      - key: LICENCE_TOKEN_DAYS
+        value: "14"
+
+databases:
+  - name: pointerturn-db
+    region: singapore
+    plan: basic-256mb # the free database is deleted after 30 days
+    postgresMajorVersion: "16"

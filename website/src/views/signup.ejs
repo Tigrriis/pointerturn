@@ -1,0 +1,17 @@
+<%- include('partials/head', { title: 'Create an account' }) %>
+<section class="wrap narrow">
+<form class="panel form" method="post" action="/signup">
+<h1>Create an account</h1>
+<p>Your account is how you buy a licence and sign in to PointerTurn.</p>
+<% if (error) { %><p class="form__error" role="alert"><%= error %></p><% } %>
+<input type="hidden" name="_csrf" value="<%= csrfToken %>">
+<label for="email">Email</label>
+<input id="email" name="email" type="email" autocomplete="email" required value="<%= email %>">
+<label for="password">Password</label>
+<input id="password" name="password" type="password" autocomplete="new-password" required minlength="10" aria-describedby="password-hint">
+<p id="password-hint" class="hint">At least 10 characters.</p>
+<button class="button" type="submit">Create account</button>
+<p class="form__alt">Already have an account? <a href="/login">Sign in</a></p>
+</form>
+</section>
+<%- include('partials/foot') %>

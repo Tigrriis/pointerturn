@@ -59,6 +59,8 @@ install/                     For developers: update from source (pull, build, co
 docs/architecture.md         Design notes, what is kept in the drawing, first things to test
 docs/packaging.md            What the installer installs and where, building it, what is left to do
 brand/                       Logo, icons and colours for the website and advertising
+website/                     The website: accounts, licence sales, the download and the licence API
+render.yaml                  How the website is deployed on Render
 ```
 
 ## Installing
