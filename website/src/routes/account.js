@@ -3,7 +3,7 @@
 const express = require('express');
 const { requireLogin, requireRegion } = require('./site');
 
-module.exports = function account({ config, stripe, licences, billing }) {
+module.exports = function account({ config, stripe, licences, billing, log }) {
   const router = express.Router();
 
   router.get('/account', requireLogin, async (req, res) => {
@@ -36,7 +36,16 @@ module.exports = function account({ config, stripe, licences, billing }) {
       req.session.flash = 'This account already has a licence.';
       return res.redirect('/account');
     }
-    res.redirect(303, await billing.createCheckout(req.user, { country: req.region.country }));
+    let checkout;
+    try {
+      checkout = await billing.createCheckout(req.user, { country: req.region.country });
+    } catch (err) {
+      // Stripe refused, or is set up wrongly: say so on the account page rather than an error page.
+      log.error('[billing] could not start a checkout:', err.message);
+      req.session.flash = 'The checkout could not be started. Nothing has been charged. Try again in a moment.';
+      return res.redirect('/account');
+    }
+    res.redirect(303, checkout);
   });
 
   // Where Stripe sends the buyer after paying. The webhook usually gets there first; this

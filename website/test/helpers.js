@@ -13,11 +13,24 @@ const WEBHOOK_SECRET = 'whsec_test';
 
 function fakeStripe() {
   const real = new Stripe('sk_test_dummy');
-  const state = { price: { id: 'price_1', type: 'one_time', currency: 'aud', unit_amount: 49500, tax_behavior: 'exclusive', recurring: null }, sessions: {}, subscriptions: {}, created: [] };
+  const state = { price: { id: 'price_1', type: 'one_time', currency: 'aud', unit_amount: 49500, tax_behavior: 'exclusive', recurring: null }, sessions: {}, subscriptions: {}, products: {}, created: [] };
   return {
     state,
     webhooks: real.webhooks,
-    prices: { retrieve: async () => state.price },
+    prices: {
+      // Like Stripe: only a price's own ID finds it.
+      retrieve: async (id) => {
+        if (id !== state.price.id) throw new Error(`No such price: '${id}'`);
+        return state.price;
+      },
+      list: async ({ product }) => ({ data: state.products[product] ? state.products[product].prices : [] }),
+    },
+    products: {
+      retrieve: async (id) => {
+        if (!state.products[id]) throw new Error(`No such product: '${id}'`);
+        return state.products[id];
+      },
+    },
     customers: { create: async () => ({ id: `cus_${state.created.length + 1}` }) },
     checkout: {
       sessions: {

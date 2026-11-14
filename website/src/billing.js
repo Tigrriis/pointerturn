@@ -25,12 +25,34 @@ function createBilling({ stripe, db, config, mailer, log = console }) {
   const enabled = Boolean(stripe && config.stripe.priceId);
   let cached = null;
 
+  // STRIPE_PRICE_ID is meant to hold a price's ID (price_...). Stripe's dashboard shows the
+  // product's ID (prod_...) more prominently, so that is accepted too: the product's default
+  // price is used, or its only active price.
+  let resolvedPriceId = null;
+  async function priceId() {
+    if (resolvedPriceId) return resolvedPriceId;
+    const id = config.stripe.priceId;
+    if (!id.startsWith('prod_')) return (resolvedPriceId = id);
+    const product = await stripe.products.retrieve(id);
+    let found = idOf(product.default_price);
+    if (!found) {
+      const { data } = await stripe.prices.list({ product: id, active: true, limit: 2 });
+      if (data.length !== 1) {
+        throw new Error(
+          `STRIPE_PRICE_ID is the product ${id}, which has ${data.length === 0 ? 'no active price' : 'more than one active price and no default'}. Set it to the ID of the price to sell (price_...).`
+        );
+      }
+      found = data[0].id;
+    }
+    return (resolvedPriceId = found);
+  }
+
   // The price as set in Stripe, so the site never shows a different figure from the checkout.
   async function getPrice() {
     if (!enabled) return null;
     if (cached && Date.now() - cached.at < PRICE_CACHE_MS) return cached.price;
     try {
-      const p = await stripe.prices.retrieve(config.stripe.priceId);
+      const p = await stripe.prices.retrieve(await priceId());
       const amount = new Intl.NumberFormat('en-AU', {
         style: 'currency',
         currency: p.currency.toUpperCase(),
@@ -60,13 +82,13 @@ function createBilling({ stripe, db, config, mailer, log = console }) {
 
   // `country` is where the buyer's connection is, when PointerPath is restricted to some countries.
   async function createCheckout(user, { country = null } = {}) {
-    const price = await stripe.prices.retrieve(config.stripe.priceId);
+    const price = await stripe.prices.retrieve(await priceId());
     const recurring = price.type === 'recurring';
     const metadata = { user_id: String(user.id), product: PRODUCT, ...(country ? { ip_country: country } : {}) };
     const session = await stripe.checkout.sessions.create({
       mode: recurring ? 'subscription' : 'payment',
       customer: await customerFor(user),
-      line_items: [{ price: config.stripe.priceId, quantity: 1 }],
+      line_items: [{ price: price.id, quantity: 1 }],
       client_reference_id: String(user.id),
       metadata,
       // Restricted to some countries: have Stripe collect the billing address, for the record.

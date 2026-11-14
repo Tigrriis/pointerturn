@@ -147,3 +147,41 @@ test('behind two proxies, as on Render, the visitor is found and a forged addres
   await t.stop();
   t = { stop: async () => {} };
 });
+
+test('a product ID in place of a price ID still sells the product\'s price', async () => {
+  const buyWith = async (products, env) => {
+    await t.stop();
+    t = await start(env);
+    Object.assign(t.stripe.state.products, products);
+    const { b } = await t.newAccount('buyer@example.com');
+    const home = await t.browser().get('/');
+    const res = await b.post('/buy', {}, '/account');
+    return { home, res, b };
+  };
+
+  // The product has a default price.
+  let r = await buyWith({ prod_1: { id: 'prod_1', default_price: 'price_1', prices: [] } }, { STRIPE_PRICE_ID: 'prod_1' });
+  assert.match(r.home.text, /\$495/);
+  assert.equal(r.res.status, 303);
+  assert.equal(t.stripe.state.created.at(-1).params.line_items[0].price, 'price_1');
+
+  // No default, but only one active price.
+  r = await buyWith({ prod_2: { id: 'prod_2', default_price: null, prices: [{ id: 'price_1' }] } }, { STRIPE_PRICE_ID: 'prod_2' });
+  assert.equal(r.res.status, 303);
+  assert.equal(t.stripe.state.created.at(-1).params.line_items[0].price, 'price_1');
+
+  // Nothing to choose a price by: the buyer is told, on their account page, and not charged.
+  r = await buyWith({ prod_3: { id: 'prod_3', default_price: null, prices: [{ id: 'price_1' }, { id: 'price_9' }] } }, { STRIPE_PRICE_ID: 'prod_3' });
+  assert.equal(r.home.status, 200);
+  assert.equal(r.res.location, '/account');
+  assert.match((await r.b.get('/account')).text, /checkout could not be started/);
+  assert.equal(t.stripe.state.created.length, 0);
+
+  // An ID Stripe doesn't know at all does the same.
+  r = await buyWith({}, { STRIPE_PRICE_ID: 'price_missing' });
+  assert.equal(r.res.location, '/account');
+  assert.match((await r.b.get('/account')).text, /checkout could not be started/);
+
+  await t.stop();
+  t = { stop: async () => {} };
+});

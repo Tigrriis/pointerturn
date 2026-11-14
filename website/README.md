@@ -73,7 +73,9 @@ What to set up in the other services:
 1. **Licence key.** Run `npm run licence-key` once. Put the private key in `LICENCE_SIGNING_KEY`
    and keep the public key for the add-in. Changing the key later invalidates every licence
    already issued until each computer next reaches the server.
-2. **Stripe.** Create one product with one price and put the price's ID in `STRIPE_PRICE_ID`.
+2. **Stripe.** Create one product with one price and put the price's ID (`price_...`) in
+   `STRIPE_PRICE_ID`. The product's ID (`prod_...`) is accepted too, and sells the product's
+   default price.
    Add a webhook endpoint at `https://<your site>/webhooks/stripe` for these events, and put
    its signing secret in `STRIPE_WEBHOOK_SECRET`:
    - `checkout.session.completed`
