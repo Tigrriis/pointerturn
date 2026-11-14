@@ -14,7 +14,7 @@ namespace PointerPath.Core.Licensing
     {
 #if LICENSED
         /// <summary>The website (no trailing slash).</summary>
-        public const string Website = "https://pointerturn-website-dn6i.onrender.com";
+        public const string Website = "https://www.pointerpath.app";
 
         /// <summary>
         /// The "x" and "y" of the website's public key: printed by `npm run licence-key` in

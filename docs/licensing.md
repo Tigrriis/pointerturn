@@ -101,9 +101,9 @@ Two things are fixed once an installer is in customers' hands, because each buil
 to the address, and only accepts licences signed by the key, compiled into it:
 
 - **The key.** Changing the website's `LICENCE_SIGNING_KEY` stops every installed copy working.
-- **The address.** It currently carries the product's earlier name (`pointerturn-website-…`),
-  because that is the address Render gave the site. If the website moves (to its own domain, say), keep the old address working
-  for the builds already out, and put the new one in `LicenceBuild.cs` for the next release.
+- **The address.** If the website ever moves from `www.pointerpath.app`, keep the old address
+  working for the builds already out, and put the new one in `LicenceBuild.cs` for the next
+  release.
 
 ## Limits
 
