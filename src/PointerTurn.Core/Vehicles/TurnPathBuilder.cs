@@ -545,9 +545,9 @@ namespace PointerTurn.Core.Vehicles
         /// <summary>
         /// The leg that reverses a vehicle with trailers so that its last trailer's axle group
         /// arrives at <paramref name="target"/> with the combination in line: facing
-        /// <paramref name="arrivalHeading"/> when given (turn, straight, turn), otherwise however a
-        /// turn then a straight to the target leaves it (or a single arc, with
-        /// <see cref="DriveTurns.Arc"/>, when its radius allows).
+        /// <paramref name="arrivalHeading"/> when given (turn, straight, pivot turn: see
+        /// <see cref="PivotTurns"/>), otherwise however a turn then a straight to the target leaves
+        /// it (or a single arc, with <see cref="DriveTurns.Arc"/>, when its radius allows).
         ///
         /// The path is the one the vehicle's rear axle is steered along. A trailer only goes round a
         /// turn in reverse if it is already folded towards it, by as much as it would be had the
@@ -569,7 +569,13 @@ namespace PointerTurn.Core.Vehicles
             List<double> facing = v.TrailerPoses(start, trailerHeadings).Select(p => p.Heading).ToList();
             Point2 p0 = start.RearAxle;
             double t0 = start.Heading + Math.PI;
-            int ways = arrivalHeading != null ? 4 : 3;   // the ways round to the target: see TurnStraightTurnRoute and TowedTo
+            int ways = arrivalHeading != null ? 4 : 3;   // the ways round to the target: see TowedToPose, TurnStraightTurnRoute and TowedTo
+
+            // Onto a heading, the last turn is a pivot: the combination backs up to it in line, swings
+            // out, and follows the trailers round. Only where no such leg fits is the turn a plain
+            // one, which the trailers have to drift out for all the way down the straight before it.
+            PivotTurns? pivots = arrivalHeading != null ? PivotTurns.For(v, rho) : null;
+            bool pivot = pivots != null;
 
             // The leg with these swings first, one after the other: each a length of arc, positive to
             // the left of the direction of travel. "way" picks one way round to the target; -1 the shortest.
@@ -591,9 +597,17 @@ namespace PointerTurn.Core.Vehicles
                     }
                 }
 
-                Route? rest = arrivalHeading is double h
-                    ? TurnStraightTurnRoute(p, t, new Point2(target.X + reach * Math.Cos(h), target.Y + reach * Math.Sin(h)), h + Math.PI, rho, way)
-                    : TowedTo(p, t, target, reach, rho, turns, way);
+                Route? rest;
+                if (arrivalHeading is double h)
+                {
+                    var goal = new Point2(target.X + reach * Math.Cos(h), target.Y + reach * Math.Sin(h));
+                    rest = pivot ? TowedToPose(p, t, goal, h + Math.PI, rho, pivots!, way) : TurnStraightTurnRoute(p, t, goal, h + Math.PI, rho, way);
+                }
+                else
+                {
+                    rest = TowedTo(p, t, target, reach, rho, turns, way);
+                }
+
                 if (rest == null)
                 {
                     return null;
@@ -628,6 +642,8 @@ namespace PointerTurn.Core.Vehicles
                 return Math.Sqrt(sum);
             }
 
+            double most = rho * MaxSwingDeg * Math.PI / 180;
+
             // The best so far: the shortest of the routes that leave the trailers where they are;
             // failing one, the route that leaves them nearest.
             const double Near = 0.1 * Math.PI / 180;
@@ -648,121 +664,130 @@ namespace PointerTurn.Core.Vehicles
                 }
             }
 
-            Route? direct = Plan(0, 0, -1);
-            Offer(direct, Miss(direct));
-            double most = rho * MaxSwingDeg * Math.PI / 180;
-            if (bestMiss > Near)
+            void Seek()
             {
-                // One swing, either way, for each way round: where the miss dips among its neighbours,
-                // close in on the dip (a golden-section search).
-                const int Steps = 16;
-                const double Golden = 0.6180339887498949;
-                var miss = new double[2 * Steps + 1];
-                for (int way = 0; way < ways; way++)
+                Route? direct = Plan(0, 0, -1);
+                Offer(direct, Miss(direct));
+                if (bestMiss > Near)
                 {
-                    for (int i = 0; i <= 2 * Steps; i++)
+                    // One swing, either way, for each way round: where the miss dips among its neighbours,
+                    // close in on the dip (a golden-section search).
+                    const int Steps = 16;
+                    const double Golden = 0.6180339887498949;
+                    var miss = new double[2 * Steps + 1];
+                    for (int way = 0; way < ways; way++)
                     {
-                        miss[i] = Miss(Plan((i - Steps) * most / Steps, 0, way));
+                        for (int i = 0; i <= 2 * Steps; i++)
+                        {
+                            miss[i] = Miss(Plan((i - Steps) * most / Steps, 0, way));
+                        }
+
+                        for (int i = 0; i <= 2 * Steps; i++)
+                        {
+                            if (miss[i] == double.MaxValue || (i > 0 && miss[i] > miss[i - 1]) || (i < 2 * Steps && miss[i] > miss[i + 1]))
+                            {
+                                continue;
+                            }
+
+                            double lo = (Math.Max(0, i - 1) - Steps) * most / Steps, hi = (Math.Min(2 * Steps, i + 1) - Steps) * most / Steps;
+                            double a = hi - Golden * (hi - lo), b = lo + Golden * (hi - lo);
+                            Route? ra = Plan(a, 0, way), rb = Plan(b, 0, way);
+                            double ma = Miss(ra), mb = Miss(rb);
+                            for (int k = 0; k < 18; k++)
+                            {
+                                if (ma <= mb)
+                                {
+                                    hi = b;
+                                    b = a;
+                                    rb = ra;
+                                    mb = ma;
+                                    a = hi - Golden * (hi - lo);
+                                    ra = Plan(a, 0, way);
+                                    ma = Miss(ra);
+                                }
+                                else
+                                {
+                                    lo = a;
+                                    a = b;
+                                    ra = rb;
+                                    ma = mb;
+                                    b = lo + Golden * (hi - lo);
+                                    rb = Plan(b, 0, way);
+                                    mb = Miss(rb);
+                                }
+                            }
+
+                            Offer(ma <= mb ? ra : rb, Math.Min(ma, mb));
+                            Offer(Plan((i - Steps) * most / Steps, 0, way), miss[i]);
+                        }
+                    }
+                }
+
+                if (bestMiss > Near)
+                {
+                    // One swing sets one coupling, when there is room for it. With more trailers, or
+                    // without the room, swing out and back: try pairs of swings, then walk downhill from
+                    // the best pair in ever smaller steps.
+                    const int Steps = 6;
+                    var pairs = new List<(double Miss, double First, double Second)>();
+                    for (int i = -Steps; i <= Steps; i++)
+                    {
+                        for (int k = -Steps; k <= Steps; k++)
+                        {
+                            if (i == 0 || k == 0 || Math.Sign(i) == Math.Sign(k))
+                            {
+                                continue;   // one swing, or two the same way: already tried
+                            }
+
+                            double m = Miss(Plan(i * most / Steps, k * most / Steps, -1));
+                            if (m < double.MaxValue)
+                            {
+                                pairs.Add((m, i * most / Steps, k * most / Steps));
+                            }
+                        }
                     }
 
-                    for (int i = 0; i <= 2 * Steps; i++)
+                    foreach ((double from, double first, double second) in pairs.OrderBy(x => x.Miss).Take(3))
                     {
-                        if (miss[i] == double.MaxValue || (i > 0 && miss[i] > miss[i - 1]) || (i < 2 * Steps && miss[i] > miss[i + 1]))
+                        double c1 = first, c2 = second, least = from;
+                        for (double stride = most / Steps / 2; least > Near / 4 && stride > 0.002; stride /= 2)
                         {
-                            continue;
-                        }
-
-                        double lo = (Math.Max(0, i - 1) - Steps) * most / Steps, hi = (Math.Min(2 * Steps, i + 1) - Steps) * most / Steps;
-                        double a = hi - Golden * (hi - lo), b = lo + Golden * (hi - lo);
-                        Route? ra = Plan(a, 0, way), rb = Plan(b, 0, way);
-                        double ma = Miss(ra), mb = Miss(rb);
-                        for (int k = 0; k < 18; k++)
-                        {
-                            if (ma <= mb)
+                            if (stride < 0.1 && least > 20 * Near)
                             {
-                                hi = b;
-                                b = a;
-                                rb = ra;
-                                mb = ma;
-                                a = hi - Golden * (hi - lo);
-                                ra = Plan(a, 0, way);
-                                ma = Miss(ra);
+                                break;   // this close in and still degrees out: there is nothing here
                             }
-                            else
+
+                            for (bool moved = true; moved;)
                             {
-                                lo = a;
-                                a = b;
-                                ra = rb;
-                                ma = mb;
-                                b = lo + Golden * (hi - lo);
-                                rb = Plan(b, 0, way);
-                                mb = Miss(rb);
+                                moved = false;
+                                foreach ((double d1, double d2) in new[] { (stride, 0.0), (-stride, 0.0), (0.0, stride), (0.0, -stride), (stride, stride), (-stride, -stride), (stride, -stride), (-stride, stride) })
+                                {
+                                    double m = Miss(Plan(c1 + d1, c2 + d2, -1));
+                                    if (m < least)
+                                    {
+                                        least = m;
+                                        c1 += d1;
+                                        c2 += d2;
+                                        moved = true;
+                                    }
+                                }
                             }
                         }
 
-                        Offer(ma <= mb ? ra : rb, Math.Min(ma, mb));
-                        Offer(Plan((i - Steps) * most / Steps, 0, way), miss[i]);
+                        Offer(Plan(c1, c2, -1), least);
+                        if (least <= Near)
+                        {
+                            break;
+                        }
                     }
                 }
             }
 
-            if (bestMiss > Near)
+            Seek();
+            if (pivot && (best == null || bestMiss > MaxTrailersOutDeg * Math.PI / 180))
             {
-                // One swing sets one coupling, when there is room for it. With more trailers, or
-                // without the room, swing out and back: try pairs of swings, then walk downhill from
-                // the best pair in ever smaller steps.
-                const int Steps = 6;
-                var pairs = new List<(double Miss, double First, double Second)>();
-                for (int i = -Steps; i <= Steps; i++)
-                {
-                    for (int k = -Steps; k <= Steps; k++)
-                    {
-                        if (i == 0 || k == 0 || Math.Sign(i) == Math.Sign(k))
-                        {
-                            continue;   // one swing, or two the same way: already tried
-                        }
-
-                        double m = Miss(Plan(i * most / Steps, k * most / Steps, -1));
-                        if (m < double.MaxValue)
-                        {
-                            pairs.Add((m, i * most / Steps, k * most / Steps));
-                        }
-                    }
-                }
-
-                foreach ((double from, double first, double second) in pairs.OrderBy(x => x.Miss).Take(3))
-                {
-                    double c1 = first, c2 = second, least = from;
-                    for (double stride = most / Steps / 2; least > Near / 4 && stride > 0.002; stride /= 2)
-                    {
-                        if (stride < 0.1 && least > 20 * Near)
-                        {
-                            break;   // this close in and still degrees out: there is nothing here
-                        }
-
-                        for (bool moved = true; moved;)
-                        {
-                            moved = false;
-                            foreach ((double d1, double d2) in new[] { (stride, 0.0), (-stride, 0.0), (0.0, stride), (0.0, -stride), (stride, stride), (-stride, -stride), (stride, -stride), (-stride, stride) })
-                            {
-                                double m = Miss(Plan(c1 + d1, c2 + d2, -1));
-                                if (m < least)
-                                {
-                                    least = m;
-                                    c1 += d1;
-                                    c2 += d2;
-                                    moved = true;
-                                }
-                            }
-                        }
-                    }
-
-                    Offer(Plan(c1, c2, -1), least);
-                    if (least <= Near)
-                    {
-                        break;
-                    }
-                }
+                pivot = false;
+                Seek();
             }
 
             // A leg that doesn't start where the trailers are isn't one the vehicle can drive.
@@ -776,6 +801,304 @@ namespace PointerTurn.Core.Vehicles
                 back: true);
             leg.TrailersOutDeg = bestMiss * 180 / Math.PI;
             return leg;
+        }
+
+        /// <summary>
+        /// The turns a combination can reverse round between two straights, in line on both: the
+        /// way a driver backs a trailer round a corner. Backing up in line, the vehicle first swings
+        /// its front out, away from the turn, which folds the trailers into the turn; they pivot
+        /// about their axles; and the vehicle follows them round until everything is in line again.
+        /// With two trailers the swing is out and back, to fold both couplings.
+        ///
+        /// For each angle of turn the swings are the ones that make that true, found by trying the
+        /// turn (see <see cref="TurnPathSimulator.TrailerHeadingsToReverse"/>). They depend only on
+        /// the combination and the radius, so they are worked out once and kept.
+        /// </summary>
+        private sealed class PivotTurns
+        {
+            private const double StepDeg = 5;
+            private static readonly Dictionary<string, PivotTurns> Known = new Dictionary<string, PivotTurns>();
+
+            private readonly double _rho;
+
+            // Swing lengths for a turn to the left of the direction of travel, every StepDeg from 0
+            // (positive = to the left). NaN where the combination can't make the turn this way.
+            private readonly double[] _first;
+            private readonly double[] _second;
+
+            private PivotTurns(DesignVehicle v, double rho)
+            {
+                _rho = rho;
+                int n = (int)Math.Round(MaxLegTurnDeg / StepDeg) + 1;
+                _first = new double[n];
+                _second = new double[n];
+                double most = rho * MaxSwingDeg * Math.PI / 180;
+                bool two = v.Trailers.Count > 1;
+                (double, double)[] moves = two
+                    ? new[] { (1.0, 0.0), (-1.0, 0.0), (0.0, 1.0), (0.0, -1.0), (1.0, 1.0), (-1.0, -1.0), (1.0, -1.0), (-1.0, 1.0) }
+                    : new[] { (1.0, 0.0), (-1.0, 0.0) };
+
+                // How far out of line the trailers would have to start for the turn to end in line (radians).
+                double Miss(double alpha, double c1, double c2)
+                {
+                    double sweep = alpha - (c1 + c2) / rho;
+                    if (sweep < 1e-6 || Math.Abs(c1) > most || Math.Abs(c2) > most)
+                    {
+                        return double.MaxValue;
+                    }
+
+                    var route = new Route();
+                    Append(route, new Point2(0, 0), 0, rho, c1, c2, sweep);
+                    Path2 path = route.Path();
+                    double sum = 0;
+                    foreach (double heading in TurnPathSimulator.TrailerHeadingsToReverse(v, path, Math.Max(0.25, path.Length / 150)))
+                    {
+                        double d = Angles.Wrap(heading - Math.PI);
+                        sum += d * d;
+                    }
+
+                    return Math.Sqrt(sum);
+                }
+
+                // Each angle starts from the swings of the angle before, and walks downhill from there
+                // in ever smaller steps: the swings grow smoothly with the angle.
+                const double Near = 0.03 * Math.PI / 180, Usable = 0.25 * Math.PI / 180;
+                double c1 = 0, c2 = 0;
+                for (int i = 1; i < n; i++)
+                {
+                    double alpha = i * StepDeg * Math.PI / 180;
+                    double least = Miss(alpha, c1, c2);
+                    for (double stride = 1.0; least > Near && stride > 0.0005; stride /= 2)
+                    {
+                        for (bool moved = true; moved && least > Near;)
+                        {
+                            moved = false;
+                            foreach ((double d1, double d2) in moves)
+                            {
+                                double m = Miss(alpha, c1 + d1 * stride, c2 + d2 * stride);
+                                if (m < least)
+                                {
+                                    least = m;
+                                    c1 += d1 * stride;
+                                    c2 += d2 * stride;
+                                    moved = true;
+                                }
+                            }
+                        }
+                    }
+
+                    _first[i] = least <= Usable ? c1 : double.NaN;
+                    _second[i] = least <= Usable ? c2 : double.NaN;
+                }
+            }
+
+            public static PivotTurns For(DesignVehicle v, double rho)
+            {
+                string key = string.Join("|", new[] { rho, v.Hitch }.Concat(v.Trailers.SelectMany(t => new[] { t.Wheelbase, t.Hitch }))
+                    .Select(x => x.ToString("R", System.Globalization.CultureInfo.InvariantCulture)));
+                lock (Known)
+                {
+                    if (!Known.TryGetValue(key, out PivotTurns? turns))
+                    {
+                        turns = new PivotTurns(v, rho);
+                        Known[key] = turns;
+                    }
+
+                    return turns;
+                }
+            }
+
+            /// <summary>
+            /// The swings (lengths of arc, positive to the left of travel) and the sweep of the arc that
+            /// follows them, for a turn of <paramref name="alpha"/> radians to one side (+1 left, -1 right).
+            /// </summary>
+            public bool Swings(double alpha, double side, out double first, out double second, out double sweep)
+            {
+                first = second = sweep = 0;
+                double at = alpha * 180 / Math.PI / StepDeg;
+                int i = (int)Math.Floor(at);
+                if (alpha < 0 || i >= _first.Length - 1 && at > _first.Length - 1)
+                {
+                    return false;
+                }
+
+                i = Math.Min(i, _first.Length - 2);
+                double f = at - i;
+                if (double.IsNaN(_first[i]) || double.IsNaN(_first[i + 1]))
+                {
+                    return false;
+                }
+
+                first = side * (_first[i] + (_first[i + 1] - _first[i]) * f);
+                second = side * (_second[i] + (_second[i + 1] - _second[i]) * f);
+                sweep = side * alpha - (first + second) / _rho;
+                return alpha < 1e-9 || sweep * side > 1e-6;
+            }
+
+            /// <summary>Where a turn made of these swings and this sweep ends, from a point and direction of travel.</summary>
+            public static void End(double rho, ref double x, ref double y, ref double t, double first, double second, double sweep)
+            {
+                foreach (double w in new[] { first / rho, second / rho, sweep })
+                {
+                    if (Math.Abs(w) > 1e-12)
+                    {
+                        double side = Math.Sign(w);
+                        x += side * rho * (Math.Sin(t + w) - Math.Sin(t));
+                        y += side * rho * (Math.Cos(t) - Math.Cos(t + w));
+                        t += w;
+                    }
+                }
+            }
+
+            /// <summary>Adds a turn made of these swings and this sweep to a route, from a point and direction of travel.</summary>
+            public static void Append(Route route, Point2 p, double t, double rho, double first, double second, double sweep)
+            {
+                foreach (double w in new[] { first / rho, second / rho, sweep })
+                {
+                    if (Math.Abs(w) > 1e-9)
+                    {
+                        double side = Math.Sign(w);
+                        var centre = new Point2(p.X - Math.Sin(t) * rho * side, p.Y + Math.Cos(t) * rho * side);
+                        var arc = new ArcSegment(centre, rho, Math.Atan2(p.Y - centre.Y, p.X - centre.X), w);
+                        route.Turn(arc);
+                        p = arc.End;
+                        t += w;
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// The route of a towing vehicle's rear axle, backing from a point and direction of travel
+        /// to a goal and direction of travel, that a combination can reverse: a turn at the radius,
+        /// a straight, and a pivot turn (<see cref="PivotTurns"/>) that ends on the goal. On the
+        /// straight, and at the goal, the combination is in line.
+        /// </summary>
+        /// <param name="only">One of the four ways round (0 to 3: left or right first, left or right last); -1: the shortest.</param>
+        private static Route? TowedToPose(Point2 p0, double t0, Point2 goal, double tg, double rho, PivotTurns pivots, int only = -1)
+        {
+            double maxSweep = MaxLegTurnDeg * Math.PI / 180;
+            const double Scan = 2.5 * Math.PI / 180;
+            Route? best = null;
+            foreach (double s0 in new[] { 1.0, -1.0 })
+            {
+                foreach (double s1 in new[] { 1.0, -1.0 })
+                {
+                    if (only >= 0 && only != (s0 > 0 ? 0 : 2) + (s1 > 0 ? 0 : 1))
+                    {
+                        continue;
+                    }
+
+                    // With the pivot turning by "last", the first turn has to bring the vehicle onto the
+                    // pivot's way in: how far to the side of it the first turn leaves it (to make zero),
+                    // and how far short of it (the straight).
+                    bool At(double last, out double aside, out double straight, out double firstTurn)
+                    {
+                        aside = straight = firstTurn = 0;
+                        if (!pivots.Swings(last, s1, out double c1, out double c2, out double sweep))
+                        {
+                            return false;
+                        }
+
+                        double ex = 0, ey = 0, et = 0;
+                        PivotTurns.End(rho, ref ex, ref ey, ref et, c1, c2, sweep);
+                        double te = tg - et;
+                        double entryX = goal.X - (ex * Math.Cos(te) - ey * Math.Sin(te)), entryY = goal.Y - (ex * Math.Sin(te) + ey * Math.Cos(te));
+                        firstTurn = Turn(t0, te, s0);
+                        if (Math.Abs(firstTurn) > maxSweep)
+                        {
+                            return false;
+                        }
+
+                        double x = p0.X, y = p0.Y, t = t0;
+                        PivotTurns.End(rho, ref x, ref y, ref t, 0, 0, firstTurn);
+                        aside = -(entryX - x) * Math.Sin(te) + (entryY - y) * Math.Cos(te);
+                        straight = (entryX - x) * Math.Cos(te) + (entryY - y) * Math.Sin(te);
+                        return true;
+                    }
+
+                    void Take(double last)
+                    {
+                        if (!At(last, out double aside, out double straight, out double firstTurn) || Math.Abs(aside) > 1e-4 || straight < -1e-6)
+                        {
+                            return;
+                        }
+
+                        pivots.Swings(last, s1, out double c1, out double c2, out double sweep);
+                        var route = new Route();
+                        Point2 p = p0;
+                        double t = t0;
+                        if (Math.Abs(firstTurn) > 1e-6)
+                        {
+                            PivotTurns.Append(route, p, t, rho, 0, 0, firstTurn);
+                            p = route.End;
+                            t += firstTurn;
+                        }
+
+                        if (straight > 1e-6)
+                        {
+                            var to = new Point2(p.X + Math.Cos(t) * straight, p.Y + Math.Sin(t) * straight);
+                            route.Straight(new LineSegment(p, to));
+                            p = to;
+                        }
+
+                        PivotTurns.Append(route, p, t, rho, c1, c2, sweep);
+                        if (route.Segments.Count == 0 || Segment.Dist(route.End, goal) > 1e-3)
+                        {
+                            return;
+                        }
+
+                        double length = route.Length;
+                        if (length >= 0.05 && (best == null || length < best.Length))
+                        {
+                            best = route;
+                        }
+                    }
+
+                    // Look along the pivot's angle for where the first turn lines up with it, and close in.
+                    bool was = false;
+                    double wasAside = 0, wasTurn = 0;
+                    for (int i = 0; i * Scan <= maxSweep + 1e-9; i++)
+                    {
+                        double last = i * Scan;
+                        bool ok = At(last, out double aside, out _, out double firstTurn);
+                        if (ok && Math.Abs(aside) < 1e-9)
+                        {
+                            Take(last);
+                        }
+                        else if (ok && was && aside * wasAside < 0 && Math.Abs(firstTurn - wasTurn) < 0.5)
+                        {
+                            double lo = last - Scan, hi = last, loAside = wasAside;
+                            for (int k = 0; k < 40; k++)
+                            {
+                                double mid = (lo + hi) / 2;
+                                if (!At(mid, out double midAside, out _, out _))
+                                {
+                                    break;
+                                }
+
+                                if (midAside * loAside <= 0)
+                                {
+                                    hi = mid;
+                                }
+                                else
+                                {
+                                    lo = mid;
+                                    loAside = midAside;
+                                }
+                            }
+
+                            Take((lo + hi) / 2);
+                        }
+
+                        was = ok;
+                        wasAside = aside;
+                        wasTurn = firstTurn;
+                    }
+                }
+            }
+
+            return best;
         }
 
         /// <summary>

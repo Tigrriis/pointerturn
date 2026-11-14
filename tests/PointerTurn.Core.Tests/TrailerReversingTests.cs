@@ -315,6 +315,83 @@ namespace PointerTurn.Core.Tests
             Assert.All(r.Trailers, t => Assert.Equal(0, t.Poses[0].Heading, 9));
         }
 
+        [Theory]
+        [InlineData("Semi 19 m", -60, -30)]
+        [InlineData("B-double 26 m", -90, -45)]
+        public void OntoAHeadingItBacksUpInLineThenPivots(string vehicle, double x, double y)
+        {
+            // A bay a long way behind and to the right, entered facing +Y: there is a straight to back down first.
+            DesignVehicle v = Conventions().Vehicle(vehicle);
+            var start = new VehiclePose(new Point2(0, 0), 0);
+            var dock = new Point2(x, y);
+            TurnPathBuilder.DriveLeg leg = TurnPathBuilder.DriveToPose(v, start, dock, Math.PI / 2, 12.5)!;
+            Assert.True(leg.Reverse);
+
+            // The path: a turn, a straight, and last a swing away from the turn and the turn itself.
+            IReadOnlyList<Segment> segments = leg.Request.Path.Segments;
+            int line = Enumerable.Range(0, segments.Count).Last(i => segments[i] is LineSegment);
+            Assert.True(segments[line].Length > 10, "a straight to back down");
+            Assert.InRange(segments.Count - 1 - line, 2, 3);
+            var swing = (ArcSegment)segments[segments.Count - 2];
+            var round = (ArcSegment)segments[segments.Count - 1];
+            Assert.True(Math.Sign(swing.Sweep) != Math.Sign(round.Sweep), "it swings its front out the other way first");
+            Assert.True(Math.Abs(round.Sweep) > Math.Abs(swing.Sweep));
+            Assert.StartsWith("turn right", leg.Moves[leg.Moves.Count - 1]);   // as the driver sees it, backing
+
+            TurnPathResult r = TurnPathSimulator.Simulate(leg.Request);
+            int last = r.Poses.Count - 1;
+            double Fold(double chainage) => Math.Abs(Math.IEEERemainder(r.PoseAt(chainage).Heading - r.TrailerPosesAt(chainage)[0].Heading, 2 * Math.PI)) * 180 / Math.PI;
+            double straightFrom = segments.Take(line).Sum(g => g.Length), straightTo = straightFrom + segments[line].Length;
+
+            // Down the straight the combination is in line, not drifting out ready for the turn.
+            Assert.True(Fold(straightFrom + 0.5) < 1, $"fold at the start of the straight {Fold(straightFrom + 0.5)}");
+            Assert.True(Fold((straightFrom + straightTo) / 2) < 0.5);
+            Assert.True(Fold(straightTo - 0.5) < 1, $"fold at the end of the straight {Fold(straightTo - 0.5)}");
+
+            // Then it folds, sharply and all at once, and that is the sharpest of the whole leg.
+            Assert.True(r.Chainages[r.SharpestFoldAt] > straightTo, "folded the most in the pivot");
+            Assert.InRange(r.MaxArticulationDeg, 30, 60);
+            Assert.True(r.MaxArticulationDeg < v.MaxArticulationDeg);
+
+            // The trailer pivots: from the end of the straight its axles turn tighter than the vehicle
+            // pushing them, and don't go as far.
+            double Travel(List<VehiclePose> poses)
+            {
+                double sum = 0;
+                for (int i = 1; i < poses.Count; i++)
+                {
+                    if (r.Chainages[i - 1] >= straightTo)
+                    {
+                        sum += Dist(poses[i - 1].RearAxle, poses[i].RearAxle);
+                    }
+                }
+
+                return sum;
+            }
+
+            TrailerTrack lastTrailer = r.Trailers[v.Trailers.Count - 1];
+            Assert.True(Travel(lastTrailer.Poses) < 0.93 * Travel(r.Poses), $"trailer {Travel(lastTrailer.Poses)} m, vehicle {Travel(r.Poses)} m");
+            if (v.Trailers.Count == 1)
+            {
+                double tightest = 1 / lastTrailer.Curvatures.Max(k => Math.Abs(k));
+                Assert.True(tightest < 0.9 * v.RearAxleRadius(12.5) / TurnPathBuilder.ReverseTowedLock, $"the trailer's axles turn on {tightest} m");
+            }
+
+            // And it finishes on the bay, in line, without steering past its lock.
+            VehiclePose tail = r.Trailers[v.Trailers.Count - 1].Poses[last];
+            Assert.True(Dist(tail.RearAxle, dock) < 0.03, $"{Dist(tail.RearAxle, dock)} m from the bay");
+            Assert.True(AngleDiff(tail.Heading, Math.PI / 2) < 0.005);
+            Assert.True(AngleDiff(r.Poses[last].Heading, Math.PI / 2) < 0.005);
+            Assert.True(r.WithinMinimumRadius);
+            Assert.DoesNotContain(r.Warnings, w => w.Contains("Reversing"));
+
+            // The drawing shows it mid-pivot as well as at each end: a forward leg has no such outline.
+            var style = new TurnPathStyle { Layers = new TurnPathLayers(), Draw = new TurnPathDrawOptions { Vehicle = true } };
+            Assert.Contains(TurnPathDrafter.Draw(r, style), d => d.Group == "vehicle_intermediate");
+            TurnPathResult forward = TurnPathSimulator.Simulate(TurnPathBuilder.DriveTo(v, start, new Point2(40, 25))!.Request);
+            Assert.DoesNotContain(TurnPathDrafter.Draw(forward, style), d => d.Group == "vehicle_intermediate");
+        }
+
         [Fact]
         public void AClickBehindTheTrailerReversesItThere()
         {

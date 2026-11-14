@@ -127,6 +127,9 @@ namespace PointerTurn.Core.Vehicles
         /// <summary>The sharpest angle between two coupled units during the manoeuvre, degrees. 0 for a rigid vehicle.</summary>
         public double MaxArticulationDeg { get; set; }
 
+        /// <summary>The pose (index into <see cref="Poses"/>) at which the combination is folded the sharpest.</summary>
+        public int SharpestFoldAt { get; set; }
+
         /// <summary>
         /// Reversing with trailers: the furthest the vehicle's rear axle left the path to steer the
         /// trailers (m). 0 otherwise.
@@ -282,7 +285,8 @@ namespace PointerTurn.Core.Vehicles
                 track.Curvatures.AddRange(CurvaturesOf(track.Poses, result.Reverse));
             }
 
-            result.MaxArticulationDeg = SharpestFold(result) * 180 / Math.PI;
+            result.MaxArticulationDeg = SharpestFold(result, out int foldedAt) * 180 / Math.PI;
+            result.SharpestFoldAt = foldedAt;
             Envelopes(req, result);
             Checks(result);
             return result;
@@ -382,16 +386,22 @@ namespace PointerTurn.Core.Vehicles
             return heading + (-dx * Math.Sin(mid) + dy * Math.Cos(mid)) / length;
         }
 
-        /// <summary>The sharpest angle between two coupled units over the manoeuvre, radians.</summary>
-        private static double SharpestFold(TurnPathResult r)
+        /// <summary>The sharpest angle between two coupled units over the manoeuvre, radians, and the pose it is at.</summary>
+        private static double SharpestFold(TurnPathResult r, out int at)
         {
             double sharpest = 0;
+            at = 0;
             List<VehiclePose> towing = r.Poses;
             foreach (TrailerTrack track in r.Trailers)
             {
                 for (int i = 0; i < track.Poses.Count; i++)
                 {
-                    sharpest = Math.Max(sharpest, Math.Abs(Angles.Wrap(towing[i].Heading - track.Poses[i].Heading)));
+                    double fold = Math.Abs(Angles.Wrap(towing[i].Heading - track.Poses[i].Heading));
+                    if (fold > sharpest)
+                    {
+                        sharpest = fold;
+                        at = i;
+                    }
                 }
 
                 towing = track.Poses;

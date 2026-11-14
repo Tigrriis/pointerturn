@@ -58,7 +58,11 @@ way out. Nothing in between knows what the drawing is drawn in.
   straight; forwards or in reverse; optionally arriving on a set heading). A reverse with trailers
   (`TurnPathBuilder.ReverseTowed`) takes the last trailer's axle group to the destination, and
   starts with a swing of the vehicle, one way then if need be the other, whose lengths are found
-  so that the leg's line starts with the trailers folded exactly as they are.
+  so that the leg's line starts with the trailers folded exactly as they are. Onto a heading, the
+  last turn is a pivot turn (`PivotTurns`): a swing and a turn that take the combination from in
+  line on the straight before it to in line at the end, so the straight is backed down in line and
+  the trailers fold only in the turn. The swings for each angle of turn are found once per
+  combination and radius and kept.
 - **Solver** (`ManoeuvreSolver`): a hybrid A* search over position, heading and direction of travel,
   on a 0.25 m and 5 degree grid, stepping along full-lock arcs and straights, and finishing with
   turn-straight-turn paths to the target or to a straight run-in to it. Every step is tested by
