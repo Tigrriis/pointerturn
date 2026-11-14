@@ -43,6 +43,12 @@ answered with:
 
 With no connection, or an answer that makes no sense, nothing changes.
 
+The website can be set to offer PointerTurn in some countries only (Australia, as deployed).
+Signing in from anywhere else is refused. A computer already signed in that asks for a fresh
+licence from elsewhere is refused one (`region_not_allowed`) but keeps the one it holds until
+it runs out, so a short trip abroad doesn't cut anyone off. The add-in itself doesn't try to
+work out where it is: the website does, from the connection.
+
 Two details:
 
 - **The computer's identifier** is a hash of Windows' machine GUID and the Windows user, so

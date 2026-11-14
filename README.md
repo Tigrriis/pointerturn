@@ -37,7 +37,7 @@ This is a first cut as a separate add-in, not a finished product.
 
 | Part | State |
 |---|---|
-| Core (vehicles, simulation, swept path, solver, conflicts, ground clearance, licence check) | Built and unit-tested: 110 tests |
+| Core (vehicles, simulation, swept path, solver, conflicts, ground clearance, licence check) | Built and unit-tested: 111 tests |
 | BricsCAD add-in | **Not yet compiled against BricsCAD, and not yet run in it.** Its files are type-checked against stand-in copies of the BricsCAD API, except `CadDrawing.cs`, which is a cut-down copy of CSD-Bridge's drawing code |
 | AutoCAD add-in | The same source, compiled against Autodesk's AutoCAD 2021 and AutoCAD 2025 APIs: it builds clean for both. **Not yet run in AutoCAD.** Reading Civil 3D surfaces is written from the API reference and untried |
 | Installer | Builds, and has been run under Wine: install for all users and for one user, upgrade, uninstall, and the BricsCAD registry entries, against stand-in BricsCAD and AutoCAD registry keys. **Not yet run on Windows, or with a real BricsCAD or AutoCAD.** Not code-signed |
@@ -189,6 +189,9 @@ website. A build made from source with no licence server filled in doesn't ask f
 - **Another computer.** A licence can be in use on a limited number of computers at once. To move
   it, run `PTLICENCE` and choose **Sign out** on the old computer, or sign that computer out on
   your account page on the website, then sign in on the new one.
+
+- **Australia only.** PointerTurn is sold for use in Australia. Signing in works only from an
+  Australian internet connection, and the licence is not renewed from anywhere else.
 
 What is sent to the website is your email address and password (when you sign in), the
 computer's name and Windows user name, and a scrambled identifier for the computer. Nothing from

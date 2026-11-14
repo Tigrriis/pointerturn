@@ -57,6 +57,7 @@ All settings are environment variables. `.env.example` lists them with comments.
 | `STRIPE_AUTOMATIC_TAX` | No | `1` to have Stripe Tax work out GST at checkout |
 | `RESEND_API_KEY`, `EMAIL_FROM` | To send email | Resend API key and the From address (on a domain verified in Resend) |
 | `PLAUSIBLE_SCRIPT_URL` or `PLAUSIBLE_DOMAIN` | No | The script address from Plausible's installation page, or (older snippet) the site's domain |
+| `ALLOWED_COUNTRIES` | No | Two-letter country codes PointerTurn is offered in, e.g. `AU`. See [Restricting to a country](#restricting-to-a-country) |
 | `INSTALLER_URL`, `INSTALLER_VERSION` | To offer the download | Where the installer is hosted, and the version shown beside the button |
 | `LICENCE_MAX_MACHINES` | No | Computers one licence can be active on at once. Default 2. Applies to licences sold after it is changed |
 | `LICENCE_TOKEN_DAYS` | No | How long a signed licence works before the add-in must reach the server again. Default 14 |
@@ -87,6 +88,47 @@ What to set up in the other services:
    `Purchase` and `Download`.
 5. **Installer.** Upload `PointerTurn-<version>-setup.exe` somewhere a browser can download it
    from (a public release, or a storage bucket) and set `INSTALLER_URL`.
+
+## Restricting to a country
+
+With `ALLOWED_COUNTRIES` set (`AU` in `render.yaml`), PointerTurn is offered only there:
+
+- **The site** can still be read from anywhere, but from outside the buy buttons are gone and a
+  notice says where it is available. Signing up, buying and downloading are refused.
+- **Signing up** needs a ticked declaration: "I am in Australia and will use PointerTurn only in
+  Australia". When it was ticked, and the country, are kept with the account.
+- **Buying** has Stripe collect the billing address. The country the buyer's connection was in
+  and the billing address's country are kept with the licence.
+- **The add-in** can be activated only from inside. From outside, a computer already signed in is
+  not given a fresh licence, so it stops when the one it holds runs out (`LICENCE_TOKEN_DAYS`,
+  14 by default): a short trip abroad doesn't cut anyone off, a move does. Signing out works
+  from anywhere.
+
+The country comes from the visitor's IP address, looked up in a database bundled with the app
+(`@ip-location-db/geo-whois-asn-country`, public-domain registry data). Nothing is sent to an
+outside service. An address that can't be placed counts as outside. Update the package now and
+then (`npm update @ip-location-db/geo-whois-asn-country`), as address allocations change.
+
+What this does not do:
+
+- It does not stop someone using a VPN with an Australian exit, and it will refuse an Australian
+  office whose internet connection leaves through another country.
+- It does not check the card. A billing address is whatever the buyer types. To refuse cards
+  issued outside Australia, add a rule in Stripe Radar; that is set in Stripe, not here.
+- It is not a licence term. The terms of sale need to say the licence is for use in Australia.
+
+### Checking it after the first deploy
+
+The lookup is only as good as the IP address the app is given, and that depends on the hosting
+platform's proxies. `render.yaml` sets `GEO_DEBUG=1`, which logs, for each request, the address
+used, the country found, and the headers the platform sent. Open the site once from a known
+place and read the log:
+
+- If `ip=` is your own address and the country is right, remove `GEO_DEBUG`. Nothing else to do.
+- If `ip=` is a proxy's address and one of the headers logged (`cf-connecting-ip`, say) has
+  yours, set `CLIENT_IP_HEADER` to that header's name. Only do this for a header the platform
+  sets itself and visitors can't forge.
+- If your address is in `x-forwarded-for` but not last, raise `TRUST_PROXY_HOPS`.
 
 ## Licence API
 
@@ -122,6 +164,7 @@ signed in keeps its place and replaces its activation token.
 | 400 | `invalid_request` | A field is missing |
 | 401 | `invalid_credentials` | Wrong email or password |
 | 403 | `email_not_verified` | The account's email address hasn't been confirmed |
+| 403 | `region_not_allowed` | The request came from outside the countries PointerTurn is offered in |
 | 402 | `no_licence` | The account has no active licence |
 | 409 | `machine_limit` | The licence is in use on its maximum number of computers. The reply lists them in `machines`; the user frees one on their account page |
 | 429 | | Too many attempts; try later |
@@ -130,7 +173,8 @@ signed in keeps its place and replaces its activation token.
 
 `{ "activation_token": "…" }` returns a fresh `licence_token`. Call it when online, well before
 the current one expires (daily is plenty). `401 invalid_activation` means the computer was signed
-out; `402 licence_inactive` means the licence ended (cancelled, refunded).
+out; `402 licence_inactive` means the licence ended (cancelled, refunded); `403 region_not_allowed`
+means no new licence is issued where the computer is, and the one it holds stands until it expires.
 
 ### `POST /api/v1/deactivate`
 

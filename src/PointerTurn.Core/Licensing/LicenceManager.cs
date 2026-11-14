@@ -349,6 +349,8 @@ namespace PointerTurn.Core.Licensing
                 case "machine_limit":
                     string where = reply.Machines.Count > 0 ? " (" + string.Join(", ", reply.Machines) + ")" : "";
                     return $"Your licence is already in use on as many computers as it allows{where}. Sign one out at {_website}/account, then sign in here again.";
+                case "region_not_allowed":
+                    return "PointerTurn is not available in the country this computer appears to be in. If that is wrong, check whether a VPN is in use, then try again.";
                 case LicenceReply.Network:
                     return $"PointerTurn could not reach {_website}. Check your internet connection and try again.";
                 case LicenceReply.TooManyAttempts:

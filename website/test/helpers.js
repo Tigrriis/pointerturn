@@ -61,13 +61,15 @@ async function start(overrides = {}) {
   const base = `http://127.0.0.1:${server.address().port}`;
 
   // A browser, more or less: keeps cookies, doesn't follow redirects.
-  function browser() {
+  // `headers` go on every request, e.g. the visitor's IP address in the region tests.
+  function browser(headers = {}) {
     const jar = new Map();
     async function request(method, path, form) {
       const res = await fetch(base + path, {
         method,
         redirect: 'manual',
         headers: {
+          ...headers,
           cookie: [...jar].map(([k, v]) => `${k}=${v}`).join('; '),
           ...(form ? { 'content-type': 'application/x-www-form-urlencoded' } : {}),
         },
@@ -94,10 +96,10 @@ async function start(overrides = {}) {
     return b;
   }
 
-  async function api(path, body) {
+  async function api(path, body, headers = {}) {
     const res = await fetch(`${base}/api/v1${path}`, {
       method: body ? 'POST' : 'GET',
-      headers: { 'content-type': 'application/json' },
+      headers: { 'content-type': 'application/json', ...headers },
       body: body ? JSON.stringify(body) : undefined,
     });
     return { status: res.status, body: await res.json() };
@@ -121,9 +123,9 @@ async function start(overrides = {}) {
   }
 
   // Sign up, confirm the email and stay signed in.
-  async function newAccount(email, password = 'correct horse battery') {
-    const b = browser();
-    await b.post('/signup', { email, password }, '/signup');
+  async function newAccount(email, password = 'correct horse battery', headers = {}) {
+    const b = browser(headers);
+    await b.post('/signup', { email, password, in_region: 'yes' }, '/signup');
     await b.get(emailLink(email).path);
     const id = (await db.query('SELECT id FROM users WHERE email = $1', [email])).rows[0].id;
     return { b, id, email, password };

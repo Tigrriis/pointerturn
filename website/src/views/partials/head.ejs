@@ -35,10 +35,11 @@
 </form>
 <% } else { %>
 <a href="/login">Sign in</a>
-<a class="button button--small" href="/buy">Buy a licence</a>
+<% if (!region.blocked) { %><a class="button button--small" href="/buy">Buy a licence</a><% } %>
 <% } %>
 </nav>
 </div>
 </header>
 <main>
+<% if (region.blocked) { %><div class="wrap"><p class="flash" role="status">PointerTurn is available in <%= region.where %> only. Buying, downloading and activating it are switched off where you appear to be.</p></div><% } %>
 <% if (flash) { %><div class="wrap"><p class="flash" role="status"><%= flash %></p></div><% } %>

@@ -19,6 +19,8 @@ function loadConfig(env = process.env) {
     databaseUrl: env.DATABASE_URL || '',
     sessionSecret: env.SESSION_SECRET || '',
     rateLimit: env.DISABLE_RATE_LIMIT !== '1',
+    // How many proxies of the hosting platform sit in front of the app (for the visitor's IP address).
+    trustProxyHops: int(env.TRUST_PROXY_HOPS, 1),
 
     stripe: {
       secretKey: env.STRIPE_SECRET_KEY || '',
@@ -37,6 +39,19 @@ function loadConfig(env = process.env) {
       scriptUrl: env.PLAUSIBLE_SCRIPT_URL || '',
       // Old-style snippet: just the site's domain.
       domain: env.PLAUSIBLE_DOMAIN || '',
+    },
+
+    region: {
+      // Two-letter country codes PointerTurn is offered in, e.g. "AU". Empty: no restriction.
+      allowed: (env.ALLOWED_COUNTRIES || '')
+        .split(',')
+        .map((c) => c.trim().toUpperCase())
+        .filter(Boolean),
+      // A header the hosting platform sets to the visitor's real IP address, if it has one
+      // that visitors can't forge. Empty: the address Express works out (req.ip).
+      clientIpHeader: (env.CLIENT_IP_HEADER || '').trim().toLowerCase(),
+      // Log how each request's country was worked out, to check the above after deploying.
+      debug: env.GEO_DEBUG === '1',
     },
 
     installer: {

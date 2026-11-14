@@ -4,7 +4,7 @@
 <h1><span class="mark">Turning paths</span> without leaving your drawing.</h1>
 <p class="lead">PointerTurn draws a design vehicle's swept path and clearance right inside BricsCAD or AutoCAD. Pick a vehicle, pick a start point, and the path is in your drawing.</p>
 <div class="actions">
-<a class="button" href="/buy">Buy a licence</a>
+<% if (!region.blocked) { %><a class="button" href="/buy">Buy a licence</a><% } %>
 <a class="text-link" href="#features">See what it does</a>
 </div>
 </div>
@@ -59,11 +59,12 @@
 </div>
 </section>
 
+<% if (!region.blocked) { %>
 <section id="buy" class="wrap buy">
 <div class="buy__panel">
 <div class="buy__text">
 <h2>One licence, everything included</h2>
-<p>Every vehicle and every tool, for BricsCAD and AutoCAD. Sign in to PointerTurn with your account to activate it.</p>
+<p>Every vehicle and every tool, for BricsCAD and AutoCAD. Sign in to PointerTurn with your account to activate it.<% if (region.restricted) { %> For use in <%= region.where %> only.<% } %></p>
 </div>
 <div class="buy__price">
 <% if (price) { %>
@@ -74,4 +75,5 @@
 </div>
 </div>
 </section>
+<% } %>
 <%- include('partials/foot') %>

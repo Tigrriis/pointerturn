@@ -1,7 +1,7 @@
 'use strict';
 
 const express = require('express');
-const { requireLogin } = require('./site');
+const { requireLogin, requireRegion } = require('./site');
 
 module.exports = function account({ config, stripe, licences, billing }) {
   const router = express.Router();
@@ -23,7 +23,7 @@ module.exports = function account({ config, stripe, licences, billing }) {
   // "Buy" links from the public pages land here: sign in first, then the account page.
   router.get('/buy', requireLogin, (req, res) => res.redirect('/account#licence'));
 
-  router.post('/buy', requireLogin, async (req, res) => {
+  router.post('/buy', requireLogin, requireRegion, async (req, res) => {
     if (!billing.enabled) {
       req.session.flash = 'Buying a licence is not available yet.';
       return res.redirect('/account');
@@ -36,7 +36,7 @@ module.exports = function account({ config, stripe, licences, billing }) {
       req.session.flash = 'This account already has a licence.';
       return res.redirect('/account');
     }
-    res.redirect(303, await billing.createCheckout(req.user));
+    res.redirect(303, await billing.createCheckout(req.user, { country: req.region.country }));
   });
 
   // Where Stripe sends the buyer after paying. The webhook usually gets there first; this

@@ -3,7 +3,7 @@
 <div class="wrap site-footer__row">
 <div class="site-footer__brand">
 <img src="/brand/lockup-reversed.svg" alt="PointerTurn" width="192" height="52">
-<p>Vehicle turning paths for BricsCAD and AutoCAD</p>
+<p>Vehicle turning paths for BricsCAD and AutoCAD<% if (region.restricted) { %>. Available in <%= region.where %> only.<% } %></p>
 </div>
 <nav class="site-footer__nav" aria-label="Footer">
 <a href="/#features">Features</a>

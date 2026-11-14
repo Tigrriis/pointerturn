@@ -10,6 +10,9 @@
 <label for="password">Password</label>
 <input id="password" name="password" type="password" autocomplete="new-password" required minlength="10" aria-describedby="password-hint">
 <p id="password-hint" class="hint">At least 10 characters.</p>
+<% if (region.restricted) { %>
+<label class="check" for="in_region"><input id="in_region" name="in_region" type="checkbox" value="yes" required> <span>I am in <%= region.where %> and will use PointerTurn only in <%= region.where %>.</span></label>
+<% } %>
 <button class="button" type="submit">Create account</button>
 <p class="form__alt">Already have an account? <a href="/login">Sign in</a></p>
 </form>

@@ -44,6 +44,13 @@ services:
         sync: false
       - key: INSTALLER_VERSION
         sync: false
+      # Offered in Australia only. See "Restricting to a country" in website/README.md.
+      - key: ALLOWED_COUNTRIES
+        value: AU
+      # Logs how each visitor's country was worked out. Check it once after the first
+      # deploy, then remove this.
+      - key: GEO_DEBUG
+        value: "1"
       - key: LICENCE_MAX_MACHINES
         value: "2"
       - key: LICENCE_TOKEN_DAYS

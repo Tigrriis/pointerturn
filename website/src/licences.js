@@ -96,7 +96,7 @@ function createLicences({ db, config }) {
   }
 
   // Sign a computer in. Returns { ok, ... } or { error, ... }.
-  async function activate(user, { machineId, machineName }) {
+  async function activate(user, { machineId, machineName, country = null }) {
     const licence = await usableLicence(user.id);
     if (!licence) return { error: 'no_licence' };
 
@@ -114,8 +114,8 @@ function createLicences({ db, config }) {
         // The same computer signing in again: give it a new token, the old one stops working.
         activation = (
           await client.query(
-            'UPDATE activations SET token_hash = $1, machine_name = $2, last_seen_at = now() WHERE id = $3 RETURNING *',
-            [hashToken(activationToken), machineName, activation.id]
+            'UPDATE activations SET token_hash = $1, machine_name = $2, country = $3, last_seen_at = now() WHERE id = $4 RETURNING *',
+            [hashToken(activationToken), machineName, country, activation.id]
           )
         ).rows[0];
       } else if (live.length >= licence.max_machines) {
@@ -128,8 +128,8 @@ function createLicences({ db, config }) {
       } else {
         activation = (
           await client.query(
-            'INSERT INTO activations (licence_id, machine_id, machine_name, token_hash) VALUES ($1, $2, $3, $4) RETURNING *',
-            [licence.id, machineId, machineName, hashToken(activationToken)]
+            'INSERT INTO activations (licence_id, machine_id, machine_name, token_hash, country) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+            [licence.id, machineId, machineName, hashToken(activationToken), country]
           )
         ).rows[0];
       }
@@ -161,11 +161,11 @@ function createLicences({ db, config }) {
   }
 
   // Trade an activation token for a fresh signed licence.
-  async function refresh(activationToken) {
+  async function refresh(activationToken, { country = null } = {}) {
     const row = await findActivation(activationToken);
     if (!row) return { error: 'invalid_activation' };
     if (!USABLE.includes(row.status)) return { error: 'licence_inactive', licence: describe(row) };
-    await db.query('UPDATE activations SET last_seen_at = now() WHERE id = $1', [row.activation_id]);
+    await db.query('UPDATE activations SET last_seen_at = now(), country = COALESCE($2, country) WHERE id = $1', [row.activation_id, country]);
     const signed = licenceToken({ id: row.user_id, email: row.user_email }, row, { machine_id: row.machine_id });
     return { ok: true, licence_token: signed.token, licence_token_expires_at: signed.expiresAt, licence: describe(row) };
   }

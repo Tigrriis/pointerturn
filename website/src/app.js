@@ -10,6 +10,7 @@ const { rateLimit } = require('express-rate-limit');
 const { csrf } = require('./security');
 const { createLicences } = require('./licences');
 const { createBilling } = require('./billing');
+const { createGeo } = require('./geo');
 
 function origin(url) {
   try {
@@ -24,10 +25,12 @@ function origin(url) {
 function createApp({ config, db, stripe, mailer, log = console }) {
   const licences = createLicences({ db, config });
   const billing = createBilling({ stripe, db, config, mailer, log });
-  const ctx = { config, db, stripe, mailer, licences, billing, log };
+  const geo = createGeo(config, { log });
+  geo.warm();
+  const ctx = { config, db, stripe, mailer, licences, billing, geo, log };
 
   const app = express();
-  app.set('trust proxy', 1); // Render terminates TLS in front of the app
+  app.set('trust proxy', config.trustProxyHops); // Render terminates TLS in front of the app
   app.set('view engine', 'ejs');
   app.set('views', path.join(__dirname, 'views'));
   app.disable('x-powered-by');
@@ -78,7 +81,16 @@ function createApp({ config, db, stripe, mailer, log = console }) {
   app.use('/webhooks', require('./routes/webhooks')(ctx));
 
   // The licence API the add-in calls: JSON, no cookies.
-  app.use('/api/v1', limiter(60), express.json({ limit: '10kb' }), require('./routes/api')(ctx));
+  app.use(
+    '/api/v1',
+    limiter(60),
+    express.json({ limit: '10kb' }),
+    (req, res, next) => {
+      req.region = geo.check(req);
+      next();
+    },
+    require('./routes/api')(ctx)
+  );
 
   app.use(express.urlencoded({ extended: false, limit: '10kb' }));
   app.use(
@@ -104,6 +116,9 @@ function createApp({ config, db, stripe, mailer, log = console }) {
       res.locals.plausible = config.plausible;
       res.locals.path = req.path;
       res.locals.pageEvent = null;
+      // Where the visitor is, when PointerTurn is restricted to some countries.
+      req.region = geo.check(req);
+      res.locals.region = { restricted: geo.restricted, where: geo.where, blocked: !req.region.allowed };
       res.locals.flash = req.session.flash || null;
       delete req.session.flash;
       next();
@@ -130,6 +145,7 @@ function createApp({ config, db, stripe, mailer, log = console }) {
     if (!res.locals.csrfToken) {
       // Failed before the page helpers were set up.
       Object.assign(res.locals, { user: null, plausible: config.plausible, path: req.path, pageEvent: null, flash: null, csrfToken: '' });
+      res.locals.region = { restricted: geo.restricted, where: geo.where, blocked: false };
     }
     res.render('message', { title: 'Something went wrong', body: 'That did not work. Try again in a moment.' });
   });

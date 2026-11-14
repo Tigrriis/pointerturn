@@ -136,6 +136,8 @@ a:hover { color: #000; }
 }
 .form input:focus-visible { outline-offset: 1px; border-color: var(--pt-ink); }
 .form .hint { margin-top: 6px; }
+.form .check { display: flex; align-items: flex-start; gap: 10px; margin-top: 20px; font-weight: 400; font-size: 16px; line-height: 1.45; }
+.form .check input { flex-shrink: 0; width: 20px; height: 20px; margin: 2px 0 0; accent-color: var(--pt-ink); }
 .form .button { margin-top: 24px; }
 .form__error { margin-top: 12px; padding: 12px 14px; border-radius: 12px; background: #FDECEA; color: #8C1D18; font-weight: 500; }
 .form__alt { margin-top: 16px; font-size: 15px; }

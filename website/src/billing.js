@@ -58,16 +58,19 @@ function createBilling({ stripe, db, config, mailer, log = console }) {
     return customer.id;
   }
 
-  async function createCheckout(user) {
+  // `country` is where the buyer's connection is, when PointerTurn is restricted to some countries.
+  async function createCheckout(user, { country = null } = {}) {
     const price = await stripe.prices.retrieve(config.stripe.priceId);
     const recurring = price.type === 'recurring';
-    const metadata = { user_id: String(user.id), product: PRODUCT };
+    const metadata = { user_id: String(user.id), product: PRODUCT, ...(country ? { ip_country: country } : {}) };
     const session = await stripe.checkout.sessions.create({
       mode: recurring ? 'subscription' : 'payment',
       customer: await customerFor(user),
       line_items: [{ price: config.stripe.priceId, quantity: 1 }],
       client_reference_id: String(user.id),
       metadata,
+      // Restricted to some countries: have Stripe collect the billing address, for the record.
+      ...(config.region.allowed.length ? { billing_address_collection: 'required' } : {}),
       ...(recurring ? { subscription_data: { metadata } } : { payment_intent_data: { metadata } }),
       ...(config.stripe.automaticTax
         ? { automatic_tax: { enabled: true }, customer_update: { address: 'auto', name: 'auto' }, tax_id_collection: { enabled: true } }
@@ -110,11 +113,23 @@ function createBilling({ stripe, db, config, mailer, log = console }) {
 
     const { rows } = await db.query(
       `INSERT INTO licences
-         (user_id, kind, status, max_machines, stripe_checkout_session_id, stripe_subscription_id, stripe_payment_intent_id, current_period_end)
-       SELECT u.id, $2, $3, $4, $5, $6, $7, $8 FROM users u WHERE u.id = $1
+         (user_id, kind, status, max_machines, stripe_checkout_session_id, stripe_subscription_id, stripe_payment_intent_id,
+          current_period_end, purchase_country, billing_country)
+       SELECT u.id, $2, $3, $4, $5, $6, $7, $8, $9, $10 FROM users u WHERE u.id = $1
        ON CONFLICT (stripe_checkout_session_id) DO NOTHING
        RETURNING id, (SELECT email FROM users WHERE id = $1) AS email`,
-      [userId, kind, status, config.licence.maxMachines, session.id, subscriptionId, idOf(session.payment_intent), end]
+      [
+        userId,
+        kind,
+        status,
+        config.licence.maxMachines,
+        session.id,
+        subscriptionId,
+        idOf(session.payment_intent),
+        end,
+        session.metadata?.ip_country || null,
+        session.customer_details?.address?.country || null,
+      ]
     );
     if (!rows[0]) return null; // already fulfilled, or the account no longer exists
     mailer.sendLicenceActive(rows[0].email).catch((err) => log.error('[mail] licence email failed:', err.message));

@@ -12,6 +12,7 @@ const STATUS = {
   no_licence: 402,
   licence_inactive: 402,
   email_not_verified: 403,
+  region_not_allowed: 403,
   machine_limit: 409,
 };
 
@@ -33,6 +34,7 @@ module.exports = function api({ db, licences }) {
     const machineId = text(req.body?.machine_id, 200);
     const machineName = text(req.body?.machine_name, 100);
     if (!isEmail(email) || !password || !machineId) return reply(res, { error: 'invalid_request' });
+    if (!req.region.allowed) return reply(res, { error: 'region_not_allowed' });
 
     const user = (await db.query('SELECT * FROM users WHERE lower(email) = lower($1)', [email])).rows[0];
     if (!user) {
@@ -42,14 +44,17 @@ module.exports = function api({ db, licences }) {
     if (!(await verifyPassword(password, user.password_hash))) return reply(res, { error: 'invalid_credentials' });
     if (!user.email_verified_at) return reply(res, { error: 'email_not_verified' });
 
-    reply(res, await licences.activate(user, { machineId, machineName }));
+    reply(res, await licences.activate(user, { machineId, machineName, country: req.region.country }));
   });
 
   // Trade the activation token for a fresh signed licence.
   router.post('/refresh', async (req, res) => {
     const token = text(req.body?.activation_token, 200);
     if (!token) return reply(res, { error: 'invalid_request' });
-    reply(res, await licences.refresh(token));
+    // From outside the countries PointerTurn is offered in, no new licence is issued. The
+    // one the computer holds is left to run out, so a short trip abroad doesn't cut it off.
+    if (!req.region.allowed) return reply(res, { error: 'region_not_allowed' });
+    reply(res, await licences.refresh(token, { country: req.region.country }));
   });
 
   // Sign a computer out, freeing its place.

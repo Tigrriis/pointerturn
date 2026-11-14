@@ -10,10 +10,11 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
-    "test": "node --test test/*.test.js",
+    "test": "node --test --test-concurrency=1 test/*.test.js",
     "licence-key": "node scripts/generate-licence-key.js"
   },
   "dependencies": {
+    "@ip-location-db/geo-whois-asn-country": "^2.3.2026061719",
     "connect-pg-simple": "^10.0.0",
     "ejs": "^7.0.2",
     "express": "^5.3.0",

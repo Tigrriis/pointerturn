@@ -164,6 +164,7 @@ namespace PointerTurn.Core.Tests
         [InlineData("invalid_credentials", "do not match")]
         [InlineData("email_not_verified", "confirmed")]
         [InlineData("no_licence", "https://pointerturn.test")]
+        [InlineData("region_not_allowed", "not available in the country")]
         [InlineData("network", "could not reach https://pointerturn.test")]
         [InlineData("too_many_attempts", "Too many attempts")]
         [InlineData("something_new", "something_new")]
@@ -267,7 +268,9 @@ namespace PointerTurn.Core.Tests
         {
             LicenceManager manager = await SignedIn();
             _now = _now.AddDays(3);
-            foreach (string error in new[] { LicenceReply.Network, LicenceReply.Unexpected, LicenceReply.TooManyAttempts })
+            // The same when the website won't issue a licence where the computer is (a trip
+            // abroad): the one held runs its course.
+            foreach (string error in new[] { LicenceReply.Network, LicenceReply.Unexpected, LicenceReply.TooManyAttempts, "region_not_allowed" })
             {
                 _server.Refresh = () => new LicenceReply { Error = error };
                 Assert.Equal(LicenceState.Licensed, (await manager.RefreshAsync()).State);

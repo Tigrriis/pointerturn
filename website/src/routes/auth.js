@@ -2,12 +2,13 @@
 
 const express = require('express');
 const { hashPassword, verifyPassword, burnPasswordCheck, newToken, hashToken, isEmail, safeNext } = require('../security');
+const { requireRegion } = require('./site');
 
 const MIN_PASSWORD = 10;
 const VERIFY_HOURS = 24;
 const RESET_HOURS = 1;
 
-module.exports = function auth({ db, mailer, log, authLimiter }) {
+module.exports = function auth({ db, mailer, geo, log, authLimiter }) {
   const router = express.Router();
 
   async function issueToken(userId, kind, hours) {
@@ -52,24 +53,30 @@ module.exports = function auth({ db, mailer, log, authLimiter }) {
 
   // ---- Create an account ----
 
-  router.get('/signup', (req, res) => {
+  router.get('/signup', requireRegion, (req, res) => {
     if (req.user) return res.redirect('/account');
     rememberNext(req);
     res.render('signup', { error: null, email: '' });
   });
 
-  router.post('/signup', authLimiter, async (req, res) => {
+  router.post('/signup', authLimiter, requireRegion, async (req, res) => {
     const email = String(req.body.email || '').trim();
     const password = String(req.body.password || '');
     if (!isEmail(email)) return res.status(400).render('signup', { error: 'Enter a valid email address.', email });
     if (password.length < MIN_PASSWORD) {
       return res.status(400).render('signup', { error: `Choose a password of at least ${MIN_PASSWORD} characters.`, email });
     }
+    // Where PointerTurn is restricted to some countries, the person says they are in one.
+    if (geo.restricted && req.body.in_region !== 'yes') {
+      return res.status(400).render('signup', { error: `Tick the box to confirm you are in ${geo.where}.`, email });
+    }
 
     const hash = await hashPassword(password);
     const { rows } = await db.query(
-      'INSERT INTO users (email, password_hash) VALUES ($1, $2) ON CONFLICT (lower(email)) DO NOTHING RETURNING id',
-      [email, hash]
+      `INSERT INTO users (email, password_hash, signup_country, region_declared_at)
+       VALUES ($1, $2, $3, CASE WHEN $4 THEN now() END)
+       ON CONFLICT (lower(email)) DO NOTHING RETURNING id`,
+      [email, hash, req.region.country, geo.restricted]
     );
     // The page says the same thing either way, so it can't be used to find out who has an account.
     if (rows[0]) await sendMail(mailer.sendVerification(email, await issueToken(rows[0].id, 'verify', VERIFY_HOURS)));

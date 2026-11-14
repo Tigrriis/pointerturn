@@ -9,6 +9,17 @@ function requireLogin(req, res, next) {
   res.redirect('/login');
 }
 
+// Refuses visitors outside the countries PointerTurn is offered in (ALLOWED_COUNTRIES).
+function requireRegion(req, res, next) {
+  if (req.region.allowed) return next();
+  res.status(403).render('message', {
+    title: `PointerTurn is available in ${res.locals.region.where} only`,
+    body:
+      `Accounts, licences and downloads are offered only to people in ${res.locals.region.where}, and you appear to be somewhere else. ` +
+      `If you are in ${res.locals.region.where}, check whether a VPN is making it look otherwise.`,
+  });
+}
+
 module.exports = function site({ config, billing }) {
   const router = express.Router();
 
@@ -17,7 +28,7 @@ module.exports = function site({ config, billing }) {
   });
 
   // The installer itself is hosted elsewhere (INSTALLER_URL); this hands it to signed-in users.
-  router.get('/download', requireLogin, (req, res) => {
+  router.get('/download', requireLogin, requireRegion, (req, res) => {
     if (!config.installer.url) {
       return res.status(503).render('message', {
         title: 'The installer is not available yet',
@@ -31,3 +42,4 @@ module.exports = function site({ config, billing }) {
 };
 
 module.exports.requireLogin = requireLogin;
+module.exports.requireRegion = requireRegion;
