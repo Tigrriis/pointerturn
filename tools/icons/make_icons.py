@@ -115,12 +115,30 @@ def clearance():
     return img
 
 
+def licence():
+    """A key: signing in with an account."""
+    img, d = canvas()
+    # the bow: a ring at the top left
+    d.ellipse((28, 28, 140, 140), fill=GOLD, outline=GOLD_DARK, width=OUTLINE)
+    d.ellipse((62, 62, 106, 106), fill=(0, 0, 0, 0), outline=GOLD_DARK, width=OUTLINE)
+    # the shaft, running down to the right, with two teeth
+    shaft = [(112, 128), (128, 112), (232, 216), (216, 232)]
+    d.polygon(shaft, fill=GOLD)
+    d.line(shaft + [shaft[0]], fill=GOLD_DARK, width=OUTLINE, joint="curve")
+    for (x, y) in ((176, 192), (204, 220)):
+        tooth = [(x, y), (x - 24, y + 24), (x - 8, y + 40), (x + 16, y + 16)]
+        d.polygon(tooth, fill=GOLD)
+        d.line(tooth + [tooth[0]], fill=GOLD_DARK, width=OUTLINE, joint="curve")
+    return img
+
+
 ICONS = {
     "turnpath": turn_path,
     "turnsolve": turn_solve,
     "turninout": turn_in_out,
     "turnedit": turn_edit,
     "clearance": clearance,
+    "licence": licence,
 }
 
 

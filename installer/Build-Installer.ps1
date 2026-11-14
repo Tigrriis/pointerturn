@@ -36,6 +36,9 @@
 
 .EXAMPLE
   .\installer\Build-Installer.ps1 -AllowMissing -SkipTests
+
+.EXAMPLE
+  .\installer\Build-Installer.ps1 -Unlicensed
 #>
 [CmdletBinding()]
 param(
@@ -53,6 +56,10 @@ param(
 
     # Don't run the unit tests first.
     [switch]$SkipTests,
+
+    # Build an installer whose add-in doesn't ask for a licence (no licence server and key are
+    # compiled in). Not for a release.
+    [switch]$Unlicensed,
 
     # Inno Setup's command-line compiler, ISCC.exe. Default: the pinned version from NuGet.
     [string]$ISCC,
@@ -131,6 +138,16 @@ if (-not $Version) {
 if ($Version -notmatch "^\d+\.\d+\.\d+$") { Stop-Build "The version must be three numbers, like 1.2.0 (got '$Version')." }
 $versionProp = "-p:Version=$Version"
 Write-Host "PointerTurn $Version"
+
+# ---------------------------------------------------------------- licence
+# A build with no licence server and key compiled in runs without a licence. That is right for
+# development and wrong for anything handed to a customer, so it has to be asked for.
+$licenceBuild = Get-Content ([IO.Path]::Combine($repo, "src", "PointerTurn.Core", "Licensing", "LicenceBuild.cs")) -Raw
+$unset = @("Website", "PublicKeyX", "PublicKeyY") | Where-Object { $licenceBuild -match "const string $_ = `"`";" }
+if ($unset -and -not $Unlicensed) {
+    Stop-Build ("src\PointerTurn.Core\Licensing\LicenceBuild.cs has no value for " + ($unset -join ", ") + ", so this build would run without a licence. Fill them in (see docs/licensing.md), or pass -Unlicensed to build it anyway.")
+}
+if ($unset) { Write-Warning "This installer's add-in does not ask for a licence (-Unlicensed). Not for a release." }
 
 # ---------------------------------------------------------------- tests
 if (-not $SkipTests) {

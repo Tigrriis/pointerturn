@@ -97,6 +97,12 @@ A command runs like this, all on BricsCAD's main thread and as one UNDO step:
 - Paths drawn by CSD-Bridge used `CSDBRIDGE_TURN` and `CSDBRIDGE_TURNPATHS`. Those are still read,
   so the paths can be edited. An edited path is saved under the new names.
 
+### The licence check
+
+Each drawing command first asks `Licence` whether this computer may run it; if not, the sign-in
+dialog is shown and the command goes ahead only once signed in. The check reads a signed licence
+saved in the user's profile and needs no connection. [licensing.md](licensing.md) describes it.
+
 ### Settings
 
 The turning path conventions are read from the first of these that exists:

@@ -90,7 +90,8 @@ What to set up in the other services:
 
 ## Licence API
 
-What the add-in calls. JSON in, JSON out, under `/api/v1`. Errors come back as
+What the add-in calls. The add-in's side of this is described in
+[docs/licensing.md](../docs/licensing.md). JSON in, JSON out, under `/api/v1`. Errors come back as
 `{"error": "<code>"}` with the HTTP status shown.
 
 ### `POST /api/v1/activate`

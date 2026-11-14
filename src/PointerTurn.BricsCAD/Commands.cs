@@ -20,31 +20,52 @@ namespace PointerTurn.BricsCAD
     /// PTEDIT      change a turning path (settings or geometry) and regenerate it
     /// PTCLEARANCE check a design vehicle's ground clearance (AS/NZS 2890.1 Appendix C) on a long section or a surface
     /// PTRIBBON    add the PointerTurn ribbon tab again (if a workspace change removed it)
+    /// PTLICENCE   sign in with a PointerTurn account, see the licence on this computer, or sign out
+    ///
+    /// The commands that draw need a licence (see Licence): on a computer that isn't signed in
+    /// they show the sign-in dialog first.
     /// </summary>
     public sealed class Commands
     {
         private const string Group = "POINTERTURN";
 
         [CommandMethod(Group, "PTPATH", CommandFlags.Modal)]
-        public void PtPath() => TurnPathCommand.Run(CadApp.DocumentManager.MdiActiveDocument);
+        public void PtPath() => Licensed(doc => TurnPathCommand.Run(doc));
 
         [CommandMethod(Group, "PTEDIT", CommandFlags.Modal)]
-        public void PtEdit() => TurnPathCommand.Edit(CadApp.DocumentManager.MdiActiveDocument);
+        public void PtEdit() => Licensed(doc => TurnPathCommand.Edit(doc));
 
         [CommandMethod(Group, "PTSOLVE", CommandFlags.Modal)]
-        public void PtSolve() => TurnPathCommand.Run(CadApp.DocumentManager.MdiActiveDocument, TurnPathChoice.ManoeuvreMode.Solve);
+        public void PtSolve() => Licensed(doc => TurnPathCommand.Run(doc, TurnPathChoice.ManoeuvreMode.Solve));
 
         [CommandMethod(Group, "PTINOUT", CommandFlags.Modal)]
-        public void PtInOut() => TurnPathCommand.Run(CadApp.DocumentManager.MdiActiveDocument, TurnPathChoice.ManoeuvreMode.SolveInOut);
+        public void PtInOut() => Licensed(doc => TurnPathCommand.Run(doc, TurnPathChoice.ManoeuvreMode.SolveInOut));
 
         [CommandMethod(Group, "PTCLEARANCE", CommandFlags.Modal)]
-        public void PtClearance() => GroundClearanceCommand.Run(CadApp.DocumentManager.MdiActiveDocument);
+        public void PtClearance() => Licensed(doc => GroundClearanceCommand.Run(doc));
+
+        [CommandMethod(Group, "PTLICENCE", CommandFlags.Modal)]
+        public void PtLicence() => Licence.ShowDialog(CadApp.DocumentManager.MdiActiveDocument?.Editor);
+
+        /// <summary>The same, for those who spell it with an S.</summary>
+        [CommandMethod(Group, "PTLICENSE", CommandFlags.Modal)]
+        public void PtLicense() => PtLicence();
 
         [CommandMethod(Group, "PTRIBBON", CommandFlags.Modal)]
         public void PtRibbon()
         {
             string result = RibbonSetup.AddTab(activate: true);
             CadApp.DocumentManager.MdiActiveDocument.Editor.WriteMessage("\nPointerTurn: " + result + "\n");
+        }
+
+        /// <summary>Runs a command in the active drawing, once this computer is licensed.</summary>
+        private static void Licensed(System.Action<Document> command)
+        {
+            Document doc = CadApp.DocumentManager.MdiActiveDocument;
+            if (doc != null && Licence.Ensure(doc.Editor))
+            {
+                command(doc);
+            }
         }
     }
 }

@@ -2,7 +2,9 @@
 
 Vehicle turning paths for BricsCAD and AutoCAD. PointerTurn simulates a design vehicle through a
 manoeuvre and draws its swept path and clearance template in the drawing. It runs entirely inside
-the CAD program: no account, no internet connection and no other add-in is needed.
+the CAD program, with no other add-in needed. A released build is licensed: you sign in once with
+a PointerTurn account, and after that it works without an internet connection for up to two weeks
+at a time. See [Licence](#licence).
 
 These tools began as part of CSD-Bridge, Arete Engineering's BricsCAD assistant, and were moved
 here to be an add-in of their own.
@@ -35,10 +37,11 @@ This is a first cut as a separate add-in, not a finished product.
 
 | Part | State |
 |---|---|
-| Core (vehicles, simulation, swept path, solver, conflicts, ground clearance) | Built and unit-tested: 76 tests |
+| Core (vehicles, simulation, swept path, solver, conflicts, ground clearance, licence check) | Built and unit-tested: 110 tests |
 | BricsCAD add-in | **Not yet compiled against BricsCAD, and not yet run in it.** Its files are type-checked against stand-in copies of the BricsCAD API, except `CadDrawing.cs`, which is a cut-down copy of CSD-Bridge's drawing code |
 | AutoCAD add-in | The same source, compiled against Autodesk's AutoCAD 2021 and AutoCAD 2025 APIs: it builds clean for both. **Not yet run in AutoCAD.** Reading Civil 3D surfaces is written from the API reference and untried |
 | Installer | Builds, and has been run under Wine: install for all users and for one user, upgrade, uninstall, and the BricsCAD registry entries, against stand-in BricsCAD and AutoCAD registry keys. **Not yet run on Windows, or with a real BricsCAD or AutoCAD.** Not code-signed |
+| Licence check | The checking, signing in and refreshing are unit-tested, and have been run against the website on a test database. The add-in side compiles for AutoCAD on .NET Framework; **it has not been compiled for .NET 8 or against BricsCAD, the sign-in dialog has not been seen on screen, and nothing has been run inside BricsCAD or AutoCAD.** Off until the website's address and key are filled in: see [docs/licensing.md](docs/licensing.md) |
 | Austroads vehicles | Entered from the dimension drawings in AP-G34-23. **Not yet compared against the published turning templates** |
 
 See [docs/architecture.md](docs/architecture.md) for the design, and "First things to test" there.
@@ -47,7 +50,8 @@ See [docs/architecture.md](docs/architecture.md) for the design, and "First thin
 
 ```
 src/PointerTurn.Core/        CAD-independent: design vehicles, simulation, swept path, solver,
-                             conflicts, ground clearance (netstandard2.0 + net8.0)
+                             conflicts, ground clearance, the licence check
+                             (netstandard2.0 + net8.0)
 src/PointerTurn.BricsCAD/    The add-in: commands, dialogs, ribbon, drawing in the CAD program,
                              settings. Builds for BricsCAD
   turn-paths.json            The vehicles and the defaults, shipped next to the add-in
@@ -58,6 +62,7 @@ installer/                   The installer: Inno Setup script, AutoCAD bundle ma
 install/                     For developers: update from source (pull, build, copy) and autoload
 docs/architecture.md         Design notes, what is kept in the drawing, first things to test
 docs/packaging.md            What the installer installs and where, building it, what is left to do
+docs/licensing.md            How the add-in checks its licence, and how to turn the check on
 brand/                       Logo, icons and colours for the website and advertising
 website/                     The website: accounts, licence sales, the download and the licence API
 render.yaml                  How the website is deployed on Render
@@ -168,7 +173,26 @@ that runs the same update when you log in and daily at 07:30. Run it with `-Remo
 | `PTINOUT` | In and out | Show forward entry and exit from a site: pick where the vehicle arrives, where it stops on the site and where it leaves. The same as `PTPATH` with **Solve in and out (3 points)** chosen. See [In and out of a site](#in-and-out-of-a-site-the-3-point-solve). |
 | `PTEDIT` | Edit path | Change a turning path (its vehicle, radius, clearances, layers or geometry) and regenerate it. See [Editing a turning path](#editing-a-turning-path). |
 | `PTCLEARANCE` | Clearance | Check a car's ground clearance along a plotted long section, or on a surface along a path. See [Ground clearance](#ground-clearance-appendix-c). |
+| `PTLICENCE` | Licence | Sign in with your PointerTurn account, see the licence on this computer, or sign out. `PTLICENSE` works too. See [Licence](#licence). |
 | `PTRIBBON` | | Add the PointerTurn ribbon tab again, if a workspace change removed it. |
+
+## Licence
+
+A released build of PointerTurn needs a licence, which belongs to a PointerTurn account on the
+website. A build made from source with no licence server filled in doesn't ask for one.
+
+- **Signing in.** The first time you run a command, PointerTurn asks for your account's email
+  address and password. You stay signed in on that computer after that.
+- **Without a connection.** PointerTurn checks the licence with the website in the background
+  when the computer is online, about once a day. Offline, it keeps working for up to two weeks
+  from the last check, then asks you to connect.
+- **Another computer.** A licence can be in use on a limited number of computers at once. To move
+  it, run `PTLICENCE` and choose **Sign out** on the old computer, or sign that computer out on
+  your account page on the website, then sign in on the new one.
+
+What is sent to the website is your email address and password (when you sign in), the
+computer's name and Windows user name, and a scrambled identifier for the computer. Nothing from
+your drawings is sent. [docs/licensing.md](docs/licensing.md) has the detail.
 
 ## Coming from CSD-Bridge
 
@@ -475,4 +499,6 @@ placed with both wheels on the ground and slid along in small steps; it must nev
 | The build stops with "BricsCAD V.. API files (BrxMgd.dll, TD_Mgd.dll) were not found" | Build with `-p:BricsCADVersion=NN` to pick an installed version, or `-p:BricsCADDir="full path to your BricsCAD folder"`. |
 | `NU1100` or `NU1101`: a package can't be found | NuGet can't reach nuget.org. The repo's `nuget.config` adds it as a source. If the error persists, run `dotnet nuget enable source nuget.org`. |
 | The ribbon tab is missing | Run `PTRIBBON`. If the ribbon itself is off, turn it on with `RIBBON` first. The commands work without it. |
+| "Sign in with your PointerTurn account to use this command" | Run `PTLICENCE` and sign in. If it says the licence is in use on other computers, sign one of them out on your account page. |
+| "PointerTurn has not been able to check your licence since ..." | The computer has been offline for longer than a licence lasts. Connect to the internet and run the command again. |
 | "The turning path conventions couldn't be loaded" | The message names the file and the problem, usually a typo in an edited `turn-paths.json`. The built-in B99 and B85 are used until it is fixed. |

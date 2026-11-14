@@ -36,8 +36,26 @@ namespace PointerTurn.BricsCAD
         {
             RibbonSetup.Initialize();
 
+            // Where the licence stands, read from the user's profile (no network), and a
+            // refresh in the background if the one held is getting old.
+            string licence = "";
+            try
+            {
+                PointerTurn.Core.Licensing.LicenceStatus status = Licence.Manager.Check();
+                if (status.State == PointerTurn.Core.Licensing.LicenceState.SignedOut)
+                {
+                    licence = " Not signed in: run PTLICENCE to sign in with your PointerTurn account.";
+                }
+
+                Licence.RefreshInBackground();
+            }
+            catch (System.Exception)
+            {
+                // The commands check again, and say what is wrong, when they are run.
+            }
+
             CadApp.DocumentManager.MdiActiveDocument?.Editor.WriteMessage(
-                "\nPointerTurn loaded. Commands: PTPATH, PTSOLVE, PTINOUT, PTEDIT, PTCLEARANCE (or use the PointerTurn ribbon tab).\n");
+                "\nPointerTurn loaded. Commands: PTPATH, PTSOLVE, PTINOUT, PTEDIT, PTCLEARANCE, PTLICENCE (or use the PointerTurn ribbon tab)." + licence + "\n");
         }
     }
 

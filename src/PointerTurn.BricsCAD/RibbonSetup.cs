@@ -18,8 +18,9 @@ using CadApp = Bricscad.ApplicationServices.Application;
 namespace PointerTurn.BricsCAD
 {
     /// <summary>
-    /// Adds a "PointerTurn" tab to the BricsCAD ribbon, with one panel:
+    /// Adds a "PointerTurn" tab to the BricsCAD ribbon, with two panels:
     ///   Vehicles: Turn path | Solve turn | In and out | Edit path | Clearance
+    ///   Account:  Licence
     /// The ribbon is optional: if it is turned off, or BricsCAD rebuilds it (e.g. a
     /// workspace switch), the commands still work and PTRIBBON adds the tab again.
     ///
@@ -106,6 +107,10 @@ namespace PointerTurn.BricsCAD
 
                 var tab = new RibbonTab { Id = TabId, Name = "PointerTurn", Title = "PointerTurn" };
                 tab.Panels.Add(new RibbonPanel { Source = vehicles });
+
+                var account = new RibbonPanelSource { Id = "POINTERTURN_ACCOUNT", Name = "Account", Title = "Account" };
+                account.Items.Add(Button("Licence", "PTLICENCE", "Sign in to PointerTurn with your account, see the licence on this computer, or sign out", "licence", large: true));
+                tab.Panels.Add(new RibbonPanel { Source = account });
                 ribbon.Tabs.Add(tab);
                 if (activate)
                 {
