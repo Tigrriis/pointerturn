@@ -3,10 +3,17 @@ using System.IO;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+#if AUTOCAD
+using Autodesk.AutoCAD.ApplicationServices;
+using Autodesk.AutoCAD.Ribbon;
+using Autodesk.Windows;
+using CadApp = Autodesk.AutoCAD.ApplicationServices.Application;
+#else
 using Bricscad.ApplicationServices;
 using Bricscad.Ribbon;
 using Bricscad.Windows;
 using CadApp = Bricscad.ApplicationServices.Application;
+#endif
 
 namespace PointerTurn.BricsCAD
 {
@@ -17,7 +24,8 @@ namespace PointerTurn.BricsCAD
     /// workspace switch), the commands still work and PTRIBBON adds the tab again.
     ///
     /// BricsCAD exposes its ribbon through ComponentManager.Ribbon. RibbonServices'
-    /// RibbonPaletteSet (the AutoCAD route) can be null even while the ribbon shows.
+    /// RibbonPaletteSet (the AutoCAD route) can be null there even while the ribbon shows.
+    /// AutoCAD answers to both, so the same code serves it.
     /// </summary>
     internal static class RibbonSetup
     {
@@ -74,7 +82,7 @@ namespace PointerTurn.BricsCAD
                 RibbonControl? ribbon = GetRibbon();
                 if (ribbon == null)
                 {
-                    return "BricsCAD didn't give the add-in access to the ribbon. If the ribbon is off, turn it on with RIBBON and run PTRIBBON again.";
+                    return Host.Name + " didn't give the add-in access to the ribbon. If the ribbon is off, turn it on with RIBBON and run PTRIBBON again.";
                 }
 
                 RibbonTab? existing = ribbon.FindTab(TabId);
@@ -173,7 +181,12 @@ namespace PointerTurn.BricsCAD
                 ToolTip = toolTip,
                 ShowText = true,
                 Size = large ? RibbonItemSize.Large : RibbonItemSize.Standard,
+#if AUTOCAD
+                // AutoCAD has no button style: a large button with its text underneath is a vertical one.
+                Orientation = large ? System.Windows.Controls.Orientation.Vertical : System.Windows.Controls.Orientation.Horizontal,
+#else
                 ButtonStyle = large ? RibbonButtonStyle.LargeWithText : RibbonButtonStyle.SmallWithText,
+#endif
                 CommandHandler = CommandHandler.Instance,
                 CommandParameter = command,
             };

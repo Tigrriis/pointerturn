@@ -1,8 +1,8 @@
 # PointerTurn
 
-Vehicle turning paths for BricsCAD. PointerTurn simulates a design vehicle through a manoeuvre
-and draws its swept path and clearance template in the drawing. It runs entirely inside
-BricsCAD: no account, no internet connection and no other add-in is needed.
+Vehicle turning paths for BricsCAD and AutoCAD. PointerTurn simulates a design vehicle through a
+manoeuvre and draws its swept path and clearance template in the drawing. It runs entirely inside
+the CAD program: no account, no internet connection and no other add-in is needed.
 
 These tools began as part of CSD-Bridge, Arete Engineering's BricsCAD assistant, and were moved
 here to be an add-in of their own.
@@ -22,7 +22,8 @@ here to be an add-in of their own.
 - **Editable paths.** Every path remembers how it was made, so its vehicle, radius, clearances,
   layers or geometry can be changed and the path regenerated.
 - **Ground clearance.** The AS/NZS 2890.1 Appendix C check of a car's underside over a grade
-  change, on a plotted long section or along a path on a BricsCAD TIN surface.
+  change, on a plotted long section or along a path on a TIN surface (BricsCAD's own, or
+  Civil 3D's in AutoCAD).
 - **Metres or millimetres.** It reads the drawing's units and works in either.
 
 Vehicles, clearances, layers and what is drawn are all set in `turn-paths.json`, or in the
@@ -36,6 +37,8 @@ This is a first cut as a separate add-in, not a finished product.
 |---|---|
 | Core (vehicles, simulation, swept path, solver, conflicts, ground clearance) | Built and unit-tested: 76 tests |
 | BricsCAD add-in | **Not yet compiled against BricsCAD, and not yet run in it.** Its files are type-checked against stand-in copies of the BricsCAD API, except `CadDrawing.cs`, which is a cut-down copy of CSD-Bridge's drawing code |
+| AutoCAD add-in | The same source, compiled against Autodesk's AutoCAD 2021 and AutoCAD 2025 APIs: it builds clean for both. **Not yet run in AutoCAD.** Reading Civil 3D surfaces is written from the API reference and untried |
+| Installer | Builds, and has been run under Wine: install for all users and for one user, upgrade, uninstall, and the BricsCAD registry entries, against stand-in BricsCAD and AutoCAD registry keys. **Not yet run on Windows, or with a real BricsCAD or AutoCAD.** Not code-signed |
 | Austroads vehicles | Entered from the dimension drawings in AP-G34-23. **Not yet compared against the published turning templates** |
 
 See [docs/architecture.md](docs/architecture.md) for the design, and "First things to test" there.
@@ -45,15 +48,41 @@ See [docs/architecture.md](docs/architecture.md) for the design, and "First thin
 ```
 src/PointerTurn.Core/        CAD-independent: design vehicles, simulation, swept path, solver,
                              conflicts, ground clearance (netstandard2.0 + net8.0)
-src/PointerTurn.BricsCAD/    The add-in: commands, dialogs, ribbon, drawing in BricsCAD, settings
+src/PointerTurn.BricsCAD/    The add-in: commands, dialogs, ribbon, drawing in the CAD program,
+                             settings. Builds for BricsCAD
   turn-paths.json            The vehicles and the defaults, shipped next to the add-in
-tests/PointerTurn.Core.Tests Unit tests (no BricsCAD needed)
+src/PointerTurn.AutoCAD/     A project file only: builds the same source for AutoCAD
+tests/PointerTurn.Core.Tests Unit tests (no CAD program needed)
 tools/icons/                 Generates the ribbon icons (Python + Pillow)
-install/                     Update script (pull, build, install) and autoload registration
+installer/                   The installer: Inno Setup script, AutoCAD bundle manifest, build script
+install/                     For developers: update from source (pull, build, copy) and autoload
 docs/architecture.md         Design notes, what is kept in the drawing, first things to test
+docs/packaging.md            What the installer installs and where, building it, what is left to do
 ```
 
-## Quick start
+## Installing
+
+Run `PointerTurn-<version>-setup.exe`. It asks whether to install for everyone on the PC (needs
+an administrator) or just for you, and then:
+
+- **BricsCAD V24 and later**: registers PointerTurn with every BricsCAD version and language on
+  the PC, so it loads when BricsCAD starts. A BricsCAD installed afterwards isn't registered
+  until you run the installer again. BricsCAD V26 and later run add-ins on Microsoft's .NET 8
+  Desktop Runtime, which BricsCAD doesn't bring: when it is missing, the installer downloads and
+  installs it (installing for all users), or tells you where to get it.
+- **AutoCAD 2021 and later** (and Civil 3D, Map 3D and the other AutoCAD-based products): puts
+  PointerTurn where AutoCAD loads add-ins from by itself, so it also loads in an AutoCAD
+  installed afterwards. AutoCAD LT can't run add-ins of this kind.
+
+Start the CAD program and look for the **PointerTurn** ribbon tab, or type `PTPATH`. Remove it
+from Windows' installed apps. Your saved defaults (`%APPDATA%\PointerTurn`) are kept.
+
+For an unattended install: `PointerTurn-<version>-setup.exe /VERYSILENT /ALLUSERS` (or
+`/CURRENTUSER`), with `/LOG=file` to keep a log.
+
+To build the installer, see [docs/packaging.md](docs/packaging.md).
+
+## Quick start (from source)
 
 ### 1. Run the tests (any OS)
 
@@ -80,10 +109,23 @@ with one message listing the BricsCAD folders it did find.
 The output goes to `src/PointerTurn.BricsCAD/bin/Release/V<version>/`. V26 and later need the
 x64 .NET 8 Desktop Runtime on the user's machine.
 
+The AutoCAD add-in is the same source built by another project. It needs no AutoCAD installed
+(the AutoCAD API comes from NuGet) and builds on any OS with Microsoft's .NET SDK (the SDK some
+Linux distributions package leaves out the Windows desktop parts it needs):
+
+```bash
+dotnet build src/PointerTurn.AutoCAD -c Release
+```
+
+That makes `bin/Release/net48/` for AutoCAD 2021 to 2024 and `bin/Release/net8.0-windows/` for
+AutoCAD 2025 and later.
+
 ### 3. Load it
 
 In BricsCAD: `NETLOAD`, then pick `PointerTurn.BricsCAD.dll` from the output folder. A
-**PointerTurn** ribbon tab appears, with the commands on its **Vehicles** panel.
+**PointerTurn** ribbon tab appears, with the commands on its **Vehicles** panel. In AutoCAD it
+is the same with `PointerTurn.AutoCAD.dll` (AutoCAD asks before loading an add-in from a folder
+it doesn't trust).
 
 To load automatically at startup:
 `install\Register-Autoload.ps1 -DllPath <full path to dll> -BricsCADVersion 25`.

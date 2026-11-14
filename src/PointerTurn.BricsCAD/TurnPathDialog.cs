@@ -863,7 +863,7 @@ namespace PointerTurn.BricsCAD
 
                 if (layer.IndexOfAny(new[] { '<', '>', '/', '\\', '"', ':', ';', '?', '*', '|', ',', '=', '`' }) >= 0)
                 {
-                    problem = $"Layer name '{layer}' has characters BricsCAD doesn't allow.";
+                    problem = $"Layer name '{layer}' has characters {Host.Name} doesn't allow.";
                     return false;
                 }
 

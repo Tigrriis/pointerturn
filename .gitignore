@@ -6,6 +6,8 @@ obj/
 .idea/
 *.nupkg
 TestResults/
+# The installer and what it is built from (installer/Build-Installer.ps1)
+artifacts/
 # Local preview output from the CLI harness
 *.dxf
 !samples/**/*.dxf

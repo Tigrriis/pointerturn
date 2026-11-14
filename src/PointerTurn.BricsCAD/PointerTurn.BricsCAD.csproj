@@ -50,6 +50,9 @@
     <TargetFramework Condition="$(BricsCADVersion) &gt;= 26">net8.0-windows</TargetFramework>
     <TargetFramework Condition="$(BricsCADVersion) &lt; 26">net48</TargetFramework>
 
+    <!-- Lets the .NET 8 flavour build on a PC that isn't Windows (given BricsCAD's API files). -->
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+
     <RootNamespace>PointerTurn.BricsCAD</RootNamespace>
     <AssemblyName>PointerTurn.BricsCAD</AssemblyName>
     <PlatformTarget>x64</PlatformTarget>

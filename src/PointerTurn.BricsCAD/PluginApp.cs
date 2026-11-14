@@ -3,15 +3,21 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+#if AUTOCAD
+using Autodesk.AutoCAD.ApplicationServices;
+using Autodesk.AutoCAD.Runtime;
+using CadApp = Autodesk.AutoCAD.ApplicationServices.Application;
+#else
 using Bricscad.ApplicationServices;
 using Teigha.Runtime;
 using CadApp = Bricscad.ApplicationServices.Application;
+#endif
 
 [assembly: ExtensionApplication(typeof(PointerTurn.BricsCAD.PluginApp))]
 
 namespace PointerTurn.BricsCAD
 {
-    /// <summary>Entry point BricsCAD calls when the DLL is loaded (NETLOAD or autoload).</summary>
+    /// <summary>Entry point the CAD program calls when the DLL is loaded (NETLOAD or autoload).</summary>
     public sealed class PluginApp : IExtensionApplication
     {
         public void Initialize()
@@ -36,11 +42,11 @@ namespace PointerTurn.BricsCAD
     }
 
     /// <summary>
-    /// On .NET Framework (BricsCAD V24/V25) every add-in shares one AppDomain and the
+    /// On .NET Framework (BricsCAD V24/V25, AutoCAD 2021 to 2024) every add-in shares one AppDomain and the
     /// add-in's own binding redirects are ignored, so the libraries it ships with
     /// (System.Text.Json, System.Memory, ...) can fail to bind to the versions we ship.
-    /// This resolves them from the add-in folder by simple name. On .NET 8 (V26) they are
-    /// part of the runtime, so the handler is not installed.
+    /// This resolves them from the add-in folder by simple name. On .NET 8 (BricsCAD V26,
+    /// AutoCAD 2025) they are part of the runtime, so the handler is not installed.
     /// </summary>
     internal static class DependencyResolver
     {
