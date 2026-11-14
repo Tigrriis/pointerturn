@@ -440,14 +440,13 @@ namespace PointerTurn.Core.Vehicles
                     IReadOnlyList<double>? trailers = null;   // where the last leg left the trailers
                     for (int i = 0; i < r.Stops.Count; i++)
                     {
-                        TurnPathBuilder.DriveLeg? leg = Leg(v, pose, r.Stops[i], r.Radius, r.TurnsKind);
+                        TurnPathBuilder.DriveLeg? leg = Leg(v, pose, r.Stops[i], r.Radius, r.TurnsKind, trailers);
                         if (leg == null)
                         {
                             throw new ArgumentException($"The {v.Name} can't reach destination {i + 1} in one leg at a {r.Radius:0.##} m radius: it is too close, inside the turning circle, or would need more than a half turn" +
-                                                        (v.IsArticulated ? " (with a trailer it only drives forwards)." : "."));
+                                                        (v.IsArticulated ? " (reversing, its last trailer goes to the destination, and has to be able to line up on it)." : "."));
                         }
 
-                        leg.Request.InitialTrailerHeadings = trailers;
                         TurnPathResult result = Run(leg.Request);
                         trailers = result.Trailers.Count > 0 ? result.EndTrailerHeadings : null;
                         plan.Warnings.AddRange(result.Warnings.Select(w => $"Leg {i + 1}: {w}"));
@@ -510,7 +509,7 @@ namespace PointerTurn.Core.Vehicles
             DesignVehicle v = c.Vehicle(r.Vehicle);
             if (v.IsArticulated)
             {
-                throw new ArgumentException($"The {v.Name} tows a trailer, and the solver only works out manoeuvres for rigid vehicles: reversing a trailer isn't modelled.");
+                throw new ArgumentException($"The {v.Name} tows a trailer, and the solver only works out manoeuvres for rigid vehicles. Drive it leg by leg instead: a click behind the trailer reverses it.");
             }
 
             var start = new VehiclePose(r.StartPoint, r.HeadingDeg * Math.PI / 180);
@@ -553,14 +552,17 @@ namespace PointerTurn.Core.Vehicles
             return result;
         }
 
-        /// <summary>The leg to one stop: to a pose when the stop has a heading, otherwise to the point.</summary>
-        public static TurnPathBuilder.DriveLeg? Leg(DesignVehicle v, VehiclePose from, DriveStop stop, double radius, TurnPathBuilder.DriveTurns turns)
+        /// <summary>
+        /// The leg to one stop: to a pose when the stop has a heading, otherwise to the point.
+        /// <paramref name="trailers"/> is which way each trailer faces at the start (radians; null:
+        /// straight behind the vehicle).
+        /// </summary>
+        public static TurnPathBuilder.DriveLeg? Leg(DesignVehicle v, VehiclePose from, DriveStop stop, double radius, TurnPathBuilder.DriveTurns turns, IReadOnlyList<double>? trailers = null)
         {
             var target = new Point2(stop.Point[0], stop.Point[1]);
-            bool? direction = v.IsArticulated ? false : (bool?)null;   // a trailer can't be reversed: forwards only
             return stop.HeadingDeg is double h
-                ? TurnPathBuilder.DriveToPose(v, from, target, h * Math.PI / 180, radius, direction)
-                : TurnPathBuilder.DriveTo(v, from, target, radius, direction, turns);
+                ? TurnPathBuilder.DriveToPose(v, from, target, h * Math.PI / 180, radius, null, trailers)
+                : TurnPathBuilder.DriveTo(v, from, target, radius, null, turns, trailers);
         }
 
         public static string Describe(TurnPathBuilder.DriveLeg leg)

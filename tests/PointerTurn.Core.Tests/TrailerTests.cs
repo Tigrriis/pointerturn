@@ -267,7 +267,7 @@ namespace PointerTurn.Core.Tests
         }
 
         [Fact]
-        public void ATrailerCanBeStartedWhereTheLastLegLeftItButNotReversed()
+        public void ATrailerCanBeStartedWhereTheLastLegLeftIt()
         {
             DesignVehicle v = Semi();
             var first = new Path2(new List<Segment> { new ArcSegment(new Point2(0, 12.5), 12.5, -Math.PI / 2, Math.PI / 3) }, false);
@@ -288,10 +288,6 @@ namespace PointerTurn.Core.Tests
             });
             Assert.Equal(0, Dist(b.Trailers[0].Poses[0].RearAxle, a.Trailers[0].Poses[a.Poses.Count - 1].RearAxle), 6);
             Assert.True(AngleDiff(b.Trailers[0].Poses[b.Poses.Count - 1].Heading, end.Heading) < 0.05, "40 m of straight pulls it back into line");
-
-            // Reversing with a trailer is refused, with the reason.
-            var ex = Assert.Throws<ArgumentException>(() => TurnPathSimulator.Simulate(new TurnPathRequest { Vehicle = v, Path = second, Reference = v.RearAxleCentre, Reverse = true }));
-            Assert.Contains("reversing with a trailer", ex.Message);
 
             // A turn far too tight for the trailer says it would jackknife.
             DesignVehicle tight = Semi();
@@ -371,7 +367,7 @@ namespace PointerTurn.Core.Tests
                 Assert.Equal(13, semi.Trailers[0].Length, 9);
                 Assert.Equal(3, semi.Trailers[0].Axles);
                 Assert.Equal(16.55, semi.OverallLength, 9);
-                Assert.Contains("towing a 13 m semi-trailer (16.55 m overall; forwards only)", c.Describe());
+                Assert.Contains("towing a 13 m semi-trailer (16.55 m overall)", c.Describe());
 
                 // It survives being saved (Save as defaults in the dialog).
                 c.Save(path);
@@ -402,7 +398,7 @@ namespace PointerTurn.Core.Tests
         }
 
         [Fact]
-        public void ADriveKeepsTheTrailerFoldedFromLegToLegAndOnlyGoesForwards()
+        public void ADriveKeepsTheTrailerFoldedFromLegToLeg()
         {
             TurnPathConventions c = Conventions();
             var r = new ManoeuvreRecord
@@ -427,15 +423,7 @@ namespace PointerTurn.Core.Tests
             List<DraftedEntity> drafted = ManoeuvrePlanner.Draft(plan, r, c);
             Assert.True(drafted.Count(d => d.Spec is CircleSpec) >= 3, "a kingpin at the start, and at the end of each leg");
 
-            // A destination behind it would need reversing.
-            r.Stops.Add(new DriveStop { Point = new[] { 20.0, 20 } });
-            var ex = Assert.Throws<ArgumentException>(() => ManoeuvrePlanner.Plan(r, c));
-            Assert.Contains("forwards", ex.Message);
-
-            // Following a line in reverse, solving and the ground clearance check are for rigid vehicles.
-            var reverse = new ManoeuvreRecord { Vehicle = "TEST SEMI", Mode = "follow", FollowHandle = "1", Reverse = true };
-            Assert.Contains("reversing with a trailer", Assert.Throws<ArgumentException>(() =>
-                ManoeuvrePlanner.Plan(reverse, c, _ => new LineSpec { Start = new Point2(0, 0), End = new Point2(30, 0) })).Message);
+            // Solving and the ground clearance check are for rigid vehicles. (Reversing: see TrailerReversingTests.)
             var solve = new ManoeuvreRecord { Vehicle = "TEST SEMI", Mode = "solve", Start = new[] { 0.0, 0 }, Target = new[] { 0.0, 5 }, TargetHeadingDeg = 180, Radius = 12.5 };
             Assert.Contains("rigid vehicles", Assert.Throws<ArgumentException>(() => ManoeuvrePlanner.Solve(solve, c, (min, max) => new List<Obstruction>())).Message);
             Assert.Throws<ArgumentException>(() => ManoeuvreSolver.SolveWithFallback(new SolveRequest { Vehicle = Semi(), Min = new Point2(-5, -5), Max = new Point2(5, 5) }));

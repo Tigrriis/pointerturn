@@ -657,7 +657,7 @@ namespace PointerTurn.BricsCAD
             }
 
             string towing = v.IsArticulated
-                ? $" Tows {string.Join(" and ", v.Trailers.Select(t => $"a {t.Length:0.##} m {t.Name}"))}: {v.OverallLength:0.##} m overall, forwards only."
+                ? $" Tows {string.Join(" and ", v.Trailers.Select(t => $"a {t.Length:0.##} m {t.Name}"))}: {v.OverallLength:0.##} m overall."
                 : "";
             _vehicleInfo.Text = $"{v.Length:0.##} x {v.Width:0.##} m, wheelbase {v.Wheelbase:0.##} m, overhangs {v.FrontOverhang:0.##} / {v.RearOverhang:0.##} m, " +
                                 $"minimum turn radius {v.MinTurnRadius:0.#} m.{towing} {v.Description}";
@@ -751,13 +751,7 @@ namespace PointerTurn.BricsCAD
 
             if (vehicle.IsArticulated && c.IsSolve)
             {
-                problem = $"The {vehicle.Name} tows a trailer. The solver only works out manoeuvres for rigid vehicles: drive it yourself with Drive, or follow a line.";
-                return false;
-            }
-
-            if (vehicle.IsArticulated && c.Reverse)
-            {
-                problem = $"The {vehicle.Name} tows a trailer, and reversing with a trailer isn't supported.";
+                problem = $"The {vehicle.Name} tows a trailer. The solver only works out manoeuvres for rigid vehicles: drive it yourself with Drive (a click behind the trailer reverses it), or follow a line.";
                 return false;
             }
 

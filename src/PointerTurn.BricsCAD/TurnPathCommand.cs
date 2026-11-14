@@ -394,7 +394,8 @@ namespace PointerTurn.BricsCAD
 
         /// <summary>
         /// Drive mode: each click is where the vehicle goes next, forwards when the destination is
-        /// ahead and in reverse when it is behind. With the arrival direction on, a second pick
+        /// ahead and in reverse when it is behind (with trailers: behind the last trailer, which is
+        /// then what goes to the destination). With the arrival direction on, a second pick
         /// says which way the vehicle faces there (turn, straight, turn). Every leg keeps its own
         /// swept path, so a three-point turn is three legs. U takes the last leg back, D switches
         /// the arrival direction on or off, Enter finishes.
@@ -406,7 +407,6 @@ namespace PointerTurn.BricsCAD
             TurnPathConventions conv = c.Conventions;
             // Each leg: where it went, where it left the vehicle (and any trailers), and its graphics.
             var legs = new List<(DriveStop Stop, VehiclePose End, List<EntitySpec> Graphics, IReadOnlyList<double>? Trailers)>();
-            bool? direction = v.IsArticulated ? false : (bool?)null;   // a trailer can't be reversed: forwards only
             if (continueDrive)
             {
                 // The existing legs, as drawn: the new ones carry on from where they end.
@@ -442,20 +442,19 @@ namespace PointerTurn.BricsCAD
                 bool canUndo = legs.Count > kept;
                 string prompt = legs.Count == 0
                     ? (v.IsArticulated
-                        ? "\nWhere the vehicle drives to (forwards only: it tows a trailer) or [Direction]: "
+                        ? "\nWhere the vehicle drives to (ahead = forward, behind the trailer = reverse the trailer to there) or [Direction]: "
                         : "\nWhere the vehicle drives to (ahead = forward, behind = reverse) or [Direction]: ")
                     : canUndo ? "\nNext destination or [Undo/Direction] (Enter to finish): " : "\nNext destination or [Direction] (Enter to finish): ";
                 Point2 fromInDrawing = units.ToDrawing(from.RearAxle);
                 var jig = new TurnPathJig(units, prompt, new Point3d(fromInDrawing.X, fromInDrawing.Y, 0), canUndo ? new[] { "Undo", "Direction" } : new[] { "Direction" },
                     cursor =>
                     {
-                        TurnPathBuilder.DriveLeg? leg = TurnPathBuilder.DriveTo(v, from, cursor, r.Radius, direction, r.TurnsKind);
+                        TurnPathBuilder.DriveLeg? leg = TurnPathBuilder.DriveTo(v, from, cursor, r.Radius, null, r.TurnsKind, towed);
                         if (leg == null)
                         {
                             return null;
                         }
 
-                        leg.Request.InitialTrailerHeadings = towed;
                         return preview.Specs(leg.Request, startVehicle: false);
                     },
                     fixedGraphics);
@@ -499,13 +498,12 @@ namespace PointerTurn.BricsCAD
                                 return null;
                             }
 
-                            TurnPathBuilder.DriveLeg? leg = TurnPathBuilder.DriveToPose(v, from, target, Math.Atan2(cursor.Y - target.Y, cursor.X - target.X), r.Radius, direction);
+                            TurnPathBuilder.DriveLeg? leg = TurnPathBuilder.DriveToPose(v, from, target, Math.Atan2(cursor.Y - target.Y, cursor.X - target.X), r.Radius, null, towed);
                             if (leg == null)
                             {
                                 return null;
                             }
 
-                            leg.Request.InitialTrailerHeadings = towed;
                             return preview.Specs(leg.Request, startVehicle: false);
                         },
                         fixedGraphics);
@@ -520,13 +518,13 @@ namespace PointerTurn.BricsCAD
                     }
                 }
 
-                TurnPathBuilder.DriveLeg? chosen = ManoeuvrePlanner.Leg(v, from, stop, r.Radius, r.TurnsKind);
+                TurnPathBuilder.DriveLeg? chosen = ManoeuvrePlanner.Leg(v, from, stop, r.Radius, r.TurnsKind, towed);
                 if (chosen == null)
                 {
                     ed.WriteMessage(stop.HeadingDeg != null
                         ? "\nThe vehicle can't arrive there facing that way in one leg (it would need a loop, or the turns overlap). Pick another direction, or get closer in an earlier leg."
                         : v.IsArticulated
-                            ? "\nThe vehicle can't get there in one leg: the point is behind it (with a trailer it only drives forwards), too close, inside its turning circle, or more than a half turn away."
+                            ? "\nThe vehicle can't get there in one leg: the point is too close, inside its turning circle, or more than a half turn away. Reversing, the last trailer goes to the point and has to line up on it from where the trailers are now: click further away, or drive forward to straighten up first."
                             : "\nThe vehicle can't get there in one leg: the point is too close, inside its turning circle, or more than a half turn away. Click further away, or drive past and reverse.");
                     continue;
                 }
@@ -537,9 +535,13 @@ namespace PointerTurn.BricsCAD
                 req.Tolerance = conv.Tolerance;
                 req.ClearanceInside = r.ClearanceInside;
                 req.ClearanceOutside = r.ClearanceOutside;
-                req.InitialTrailerHeadings = towed;
                 TurnPathResult result = TurnPathSimulator.Simulate(req);
                 ed.WriteMessage($"\n  Leg {legs.Count + 1}: {ManoeuvrePlanner.Describe(chosen)}.");
+                foreach (string warning in result.Warnings)
+                {
+                    ed.WriteMessage($"\n    {warning}");
+                }
+
                 legs.Add((stop, result.Poses[result.Poses.Count - 1], preview.Specs(result, startVehicle: false), result.Trailers.Count > 0 ? result.EndTrailerHeadings : null));
             }
 
@@ -777,8 +779,9 @@ namespace PointerTurn.BricsCAD
                 TurnPathResult result = leg.Result;
                 string tightest = double.IsInfinity(result.TightestRadius) ? "straight" : $"tightest turn R {result.TightestRadius:0.00} m at the outer front wheel";
                 string name = leg.Description != null ? $"Leg {n} ({leg.Description})" : leg.Label;
+                string folds = result.Trailers.Count > 0 ? $", sharpest fold between units {result.MaxArticulationDeg:0} deg" : "";
                 ed.WriteMessage($"\n  {name}: path {result.PathLength:0.0} m, net turn {result.NetTurnDeg:0} deg, {tightest} (minimum {v.MinTurnRadius:0.0} m)" +
-                                $", clearances {result.ClearanceLeft * 1000:0} mm left / {result.ClearanceRight * 1000:0} mm right");
+                                $"{folds}, clearances {result.ClearanceLeft * 1000:0} mm left / {result.ClearanceRight * 1000:0} mm right");
             }
 
             if (conflicts != null)

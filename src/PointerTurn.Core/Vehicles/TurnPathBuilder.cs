@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using PointerTurn.Core.Drawing;
 using PointerTurn.Core.Geometry;
 
@@ -108,6 +109,13 @@ namespace PointerTurn.Core.Vehicles
 
             public double StraightLength { get; set; }
 
+            /// <summary>
+            /// Reversing with trailers: how far the trailers are, at the start, from where the leg
+            /// needs them (degrees, over all the couplings). 0 when it carries straight on from
+            /// where they are.
+            /// </summary>
+            public double TrailersOutDeg { get; set; }
+
             /// <summary>The moves in order, in words: "turn left 40°", "6.0 m straight".</summary>
             public List<string> Moves { get; set; } = new List<string>();
 
@@ -137,8 +145,14 @@ namespace PointerTurn.Core.Vehicles
         /// front axle centre arrives at the destination; in reverse the rear axle centre. A leg never
         /// turns more than <see cref="MaxLegTurnDeg"/>: a destination inside the turning circle, or
         /// one that would need a loop, gives null, as does one too close to move to.
+        ///
+        /// A vehicle with trailers reverses when the destination is behind its last trailer, and it
+        /// is that trailer's axle group that arrives there, with the combination in line: see
+        /// <see cref="ReverseTowed"/>. <paramref name="trailerHeadings"/> is which way each trailer
+        /// faces at the start (radians, front to back; null: straight behind).
         /// </summary>
-        public static DriveLeg? DriveTo(DesignVehicle v, VehiclePose start, Point2 target, double? outerWheelRadius = null, bool? reverse = null, DriveTurns turns = DriveTurns.Arc)
+        public static DriveLeg? DriveTo(DesignVehicle v, VehiclePose start, Point2 target, double? outerWheelRadius = null, bool? reverse = null, DriveTurns turns = DriveTurns.Arc,
+            IReadOnlyList<double>? trailerHeadings = null)
         {
             double radius = outerWheelRadius ?? v.MinTurnRadius;
             if (radius < v.MinTurnRadius - 1e-9)
@@ -146,6 +160,29 @@ namespace PointerTurn.Core.Vehicles
                 throw new ArgumentException($"The turn radius can't be less than the {v.Name}'s minimum of {v.MinTurnRadius:0.#} m.");
             }
 
+            if (v.IsArticulated)
+            {
+                VehiclePose tail = v.TrailerPoses(start, trailerHeadings)[v.Trailers.Count - 1];
+                bool behind = (target.X - tail.RearAxle.X) * Math.Cos(tail.Heading) + (target.Y - tail.RearAxle.Y) * Math.Sin(tail.Heading) < 0;
+                if (reverse ?? behind)
+                {
+                    return ReverseTowed(v, start, trailerHeadings, target, null, radius, turns);
+                }
+
+                reverse = false;
+            }
+
+            DriveLeg? leg = DriveRigid(v, start, target, radius, reverse, turns);
+            if (leg != null)
+            {
+                leg.Request.InitialTrailerHeadings = trailerHeadings;
+            }
+
+            return leg;
+        }
+
+        private static DriveLeg? DriveRigid(DesignVehicle v, VehiclePose start, Point2 target, double radius, bool? reverse, DriveTurns turns)
+        {
             double c = Math.Cos(start.Heading), s = Math.Sin(start.Heading);
             double ahead = (target.X - start.RearAxle.X) * c + (target.Y - start.RearAxle.Y) * s;
             bool back = reverse ?? ahead < v.Wheelbase / 2;
@@ -268,8 +305,14 @@ namespace PointerTurn.Core.Vehicles
         /// both are tried and the shorter is used unless <paramref name="reverse"/> says. No turn is
         /// more than <see cref="MaxLegTurnDeg"/>, and two turns the same way together no more than
         /// that, so there are no loops: null when that can't be done in one leg.
+        ///
+        /// A vehicle with trailers reverses its last trailer's axle group to the target, with the
+        /// combination in line on the heading: see <see cref="ReverseTowed"/>.
+        /// <paramref name="trailerHeadings"/> is which way each trailer faces at the start (radians,
+        /// front to back; null: straight behind).
         /// </summary>
-        public static DriveLeg? DriveToPose(DesignVehicle v, VehiclePose start, Point2 target, double arrivalHeading, double? outerWheelRadius = null, bool? reverse = null)
+        public static DriveLeg? DriveToPose(DesignVehicle v, VehiclePose start, Point2 target, double arrivalHeading, double? outerWheelRadius = null, bool? reverse = null,
+            IReadOnlyList<double>? trailerHeadings = null)
         {
             double radius = outerWheelRadius ?? v.MinTurnRadius;
             if (radius < v.MinTurnRadius - 1e-9)
@@ -281,9 +324,22 @@ namespace PointerTurn.Core.Vehicles
             DriveLeg? best = null;
             foreach (bool back in reverse is bool forced ? new[] { forced } : new[] { false, true })
             {
-                Point2 goal = back ? target : new Point2(target.X - v.Wheelbase * Math.Cos(arrivalHeading), target.Y - v.Wheelbase * Math.Sin(arrivalHeading));
-                double flip = back ? Math.PI : 0;
-                DriveLeg? leg = TurnStraightTurn(v, start, start.RearAxle, start.Heading + flip, goal, arrivalHeading + flip, rho, back);
+                DriveLeg? leg;
+                if (back && v.IsArticulated)
+                {
+                    leg = ReverseTowed(v, start, trailerHeadings, target, arrivalHeading, radius, DriveTurns.Arc);
+                }
+                else
+                {
+                    Point2 goal = back ? target : new Point2(target.X - v.Wheelbase * Math.Cos(arrivalHeading), target.Y - v.Wheelbase * Math.Sin(arrivalHeading));
+                    double flip = back ? Math.PI : 0;
+                    leg = TurnStraightTurn(v, start, start.RearAxle, start.Heading + flip, goal, arrivalHeading + flip, rho, back);
+                    if (leg != null)
+                    {
+                        leg.Request.InitialTrailerHeadings = trailerHeadings;
+                    }
+                }
+
                 if (leg != null && (best == null || leg.Length < best.Length - 1e-9))
                 {
                     best = leg;
@@ -296,12 +352,109 @@ namespace PointerTurn.Core.Vehicles
         /// <summary>The shortest turn-straight-turn path between two positions and directions of travel, within the turn caps.</summary>
         private static DriveLeg? TurnStraightTurn(DesignVehicle v, VehiclePose start, Point2 p0, double t0, Point2 p1, double t1, double rho, bool back)
         {
+            Route? route = TurnStraightTurnRoute(p0, t0, p1, t1, rho);
+            return route == null ? null : route.ToLeg(new TurnPathRequest { Vehicle = v, Path = route.Path(), Reference = v.RearAxleCentre, Reverse = back, InitialHeading = start.Heading }, back);
+        }
+
+        /// <summary>A leg's path as it is put together: the segments, and each move along it.</summary>
+        private sealed class Route
+        {
+            public List<Segment> Segments { get; } = new List<Segment>();
+
+            /// <summary>The moves in order: a turn (radians, positive = to the left of the direction of travel) or a straight (m).</summary>
+            public List<(bool Turn, double Amount)> Moves { get; } = new List<(bool Turn, double Amount)>();
+
+            public double Length => Segments.Sum(x => x.Length);
+
+            public Point2 End => Segments[Segments.Count - 1].End;
+
+            public Path2 Path() => new Path2(new List<Segment>(Segments), false);
+
+            public void Turn(ArcSegment arc)
+            {
+                Segments.Add(arc);
+                if (Moves.Count > 0 && Moves[Moves.Count - 1].Turn && Math.Sign(Moves[Moves.Count - 1].Amount) == Math.Sign(arc.Sweep))
+                {
+                    Moves[Moves.Count - 1] = (true, Moves[Moves.Count - 1].Amount + arc.Sweep);   // carries straight on round
+                }
+                else
+                {
+                    Moves.Add((true, arc.Sweep));
+                }
+            }
+
+            public void Straight(LineSegment line)
+            {
+                Segments.Add(line);
+                Moves.Add((false, line.Length));
+            }
+
+            public void Then(Route rest)
+            {
+                foreach (Segment x in rest.Segments)
+                {
+                    if (x is ArcSegment arc)
+                    {
+                        Turn(arc);
+                    }
+                    else
+                    {
+                        Straight((LineSegment)x);
+                    }
+                }
+            }
+
+            public DriveLeg ToLeg(TurnPathRequest request, bool back)
+            {
+                // In reverse the driver's left is the right of the direction of travel.
+                bool Left(double sweep) => back ? sweep < 0 : sweep > 0;
+                var leg = new DriveLeg { Request = request, Reverse = back, Left = true };
+                bool first = true;
+                foreach ((bool turn, double amount) in Moves)
+                {
+                    if (turn)
+                    {
+                        double deg = Math.Abs(amount) * 180 / Math.PI;
+                        leg.ArcDeg += deg;
+                        if (first)
+                        {
+                            leg.Left = Left(amount);
+                            first = false;
+                        }
+
+                        if (deg > 0.5)
+                        {
+                            leg.Moves.Add($"turn {(Left(amount) ? "left" : "right")} {deg:0}°");
+                        }
+                    }
+                    else
+                    {
+                        leg.StraightLength += amount;
+                        if (amount > 0.005)
+                        {
+                            leg.Moves.Add($"{amount:0.0} m straight");
+                        }
+                    }
+                }
+
+                return leg;
+            }
+        }
+
+        /// <param name="only">One of the four ways round (0 to 3: left or right first, left or right last); -1: the shortest.</param>
+        private static Route? TurnStraightTurnRoute(Point2 p0, double t0, Point2 p1, double t1, double rho, int only = -1)
+        {
             double maxSweep = MaxLegTurnDeg * Math.PI / 180;
-            DriveLeg? best = null;
+            Route? best = null;
             foreach (double s0 in new[] { 1.0, -1.0 })
             {
                 foreach (double s1 in new[] { 1.0, -1.0 })
                 {
+                    if (only >= 0 && only != (s0 > 0 ? 0 : 2) + (s1 > 0 ? 0 : 1))
+                    {
+                        continue;
+                    }
+
                     var c0 = new Point2(p0.X - Math.Sin(t0) * rho * s0, p0.Y + Math.Cos(t0) * rho * s0);
                     var c1 = new Point2(p1.X - Math.Sin(t1) * rho * s1, p1.Y + Math.Cos(t1) * rho * s1);
                     double dx = c1.X - c0.X, dy = c1.Y - c0.Y;
@@ -330,66 +483,395 @@ namespace PointerTurn.Core.Vehicles
                         continue; // that would be a loop
                     }
 
-                    var segments = new List<Segment>();
+                    var route = new Route();
                     Point2 at = p0;
                     if (Math.Abs(sweep0) > 1e-6)
                     {
                         var arc = new ArcSegment(c0, rho, Math.Atan2(p0.Y - c0.Y, p0.X - c0.X), sweep0);
-                        segments.Add(arc);
+                        route.Segments.Add(arc);
+                        route.Moves.Add((true, sweep0));
                         at = arc.End;
                     }
 
                     if (straight > 1e-6)
                     {
                         var to = new Point2(at.X + Math.Cos(beta) * straight, at.Y + Math.Sin(beta) * straight);
-                        segments.Add(new LineSegment(at, to));
+                        route.Straight(new LineSegment(at, to));
                         at = to;
                     }
 
                     if (Math.Abs(sweep1) > 1e-6)
                     {
                         var arc = new ArcSegment(c1, rho, Math.Atan2(at.Y - c1.Y, at.X - c1.X), sweep1);
-                        segments.Add(arc);
+                        route.Segments.Add(arc);
+                        route.Moves.Add((true, sweep1));
                         at = arc.End;
                     }
 
-                    if (segments.Count == 0 || Segment.Dist(at, p1) > 1e-4)
+                    if (route.Segments.Count == 0 || Segment.Dist(at, p1) > 1e-4)
                     {
                         continue;
                     }
 
-                    var path = new Path2(segments, false);
-                    if (path.Length < 0.05 || (best != null && path.Length >= best.Length))
+                    double length = route.Length;
+                    if (length < 0.05 || (best != null && length >= best.Length))
                     {
                         continue;
                     }
 
-                    // In reverse the driver's left is the right of the direction of travel.
-                    bool Left(double side) => back ? side < 0 : side > 0;
-                    var leg = new DriveLeg
+                    best = route;
+                }
+            }
+
+            return best;
+        }
+
+        /// <summary>
+        /// How much of the steering the turn radius allows a reverse with trailers is planned to use.
+        /// The rest is kept in hand: a trailer can't be held round a turn in reverse at full lock,
+        /// because there would be nothing left to steer it back with.
+        /// </summary>
+        public const double ReverseTowedLock = 0.85;
+
+        /// <summary>
+        /// A reverse with trailers has to start with the trailers where it needs them. This much out
+        /// (degrees, over all the couplings) is steered out on the way; more, and there is no leg.
+        /// </summary>
+        public const double MaxTrailersOutDeg = 0.5;
+
+        /// <summary>The most the vehicle swings its front out at the start of a reverse to set its trailers up.</summary>
+        public const double MaxSwingDeg = 75;
+
+        /// <summary>
+        /// The leg that reverses a vehicle with trailers so that its last trailer's axle group
+        /// arrives at <paramref name="target"/> with the combination in line: facing
+        /// <paramref name="arrivalHeading"/> when given (turn, straight, turn), otherwise however a
+        /// turn then a straight to the target leaves it (or a single arc, with
+        /// <see cref="DriveTurns.Arc"/>, when its radius allows).
+        ///
+        /// The path is the one the vehicle's rear axle is steered along. A trailer only goes round a
+        /// turn in reverse if it is already folded towards it, by as much as it would be had the
+        /// combination driven out of the turn forwards. So the leg may start with a swing: the
+        /// vehicle turns its front away from the turn, which folds the trailers into it, before it
+        /// follows them round. The swing is the length that leaves the trailers folded as they are
+        /// now, so the reverse carries straight on from where the last leg stopped. Null when the
+        /// target can't be reached that way in one leg.
+        /// </summary>
+        public static DriveLeg? ReverseTowed(DesignVehicle v, VehiclePose start, IReadOnlyList<double>? trailerHeadings, Point2 target, double? arrivalHeading, double radius, DriveTurns turns = DriveTurns.Arc)
+        {
+            if (!v.IsArticulated)
+            {
+                throw new ArgumentException($"The {v.Name} doesn't tow a trailer.");
+            }
+
+            double rho = v.RearAxleRadius(radius) / ReverseTowedLock;
+            double reach = v.TowedLength;
+            List<double> facing = v.TrailerPoses(start, trailerHeadings).Select(p => p.Heading).ToList();
+            Point2 p0 = start.RearAxle;
+            double t0 = start.Heading + Math.PI;
+            int ways = arrivalHeading != null ? 4 : 3;   // the ways round to the target: see TurnStraightTurnRoute and TowedTo
+
+            // The leg with these swings first, one after the other: each a length of arc, positive to
+            // the left of the direction of travel. "way" picks one way round to the target; -1 the shortest.
+            Route? Plan(double first, double second, int way)
+            {
+                var route = new Route();
+                Point2 p = p0;
+                double t = t0;
+                foreach (double swing in new[] { first, second })
+                {
+                    if (Math.Abs(swing) > 1e-6)
                     {
-                        Request = new TurnPathRequest { Vehicle = v, Path = path, Reference = v.RearAxleCentre, Reverse = back, InitialHeading = start.Heading },
-                        Reverse = back,
-                        Left = Math.Abs(sweep0) > 1e-6 ? Left(s0) : Left(s1),
-                        ArcDeg = (Math.Abs(sweep0) + Math.Abs(sweep1)) * 180 / Math.PI,
-                        StraightLength = straight,
-                    };
-                    if (Math.Abs(sweep0) * 180 / Math.PI > 0.5)
+                        double side = Math.Sign(swing);
+                        var centre = new Point2(p.X - Math.Sin(t) * rho * side, p.Y + Math.Cos(t) * rho * side);
+                        var arc = new ArcSegment(centre, rho, Math.Atan2(p.Y - centre.Y, p.X - centre.X), swing / rho);
+                        route.Turn(arc);
+                        p = arc.End;
+                        t += swing / rho;
+                    }
+                }
+
+                Route? rest = arrivalHeading is double h
+                    ? TurnStraightTurnRoute(p, t, new Point2(target.X + reach * Math.Cos(h), target.Y + reach * Math.Sin(h)), h + Math.PI, rho, way)
+                    : TowedTo(p, t, target, reach, rho, turns, way);
+                if (rest == null)
+                {
+                    return null;
+                }
+
+                route.Then(rest);
+                if (route.Length < 0.05 || route.Moves.Any(m => m.Turn && Math.Abs(m.Amount) > MaxLegTurnDeg * Math.PI / 180 + 1e-9))
+                {
+                    return null;   // nowhere to go, or a swing that runs on into a loop
+                }
+
+                return route;
+            }
+
+            // How far the trailers are from where a route needs them at the start (radians, root sum of squares).
+            double Miss(Route? route)
+            {
+                if (route == null)
+                {
+                    return double.MaxValue;
+                }
+
+                Path2 path = route.Path();
+                List<double> needs = TurnPathSimulator.TrailerHeadingsToReverse(v, path, Math.Max(0.25, path.Length / 150));
+                double sum = 0;
+                for (int k = 0; k < needs.Count; k++)
+                {
+                    double d = Angles.Wrap(needs[k] - facing[k]);
+                    sum += d * d;
+                }
+
+                return Math.Sqrt(sum);
+            }
+
+            // The best so far: the shortest of the routes that leave the trailers where they are;
+            // failing one, the route that leaves them nearest.
+            const double Near = 0.1 * Math.PI / 180;
+            Route? best = null;
+            double bestMiss = double.MaxValue;
+            void Offer(Route? route, double miss)
+            {
+                if (route == null)
+                {
+                    return;
+                }
+
+                bool near = miss <= Near, found = bestMiss <= Near;
+                if (best == null || (near && !found) || (near == found && (near ? route.Length < best.Length - 1e-9 : miss < bestMiss)))
+                {
+                    best = route;
+                    bestMiss = miss;
+                }
+            }
+
+            Route? direct = Plan(0, 0, -1);
+            Offer(direct, Miss(direct));
+            double most = rho * MaxSwingDeg * Math.PI / 180;
+            if (bestMiss > Near)
+            {
+                // One swing, either way, for each way round: where the miss dips among its neighbours,
+                // close in on the dip (a golden-section search).
+                const int Steps = 16;
+                const double Golden = 0.6180339887498949;
+                var miss = new double[2 * Steps + 1];
+                for (int way = 0; way < ways; way++)
+                {
+                    for (int i = 0; i <= 2 * Steps; i++)
                     {
-                        leg.Moves.Add($"turn {(Left(s0) ? "left" : "right")} {Math.Abs(sweep0) * 180 / Math.PI:0}°");
+                        miss[i] = Miss(Plan((i - Steps) * most / Steps, 0, way));
                     }
 
-                    if (straight > 0.005)
+                    for (int i = 0; i <= 2 * Steps; i++)
                     {
-                        leg.Moves.Add($"{straight:0.0} m straight");
+                        if (miss[i] == double.MaxValue || (i > 0 && miss[i] > miss[i - 1]) || (i < 2 * Steps && miss[i] > miss[i + 1]))
+                        {
+                            continue;
+                        }
+
+                        double lo = (Math.Max(0, i - 1) - Steps) * most / Steps, hi = (Math.Min(2 * Steps, i + 1) - Steps) * most / Steps;
+                        double a = hi - Golden * (hi - lo), b = lo + Golden * (hi - lo);
+                        Route? ra = Plan(a, 0, way), rb = Plan(b, 0, way);
+                        double ma = Miss(ra), mb = Miss(rb);
+                        for (int k = 0; k < 18; k++)
+                        {
+                            if (ma <= mb)
+                            {
+                                hi = b;
+                                b = a;
+                                rb = ra;
+                                mb = ma;
+                                a = hi - Golden * (hi - lo);
+                                ra = Plan(a, 0, way);
+                                ma = Miss(ra);
+                            }
+                            else
+                            {
+                                lo = a;
+                                a = b;
+                                ra = rb;
+                                ma = mb;
+                                b = lo + Golden * (hi - lo);
+                                rb = Plan(b, 0, way);
+                                mb = Miss(rb);
+                            }
+                        }
+
+                        Offer(ma <= mb ? ra : rb, Math.Min(ma, mb));
+                        Offer(Plan((i - Steps) * most / Steps, 0, way), miss[i]);
+                    }
+                }
+            }
+
+            if (bestMiss > Near)
+            {
+                // One swing sets one coupling, when there is room for it. With more trailers, or
+                // without the room, swing out and back: try pairs of swings, then walk downhill from
+                // the best pair in ever smaller steps.
+                const int Steps = 6;
+                var pairs = new List<(double Miss, double First, double Second)>();
+                for (int i = -Steps; i <= Steps; i++)
+                {
+                    for (int k = -Steps; k <= Steps; k++)
+                    {
+                        if (i == 0 || k == 0 || Math.Sign(i) == Math.Sign(k))
+                        {
+                            continue;   // one swing, or two the same way: already tried
+                        }
+
+                        double m = Miss(Plan(i * most / Steps, k * most / Steps, -1));
+                        if (m < double.MaxValue)
+                        {
+                            pairs.Add((m, i * most / Steps, k * most / Steps));
+                        }
+                    }
+                }
+
+                foreach ((double from, double first, double second) in pairs.OrderBy(x => x.Miss).Take(3))
+                {
+                    double c1 = first, c2 = second, least = from;
+                    for (double stride = most / Steps / 2; least > Near / 4 && stride > 0.002; stride /= 2)
+                    {
+                        if (stride < 0.1 && least > 20 * Near)
+                        {
+                            break;   // this close in and still degrees out: there is nothing here
+                        }
+
+                        for (bool moved = true; moved;)
+                        {
+                            moved = false;
+                            foreach ((double d1, double d2) in new[] { (stride, 0.0), (-stride, 0.0), (0.0, stride), (0.0, -stride), (stride, stride), (-stride, -stride), (stride, -stride), (-stride, stride) })
+                            {
+                                double m = Miss(Plan(c1 + d1, c2 + d2, -1));
+                                if (m < least)
+                                {
+                                    least = m;
+                                    c1 += d1;
+                                    c2 += d2;
+                                    moved = true;
+                                }
+                            }
+                        }
                     }
 
-                    if (Math.Abs(sweep1) * 180 / Math.PI > 0.5)
+                    Offer(Plan(c1, c2, -1), least);
+                    if (least <= Near)
                     {
-                        leg.Moves.Add($"turn {(Left(s1) ? "left" : "right")} {Math.Abs(sweep1) * 180 / Math.PI:0}°");
+                        break;
                     }
+                }
+            }
 
-                    best = leg;
+            // A leg that doesn't start where the trailers are isn't one the vehicle can drive.
+            if (best == null || bestMiss > MaxTrailersOutDeg * Math.PI / 180)
+            {
+                return null;
+            }
+
+            DriveLeg leg = best.ToLeg(
+                new TurnPathRequest { Vehicle = v, Path = best.Path(), Reference = v.RearAxleCentre, Reverse = true, InitialHeading = start.Heading, InitialTrailerHeadings = facing, TurnRadius = radius },
+                back: true);
+            leg.TrailersOutDeg = bestMiss * 180 / Math.PI;
+            return leg;
+        }
+
+        /// <summary>
+        /// The route of a towing vehicle's rear axle, from a point and direction of travel, that
+        /// brings a point <paramref name="reach"/> ahead of it along its direction of travel (the
+        /// last trailer's axle group, in line) to the target: one arc when its radius allows and
+        /// <paramref name="turns"/> says, otherwise a turn at the radius then straight at the target.
+        /// </summary>
+        /// <param name="only">0: the single arc; 1 or 2: a turn to the left or right, then straight; -1: the arc when there is one, otherwise the shorter turn.</param>
+        private static Route? TowedTo(Point2 p0, double travel, Point2 target, double reach, double rho, DriveTurns turns, int only = -1)
+        {
+            double ux = Math.Cos(travel), uy = Math.Sin(travel);
+            double nx = -uy, ny = ux;
+            double dxT = target.X - p0.X, dyT = target.Y - p0.Y;
+            double along = dxT * ux + dyT * uy, lateral = dxT * nx + dyT * ny;
+            double maxSweep = MaxLegTurnDeg * Math.PI / 180;
+
+            if (Math.Abs(lateral) < 1e-9)
+            {
+                if (along < reach + 0.05)
+                {
+                    return null;
+                }
+
+                var straight = new Route();
+                straight.Straight(new LineSegment(p0, new Point2(p0.X + ux * (along - reach), p0.Y + uy * (along - reach))));
+                return straight;
+            }
+
+            if (turns == DriveTurns.Arc && along > 1e-9 && only <= 0)
+            {
+                // The arc, tangent to the direction of travel, that ends pointing at the target from
+                // "reach" away: the target is then sqrt(r^2 + reach^2) from the arc's centre.
+                double d2 = along * along + lateral * lateral - reach * reach;
+                double arcRadius = d2 / (2 * Math.Abs(lateral));
+                if (d2 > 0 && arcRadius >= rho - 1e-9)
+                {
+                    double side = Math.Sign(lateral);
+                    var centre = new Point2(p0.X + nx * arcRadius * side, p0.Y + ny * arcRadius * side);
+                    double startAngle = Math.Atan2(p0.Y - centre.Y, p0.X - centre.X);
+                    double endAngle = Math.Atan2(target.Y - centre.Y, target.X - centre.X) - side * Math.Atan2(reach, arcRadius);
+                    double sweep = side > 0 ? Angles.Normalize(endAngle - startAngle) : -Angles.Normalize(startAngle - endAngle);
+                    if (Math.Abs(sweep) > 1e-6 && Math.Abs(sweep) < Math.PI && arcRadius * Math.Abs(sweep) >= 0.05)
+                    {
+                        var one = new Route();
+                        one.Turn(new ArcSegment(centre, arcRadius, startAngle, sweep));
+                        return one;
+                    }
+                }
+            }
+
+            Route? best = null;
+            foreach (double side in new[] { 1.0, -1.0 })
+            {
+                if (only == 0 || (only > 0 && only != (side > 0 ? 1 : 2)))
+                {
+                    continue;
+                }
+
+                var centre = new Point2(p0.X + nx * rho * side, p0.Y + ny * rho * side);
+                double dx = target.X - centre.X, dy = target.Y - centre.Y;
+                double d = Math.Sqrt(dx * dx + dy * dy);
+                double straight = Math.Sqrt(Math.Max(0, d * d - rho * rho)) - reach;
+                if (d < rho + 1e-9 || straight < 0)
+                {
+                    continue; // inside this circle, or too close to line up on
+                }
+
+                double phi = Math.Atan2(dy, dx);
+                double beta = Math.Acos(Math.Min(1, rho / d));
+                double startAngle = Math.Atan2(p0.Y - centre.Y, p0.X - centre.X);
+                double exitAngle = side > 0 ? phi - beta : phi + beta;
+                double sweep = side > 0 ? Angles.Normalize(exitAngle - startAngle) : -Angles.Normalize(startAngle - exitAngle);
+                if (Math.Abs(sweep) > maxSweep)
+                {
+                    continue; // that would be a loop
+                }
+
+                var route = new Route();
+                Point2 exit = p0;
+                if (Math.Abs(sweep) > 1e-6)
+                {
+                    var arc = new ArcSegment(centre, rho, startAngle, sweep);
+                    route.Turn(arc);
+                    exit = arc.End;
+                }
+
+                if (straight > 1e-6)
+                {
+                    double len = straight + reach;
+                    route.Straight(new LineSegment(exit, new Point2(exit.X + (target.X - exit.X) * straight / len, exit.Y + (target.Y - exit.Y) * straight / len)));
+                }
+
+                if (route.Segments.Count > 0 && route.Length >= 0.05 && (best == null || route.Length < best.Length))
+                {
+                    best = route;
                 }
             }
 

@@ -126,7 +126,7 @@ namespace PointerTurn.Core.Tests
                 Assert.Equal(0.5, v.ClearanceInside);
             }
 
-            Assert.Contains("towing a 13.7 m semi-trailer (19 m overall; forwards only)", c.Describe());
+            Assert.Contains("towing a 13.7 m semi-trailer (19 m overall)", c.Describe());
         }
 
         /// <summary>The swept width of a left turn: the outer edge's radius less the inner edge's, about the turn centre.</summary>

@@ -127,7 +127,7 @@ namespace PointerTurn.Core.Vehicles
 
             if (style.OutlineInterval > 0.05)
             {
-                for (double ch = style.OutlineInterval; ch < r.PathLength - 0.05; ch += style.OutlineInterval)
+                for (double ch = style.OutlineInterval; ch < r.Travelled - 0.05; ch += style.OutlineInterval)
                 {
                     AddVehicle(list, "vehicle_intermediate", v, r.PoseAt(ch), r.TrailerPosesAt(ch), layers.VehicleIntermediate, wheels: false);
                 }

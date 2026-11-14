@@ -142,8 +142,8 @@ Two things carry over:
 | Manoeuvre | What you pick | What it does |
 |---|---|---|
 | **Standard turn template** | Start point (centre of the rear axle of the parked car) and the direction of travel | A single turn at the nominated radius, measured at the outer front wheel as in Paragraph B3.1 (default the vehicle's minimum: B99 6.3 m, B85 5.8 m), through the turn angle(s) you enter (`90`, or `30,60,90,120,150,180` for a fan like Figures B3 to B6), left or right, with straight travel before and after. |
-| **Follow a line, arc or polyline** | The curve, near the end the vehicle starts from | Drives the vehicle along it, forwards (the front axle centre follows the line, the rear axle tracks in behind) or in reverse (the rear axle follows the line). Use it to check a driveway, ramp or aisle you have already drawn. |
-| **Drive** | The start point and direction, then where the vehicle goes next, click by click | Each click is a destination. The car drives there on one arc when that arc is no tighter than the turn radius; otherwise it turns at the turn radius until it points at the destination, then drives straight (the **Drive turns** option makes it always do the latter). A click ahead goes forward, a click behind reverses. With **arrival direction** on (a dialog tick box, or `D` while driving), a second pick sets which way the car faces at the destination, and the leg becomes turn, straight, turn so it arrives exactly on that heading: square into a bay, parallel to an aisle. A leg never turns more than a half turn, so a point inside the turning circle can't be reached in one leg: drive past and reverse. Every leg keeps its own swept path, so a three-point turn is three clicks. `U` takes back the last leg, Enter finishes. |
+| **Follow a line, arc or polyline** | The curve, near the end the vehicle starts from | Drives the vehicle along it, forwards (the front axle centre follows the line, the rear axle tracks in behind) or in reverse (the rear axle follows the line; with a trailer, see [Reversing with a trailer](#reversing-with-a-trailer)). Use it to check a driveway, ramp or aisle you have already drawn. |
+| **Drive** | The start point and direction, then where the vehicle goes next, click by click | Each click is a destination. The car drives there on one arc when that arc is no tighter than the turn radius; otherwise it turns at the turn radius until it points at the destination, then drives straight (the **Drive turns** option makes it always do the latter). A click ahead goes forward, a click behind reverses (with a trailer, a click behind the trailer reverses the trailer to it: see [Reversing with a trailer](#reversing-with-a-trailer)). With **arrival direction** on (a dialog tick box, or `D` while driving), a second pick sets which way the car faces at the destination, and the leg becomes turn, straight, turn so it arrives exactly on that heading: square into a bay, parallel to an aisle. A leg never turns more than a half turn, so a point inside the turning circle can't be reached in one leg: drive past and reverse. Every leg keeps its own swept path, so a three-point turn is three clicks. `U` takes back the last leg, Enter finishes. |
 
 | **Solve (2 points)** | The start position and direction, then the target position and direction | Finds the movements for you: forward and reverse legs from the start to the target that keep the clearance to everything on the solve boundary layers. See [Solving a multi-point turn](#solving-a-multi-point-turn). |
 | **Solve in and out (3 points)** | The entry, the stop on the site and the exit (position and direction at each), then optionally the site boundary across the driveway | Finds the way in to the stop and the way out again, so the vehicle enters forwards and leaves forwards. See [In and out of a site](#in-and-out-of-a-site-the-3-point-solve). |
@@ -240,10 +240,40 @@ trailer's inner side on the inside of the turn, the prime mover's front corner o
 drawn at the start and end (and along the way, with an outline interval), and the report gives the sharpest
 angle the combination folds to, with a warning if it goes past the vehicle's limit.
 
+#### Reversing with a trailer
+
+A trailer pushed backwards doesn't follow the vehicle. It folds one way or the other, faster the further it
+has folded, and the driver steers against that the whole way. PointerTurn drives it the same way: the prime
+mover backs up a step at a time, steered no tighter than the turn radius, and each trailer goes where its
+coupling pushes it. What it steers to comes from the fact that driving is reversible: **a reverse along a path
+leaves exactly the tracks of driving that path the other way**. So the swept path of reversing onto a dock
+is the swept path of driving off it, and a reverse can only go where a forward drive could have come from.
+
+- **Follow, with Reverse ticked.** The prime mover's rear axle group follows the line (whatever the path
+  reference point is set to) and the combination finishes in line at the end of it. The trailers start where
+  that needs them, which is where they would be had the vehicle driven the line the other way: folded, if the
+  line turns near its start. The start position is drawn, and the command says how far a trailer starts
+  folded. Begin the line with a straight of two or three trailer lengths to start it in line.
+- **Drive.** A click **behind the last trailer** reverses, and it is the last trailer's axle group that goes
+  to the click, with the combination in line behind it: click the dock, not where the cab ends up. With the
+  arrival direction on, the second pick is the way the vehicle faces once it is there. The leg starts from
+  wherever the last leg left the trailers. To get a trailer round a turn in reverse it has to be folded into
+  the turn first, so the leg usually begins with a **swing**: the prime mover turns its front *away* from the
+  turn, which folds the trailer into it, then follows the trailer round. A B-double swings out and back to
+  set both trailers up. The swing shows in the leg's description (`reverse, turn left 36°, turn right 59°,
+  18.0 m straight, turn right 46°`) and takes room, which is the point of checking it.
+- Reversing turns are planned at 85% of the lock the turn radius allows, about 1.15 times the radius. The
+  rest is kept in hand to steer the trailers with, and the vehicle is never steered tighter than the radius.
+- **No leg** is offered when the trailers can't be set up for it from where they are: the destination is too
+  close to line up on, or the last leg left a trailer folded the wrong way. Click further away, or drive
+  forward a leg to straighten up first. If a trailer still can't be brought onto its line in the length
+  there is, the command says how far off it finishes; if one folds right round, the reverse stops there.
+
 Limits for a vehicle with trailers:
 
-- It drives **forwards only**. Reversing a trailer isn't modelled, so a reversed follow, a drive destination
-  behind the vehicle and **Solve** are refused for it.
+- **Solve** and **In and out** are for rigid vehicles. Drive a combination leg by leg instead.
+- A reverse is the manoeuvre a good driver could make with room to set up, not the only one. It doesn't
+  shuffle, and it doesn't reverse a trailer that is jackknifed away from the turn.
 - The ground clearance check is for rigid vehicles.
 - Trailer axles are fixed: steerable and self-tracking axles aren't modelled.
 - Turns are tangential, as the guide's templates are: the vehicle arrives straight and the front wheel

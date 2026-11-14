@@ -173,6 +173,45 @@ namespace PointerTurn.Core.Vehicles
         }
 
         /// <summary>
+        /// Where each trailer's axle group is, front to back, with the vehicle at <paramref name="pose"/>
+        /// and the trailers facing <paramref name="headings"/> (radians; null, or a trailer left out:
+        /// straight behind the unit in front).
+        /// </summary>
+        public List<VehiclePose> TrailerPoses(VehiclePose pose, IReadOnlyList<double>? headings)
+        {
+            var poses = new List<VehiclePose>();
+            VehiclePose towing = pose;
+            double hitch = Hitch;
+            for (int t = 0; t < Trailers.Count; t++)
+            {
+                double heading = headings != null && t < headings.Count ? headings[t] : towing.Heading;
+                Point2 coupling = towing.ToWorld(hitch, 0);
+                towing = new VehiclePose(new Point2(coupling.X - Trailers[t].Wheelbase * Math.Cos(heading), coupling.Y - Trailers[t].Wheelbase * Math.Sin(heading)), heading);
+                poses.Add(towing);
+                hitch = Trailers[t].Hitch;
+            }
+
+            return poses;
+        }
+
+        /// <summary>From the vehicle's rear axle back to the last trailer's axle group, with the combination straight. 0 for a rigid vehicle.</summary>
+        [JsonIgnore]
+        public double TowedLength
+        {
+            get
+            {
+                double length = 0, hitch = Hitch;
+                foreach (TrailerUnit t in Trailers)
+                {
+                    length += t.Wheelbase - hitch;
+                    hitch = t.Hitch;
+                }
+
+                return length;
+            }
+        }
+
+        /// <summary>
         /// Fills in what a truck's definition can leave out: the effective overhangs and width (a
         /// square-cornered body sweeps with its real corners).
         /// </summary>

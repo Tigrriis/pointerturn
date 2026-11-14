@@ -36,7 +36,8 @@
 //   rear_overhang      from the centre of its axle group to its rear
 //   hitch              where the next trailer couples on, ahead of this one's axle group (B-double: 0)
 //   axles, axle_spacing, track   its axle group, as drawn
-// A vehicle with trailers is driven forwards only.
+// A vehicle with trailers reverses too: its rear axle is steered along the path, within the turn
+// radius, to push the trailers where the same path driven the other way would leave them.
 //
 // Layers: {vehicle} in a layer name is replaced by the vehicle's name, e.g.
 // "AE CIV PLN - {vehicle} SWEPT PATH". layer_styles apply only when a layer doesn't exist yet;
