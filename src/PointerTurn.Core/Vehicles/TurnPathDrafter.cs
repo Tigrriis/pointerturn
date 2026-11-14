@@ -123,6 +123,15 @@ namespace PointerTurn.Core.Vehicles
                 }
 
                 AddVehicle(list, "vehicle", v, r.Poses[last], r.Trailers.Select(t => t.Poses[last]).ToList(), layers.Vehicle, wheels: true);
+
+                // A reverse with trailers starts and finishes close to straight. What it does in
+                // between, and the room it takes, shows where it is folded the most: mid-pivot.
+                int folded = r.SharpestFoldAt;
+                if (r.Reverse && r.Trailers.Count > 0 && r.MaxArticulationDeg >= 10
+                    && r.Chainages[folded] > 2 && r.Chainages[folded] < r.Travelled - 2)
+                {
+                    AddVehicle(list, "vehicle_intermediate", v, r.Poses[folded], r.Trailers.Select(t => t.Poses[folded]).ToList(), layers.VehicleIntermediate, wheels: false);
+                }
             }
 
             if (style.OutlineInterval > 0.05)

@@ -327,10 +327,16 @@ is the swept path of driving off it, and a reverse can only go where a forward d
   to the click, with the combination in line behind it: click the dock, not where the cab ends up. With the
   arrival direction on, the second pick is the way the vehicle faces once it is there. The leg starts from
   wherever the last leg left the trailers. To get a trailer round a turn in reverse it has to be folded into
-  the turn first, so the leg usually begins with a **swing**: the prime mover turns its front *away* from the
-  turn, which folds the trailer into it, then follows the trailer round. A B-double swings out and back to
-  set both trailers up. The swing shows in the leg's description (`reverse, turn left 36°, turn right 59°,
-  18.0 m straight, turn right 46°`) and takes room, which is the point of checking it.
+  the turn first, so every turn begins with a **swing**: the prime mover turns its front *away* from the
+  turn, which folds the trailer into it; the trailer pivots about its axles; and the prime mover follows it
+  round until the two are in line again. A B-double swings out and back to fold both couplings. Between
+  turns the combination backs up in line. The swings show in the leg's description (`reverse, turn left
+  21°, turn right 41°, 28.4 m straight, turn left 30°, turn right 101°`) and take room, which is the point
+  of checking it.
+- The combination is also drawn where it is **folded the most**, mid-pivot, on the layer for outlines along
+  the path: at the start and end of a reverse it is close to straight, which says little about the room it
+  takes in between. How sharply it folds is set by the turn radius. At the 12.5 m the guide's templates
+  use, the 19 m semi-trailer folds to about 40 degrees.
 - Reversing turns are planned at 85% of the lock the turn radius allows, about 1.15 times the radius. The
   rest is kept in hand to steer the trailers with, and the vehicle is never steered tighter than the radius.
 - **No leg** is offered when the trailers can't be set up for it from where they are: the destination is too
