@@ -68,6 +68,13 @@ namespace PointerPath.Core.Vehicles
         /// <summary>Drive: arc or corner.</summary>
         public string Turns { get; set; } = "arc";
 
+        /// <summary>
+        /// Drive: the wheels are set before each forward leg moves off, so every leg starts on its
+        /// turning circle. Otherwise a leg starts with the wheels as the last one left them (straight
+        /// at the start and after reversing) and winds the lock on as it rolls.
+        /// </summary>
+        public bool TurnWheelsWhenStationary { get; set; }
+
         public List<DriveStop> Stops { get; set; } = new List<DriveStop>();
 
         /// <summary>Follow: the curve's handle, and a point near the end the vehicle starts from.</summary>
@@ -441,7 +448,7 @@ namespace PointerPath.Core.Vehicles
                     double? wheels = null;                    // and which way it left the front wheels pointing
                     for (int i = 0; i < r.Stops.Count; i++)
                     {
-                        TurnPathBuilder.DriveLeg? leg = Leg(v, pose, r.Stops[i], r.Radius, r.TurnsKind, trailers, wheels);
+                        TurnPathBuilder.DriveLeg? leg = Leg(v, pose, r.Stops[i], r.Radius, r.TurnsKind, trailers, wheels, r.TurnWheelsWhenStationary);
                         if (leg == null)
                         {
                             throw new ArgumentException($"The {v.Name} can't reach destination {i + 1} in one leg at a {r.Radius:0.##} m radius: it is too close, inside the turning circle, or would need more than a half turn" +
@@ -558,15 +565,16 @@ namespace PointerPath.Core.Vehicles
         /// The leg to one stop: to a pose when the stop has a heading, otherwise to the point.
         /// <paramref name="trailers"/> is which way each trailer faces at the start (radians; null:
         /// straight behind the vehicle), and <paramref name="wheels"/> which way the front wheels
-        /// point (radians; null: straight ahead): both as the last leg left them.
+        /// point (radians; null: straight ahead): both as the last leg left them. With
+        /// <paramref name="turnWheelsWhenStationary"/> the wheels are set afresh before a forward leg.
         /// </summary>
         public static TurnPathBuilder.DriveLeg? Leg(DesignVehicle v, VehiclePose from, DriveStop stop, double radius, TurnPathBuilder.DriveTurns turns, IReadOnlyList<double>? trailers = null,
-            double? wheels = null)
+            double? wheels = null, bool turnWheelsWhenStationary = false)
         {
             var target = new Point2(stop.Point[0], stop.Point[1]);
             return stop.HeadingDeg is double h
                 ? TurnPathBuilder.DriveToPose(v, from, target, h * Math.PI / 180, radius, null, trailers)
-                : TurnPathBuilder.DriveTo(v, from, target, radius, null, turns, trailers, wheels);
+                : TurnPathBuilder.DriveTo(v, from, target, radius, null, turns, trailers, wheels, turnWheelsWhenStationary);
         }
 
         public static string Describe(TurnPathBuilder.DriveLeg leg)

@@ -65,7 +65,10 @@ way out. Nothing in between knows what the drawing is drawn in.
   out of a turn is up to the full lock away from the way the vehicle faces. So each result says
   which way it left the wheels (`EndWheelHeading`) and the next forward leg's path starts that
   way: the front axle's path has no kink at a click, and a turn driven in several legs is the turn
-  driven in one. A reverse with trailers
+  driven in one. The other way to drive it is the record's `turn_wheels_when_stationary`: the
+  wheels are set before each forward leg moves off, so the leg is an arc about one centre on the
+  line of the rear axle (the front axle at `sqrt(r² + wheelbase²)` from it) and the vehicle is in
+  its steady turn from the first step, whatever the last leg left. A reverse with trailers
   (`TurnPathBuilder.ReverseTowed`) takes the last trailer's axle group to the destination, and
   starts with a swing of the vehicle, one way then if need be the other, whose lengths are found
   so that the leg's line starts with the trailers folded exactly as they are. Onto a heading, the

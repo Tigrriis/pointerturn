@@ -45,6 +45,9 @@ namespace PointerPath.BricsCAD
         /// <summary>Drive mode: ask which way the vehicle faces at each destination.</summary>
         public bool ArrivalHeading { get; set; }
 
+        /// <summary>Drive mode: the wheels are set before each forward leg moves off.</summary>
+        public bool TurnWheelsWhenStationary { get; set; }
+
         /// <summary>Check the result against linework on the obstruction layers.</summary>
         public bool CheckConflicts { get; set; }
 
@@ -102,6 +105,7 @@ namespace PointerPath.BricsCAD
         private readonly ComboBox _turns;
         private readonly CheckBox _reverse;
         private readonly CheckBox _arrival;
+        private readonly CheckBox _stationary;
         private readonly CheckBox _checkConflicts;
         private readonly TextBox _obstructions;
         private readonly bool _editing;
@@ -204,6 +208,9 @@ namespace PointerPath.BricsCAD
             _arrival = new CheckBox { Text = "Drive: also pick which way it faces at each destination", AutoSize = true };
             Row(manoeuvre, null, _arrival, null);
             manoeuvre.SetColumnSpan(_arrival, 2);
+            _stationary = new CheckBox { Text = "Drive: turn wheels when stationary (set them before each move)", AutoSize = true };
+            Row(manoeuvre, null, _stationary, null);
+            manoeuvre.SetColumnSpan(_stationary, 2);
             _reverse = new CheckBox { Text = "Reverse (drive backwards along the path)", AutoSize = true };
             Row(manoeuvre, null, _reverse, null);
             manoeuvre.SetColumnSpan(_reverse, 2);
@@ -413,6 +420,7 @@ namespace PointerPath.BricsCAD
             _reference.SelectedIndex = r.Reference == "rear_axle" ? 2 : r.Reference == "front_axle" ? 1 : 0;
             _turns.SelectedIndex = r.TurnsKind == TurnPathBuilder.DriveTurns.Corner ? 1 : 0;
             _arrival.Checked = r.Stops.Any(s => s.HeadingDeg != null);
+            _stationary.Checked = r.TurnWheelsWhenStationary;
             _clearInside.Text = Num(r.ClearanceInside);
             _clearOutside.Text = Num(r.ClearanceOutside);
             _drawSwept.Checked = r.Draw.SweptPath;
@@ -605,6 +613,7 @@ namespace PointerPath.BricsCAD
             _leadOut.Text = Num(c.LeadOut);
             _turns.SelectedIndex = c.DriveTurnsMode == TurnPathBuilder.DriveTurns.Corner ? 1 : 0;
             _arrival.Checked = c.DriveArrivalHeading;
+            _stationary.Checked = c.DriveTurnWheelsWhenStationary;
             _checkConflicts.Checked = c.CheckConflicts;
             _obstructions.Text = string.Join(", ", c.ObstructionLayers);
             _solveLayers.Text = string.Join(", ", c.SolveLayers);
@@ -691,6 +700,7 @@ namespace PointerPath.BricsCAD
             _reference.Enabled = !points && !solve;
             _turns.Enabled = points;
             _arrival.Enabled = points;
+            _stationary.Enabled = points;
             if (template || points || solve)
             {
                 _reverse.Checked = false;
@@ -738,6 +748,7 @@ namespace PointerPath.BricsCAD
                 Reference = _reference.SelectedIndex == 2 ? ReferencePoint.RearAxle : _reference.SelectedIndex == 1 ? ReferencePoint.FrontAxle : ReferencePoint.OuterFrontWheel,
                 Turns = _turns.SelectedIndex == 1 ? TurnPathBuilder.DriveTurns.Corner : TurnPathBuilder.DriveTurns.Arc,
                 ArrivalHeading = _arrival.Checked,
+                TurnWheelsWhenStationary = _stationary.Checked,
                 CheckConflicts = _checkConflicts.Checked,
                 ConflictLayers = LayerPattern.Parse(_obstructions.Text),
                 SolveLayers = LayerPattern.Parse(_solveLayers.Text),
@@ -892,6 +903,7 @@ namespace PointerPath.BricsCAD
                 c.LeadOut = choice.LeadOut;
                 c.DriveTurns = choice.Turns == TurnPathBuilder.DriveTurns.Corner ? "corner" : "arc";
                 c.DriveArrivalHeading = choice.ArrivalHeading;
+                c.DriveTurnWheelsWhenStationary = choice.TurnWheelsWhenStationary;
                 c.CheckConflicts = choice.CheckConflicts;
                 c.ObstructionLayers = choice.ConflictLayers.ToList();
                 c.SolveLayers = choice.SolveLayers.ToList();

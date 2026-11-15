@@ -236,6 +236,7 @@ namespace PointerPath.BricsCAD
             r.Reference = c.Reference == ReferencePoint.RearAxle ? "rear_axle" : c.Reference == ReferencePoint.FrontAxle ? "front_axle" : "outer_front_wheel";
             r.Reverse = c.Reverse;
             r.Turns = c.Turns == TurnPathBuilder.DriveTurns.Corner ? "corner" : "arc";
+            r.TurnWheelsWhenStationary = c.TurnWheelsWhenStationary;
             r.ClearanceInside = c.ClearanceInside;
             r.ClearanceOutside = c.ClearanceOutside;
             r.Layers = c.Style.Layers.Clone();
@@ -468,7 +469,7 @@ namespace PointerPath.BricsCAD
                 var jig = new TurnPathJig(units, prompt, new Point3d(fromInDrawing.X, fromInDrawing.Y, 0), canUndo ? new[] { "Undo", "Direction" } : new[] { "Direction" },
                     cursor =>
                     {
-                        TurnPathBuilder.DriveLeg? leg = TurnPathBuilder.DriveTo(v, from, cursor, r.Radius, null, r.TurnsKind, towed, wheels);
+                        TurnPathBuilder.DriveLeg? leg = TurnPathBuilder.DriveTo(v, from, cursor, r.Radius, null, r.TurnsKind, towed, wheels, r.TurnWheelsWhenStationary);
                         if (leg == null)
                         {
                             return null;
@@ -537,7 +538,7 @@ namespace PointerPath.BricsCAD
                     }
                 }
 
-                TurnPathBuilder.DriveLeg? chosen = ManoeuvrePlanner.Leg(v, from, stop, r.Radius, r.TurnsKind, towed, wheels);
+                TurnPathBuilder.DriveLeg? chosen = ManoeuvrePlanner.Leg(v, from, stop, r.Radius, r.TurnsKind, towed, wheels, r.TurnWheelsWhenStationary);
                 if (chosen == null)
                 {
                     ed.WriteMessage(stop.HeadingDeg != null

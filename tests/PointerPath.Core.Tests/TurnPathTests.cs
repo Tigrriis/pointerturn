@@ -780,6 +780,113 @@ namespace PointerPath.Core.Tests
             Assert.Equal(0, Math.IEEERemainder(back.EndWheelHeading - back.Poses[back.Poses.Count - 1].Heading, 2 * Math.PI), 9);
         }
 
+        [Theory]
+        [InlineData("B85", 5.8)]
+        [InlineData("B99", 6.3)]
+        [InlineData("Service 8.8 m", 12.5)]
+        public void WheelsTurnedWhenStationaryPutTheVehicleOnItsTurningCircleFromTheStart(string name, double radius)
+        {
+            TurnPathConventions c = Conventions();
+            DesignVehicle v = c.Vehicle(name);
+            double w = v.Wheelbase, rho = v.RearAxleRadius(radius), front = Math.Sqrt(rho * rho + w * w), fullLock = Math.Atan(w / rho);
+            var start = new VehiclePose(new Point2(0, 0), 0);
+            var centre = new Point2(0, rho); // the turning centre at full left lock, on the line of the rear axle
+            var behind = new Point2(w, 2 * front + 3); // most of a half turn away
+
+            // Turn then straight: full lock from the first metre, so the rear axle goes round the
+            // turning centre at its radius and the outer front wheel at the vehicle's.
+            TurnPathBuilder.DriveLeg set = TurnPathBuilder.DriveTo(v, start, behind, radius, turns: TurnPathBuilder.DriveTurns.Corner, turnWheelsWhenStationary: true)!;
+            Assert.True(set.Left);
+            Assert.Equal(fullLock, Math.IEEERemainder(set.Request.Path.TangentAt(0), 2 * Math.PI), 9);
+            TurnPathResult turned = TurnPathSimulator.Simulate(set.Request);
+            Assert.True(turned.WithinMinimumRadius, $"tightest {turned.TightestRadius}");
+            Assert.Equal(radius, turned.TightestRadius, 2);
+            Assert.True(Dist(turned.Poses[turned.Poses.Count - 1].ToWorld(w, 0), behind) < 1e-6);
+            double arc = set.ArcDeg * Math.PI / 180 * front;
+            for (int i = 0; i < turned.Poses.Count && turned.Chainages[i] <= arc; i++)
+            {
+                Assert.Equal(rho, Dist(turned.Poses[i].RearAxle, centre), 3);
+            }
+
+            // Wheels straight at the start, the lock wound on while rolling: the same destination by
+            // a wider way round, the rear axle swinging outside that circle.
+            TurnPathBuilder.DriveLeg rolling = TurnPathBuilder.DriveTo(v, start, behind, radius, turns: TurnPathBuilder.DriveTurns.Corner)!;
+            Assert.Equal(0, Math.IEEERemainder(rolling.Request.Path.TangentAt(0), 2 * Math.PI), 9);
+            TurnPathResult rolled = TurnPathSimulator.Simulate(rolling.Request);
+            Assert.True(rolled.Poses.Max(p => p.RearAxle.X) > turned.Poses.Max(p => p.RearAxle.X) + 0.2);
+            Assert.True(rolled.Poses.Max(p => Dist(p.RearAxle, centre)) > rho + 0.2);
+
+            // The wheels the last leg left count for nothing: the leg is the same whatever they were.
+            TurnPathBuilder.DriveLeg ignoring = TurnPathBuilder.DriveTo(v, start, behind, radius, turns: TurnPathBuilder.DriveTurns.Corner, wheels: -fullLock, turnWheelsWhenStationary: true)!;
+            Assert.Equal(set.Request.Path.Length, ignoring.Request.Path.Length, 9);
+            Assert.Equal(set.ArcDeg, ignoring.ArcDeg, 9);
+
+            // One arc to the destination: the wheels are set to whatever takes the front axle there
+            // about a single centre, and the vehicle turns exactly as far as the arc does.
+            foreach (Point2 to in new[] { new Point2(w + 9, 5), new Point2(w + 6, -7), new Point2(3, 2 * front - 0.5) })
+            {
+                TurnPathBuilder.DriveLeg leg = TurnPathBuilder.DriveTo(v, start, to, radius, turnWheelsWhenStationary: true)!;
+                Assert.Equal(0, leg.StraightLength, 9);
+                Assert.Equal(to.Y > 0, leg.Left);
+                double r = (to.X * to.X + to.Y * to.Y - w * w) / (2 * Math.Abs(to.Y));
+                Assert.True(r >= rho);
+                var about = new Point2(0, r * Math.Sign(to.Y));
+                TurnPathResult res = TurnPathSimulator.Simulate(leg.Request);
+                Assert.True(res.WithinMinimumRadius);
+                Assert.All(res.Poses, p => Assert.Equal(r, Dist(p.RearAxle, about), 3));
+                VehiclePose end = res.Poses[res.Poses.Count - 1];
+                Assert.True(Dist(end.ToWorld(w, 0), to) < 1e-6);
+                Assert.Equal(leg.ArcDeg, Math.Abs(res.NetTurnDeg), 2);
+            }
+
+            // Straight ahead is straight ahead, and a destination inside the turning circle has no leg.
+            TurnPathBuilder.DriveLeg ahead = TurnPathBuilder.DriveTo(v, start, new Point2(w + 8, 0), radius, turnWheelsWhenStationary: true)!;
+            Assert.Equal(0, ahead.ArcDeg, 9);
+            Assert.Equal(8, ahead.StraightLength, 9);
+            Assert.Null(TurnPathBuilder.DriveTo(v, start, new Point2(w * 0.8, rho * 0.5), radius, reverse: false, turnWheelsWhenStationary: true));
+
+            // Reversing is the same either way: the rear axle leads, and goes straight onto its circle.
+            Point2 back = start.ToWorld(-2 * rho, 0.6 * rho);
+            Assert.Equal(TurnPathBuilder.DriveTo(v, start, back, radius)!.Request.Path.Length,
+                TurnPathBuilder.DriveTo(v, start, back, radius, turnWheelsWhenStationary: true)!.Request.Path.Length, 9);
+        }
+
+        [Fact]
+        public void ADriveWithWheelsTurnedWhenStationaryStartsEveryLegOnItsCircle()
+        {
+            TurnPathConventions c = Conventions();
+            Assert.False(c.DriveTurnWheelsWhenStationary);
+            DesignVehicle v = c.Vehicle("B85");
+            double w = v.Wheelbase, rho = v.RearAxleRadius(5.8), front = Math.Sqrt(rho * rho + w * w);
+            ManoeuvrePlan Drive(bool stationary)
+            {
+                var r = new ManoeuvreRecord { Vehicle = "B85", Mode = "drive", Start = new[] { 0.0, 0 }, HeadingDeg = 0, Radius = 5.8, Turns = "corner", TurnWheelsWhenStationary = stationary };
+                r.Stops.Add(new DriveStop { Point = new[] { w, 2 * front + 3 } });     // round to the left
+                r.Stops.Add(new DriveStop { Point = new[] { -12.0, 12.0 } });          // and left again
+                return ManoeuvrePlanner.Plan(ManoeuvreRecord.FromJson(r.ToJson()), c);
+            }
+
+            ManoeuvrePlan set = Drive(true), rolling = Drive(false);
+            Assert.Equal(2, set.Legs.Count);
+            Assert.All(set.Legs.Concat(rolling.Legs), l => Assert.False(l.Result.Reverse));
+            Assert.Empty(set.Warnings);
+            Assert.All(set.Legs, l =>
+            {
+                // On full lock from the first step of each leg.
+                Assert.Equal(5.8, v.OuterWheelRadius(1 / Math.Abs(l.Result.Curvatures[0])), 2);
+                Assert.Equal(5.8, l.Result.TightestRadius, 2);
+            });
+
+            // Carried over instead, the first leg starts straight and the second as the first left the wheels.
+            Assert.True(Math.Abs(rolling.Legs[0].Result.Curvatures[0]) < 0.1 / rho, $"starts at {rolling.Legs[0].Result.Curvatures[0]} of {1 / rho}");
+            Assert.Equal(0, Math.IEEERemainder(rolling.Legs[1].Result.Path.TangentAt(0) - rolling.Legs[0].Result.EndWheelHeading, 2 * Math.PI), 6);
+            Assert.True(rolling.Legs[0].Result.Poses.Max(p => p.RearAxle.X) > set.Legs[0].Result.Poses.Max(p => p.RearAxle.X) + 0.2);
+
+            // Saved with the path, and off unless it says so.
+            Assert.Contains("\"turn_wheels_when_stationary\":true", new ManoeuvreRecord { TurnWheelsWhenStationary = true }.ToJson());
+            Assert.False(ManoeuvreRecord.FromJson("{\"mode\":\"drive\",\"start\":[1,2]}").TurnWheelsWhenStationary);
+        }
+
         [Fact]
         public void CurveIsRunFromTheEndNearestThePick()
         {
