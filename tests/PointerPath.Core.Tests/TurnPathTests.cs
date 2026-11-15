@@ -42,13 +42,19 @@ namespace PointerPath.Core.Tests
             Assert.Equal(5.2, b99.Length);
             Assert.Equal(1.94, b99.Width);
             Assert.Equal(3.05, b99.Wheelbase);
+            Assert.Equal(0.95, b99.FrontOverhang);   // Figure B1: the front overhang is the shorter
+            Assert.Equal(1.2, b99.RearOverhang);
             Assert.Equal(5.2, b99.FrontOverhang + b99.Wheelbase + b99.RearOverhang, 9);
+            Assert.True(b99.FrontOverhangRounding > b99.RearOverhangRounding, "the front is the rounder end");
             Assert.Equal(6.3, b99.MinTurnRadius);
             Assert.Equal(0.6, b99.ClearanceOutside);
 
             Assert.Equal(4.91, b85.Length);
             Assert.Equal(1.87, b85.Width);
+            Assert.Equal(0.92, b85.FrontOverhang);   // Figure B2: 920 front, 2800 wheelbase, 1190 rear
+            Assert.Equal(1.19, b85.RearOverhang);
             Assert.Equal(4.91, b85.FrontOverhang + b85.Wheelbase + b85.RearOverhang, 9);
+            Assert.True(b85.FrontOverhangRounding > b85.RearOverhangRounding);
             Assert.Equal(5.8, b85.MinTurnRadius);
             Assert.Equal(0.3, b85.ClearanceOutside);
             Assert.Empty(b99.Validate());
@@ -119,8 +125,8 @@ namespace PointerPath.Core.Tests
             // Nose and tail reach the overall length at the centreline: sagitta = overall - effective overhang.
             double frontSagitta = bulges[3] * v.EffectiveWidth / 2;
             double rearSagitta = bulges[7] * v.EffectiveWidth / 2;
-            Assert.Equal(0.05, frontSagitta, 9);
-            Assert.Equal(0.15, rearSagitta, 9);
+            Assert.Equal(0.15, frontSagitta, 9);   // the front is the rounder end
+            Assert.Equal(0.05, rearSagitta, 9);
             Assert.True(bulges[3] > 0 && bulges[7] > 0);
             Assert.Equal(v.Wheelbase + v.EffectiveFrontOverhang, pts.Max(p => p.X), 9);
             Assert.Equal(-v.EffectiveRearOverhang, pts.Min(p => p.X), 9);
@@ -271,13 +277,14 @@ namespace PointerPath.Core.Tests
             Assert.Equal(0, Dist(r.LeftBody[r.LeftBody.Count - 1], end.ToWorld(xf, he)), 1e-6);
             Assert.Equal(0, Dist(r.RightBody[r.RightBody.Count - 1], end.ToWorld(xf, -he)), 1e-6);
 
-            // Along the lead-in the swept path is the body width, both sides straight.
+            // Along the lead-in the swept path is the body width, both sides straight: on the outside
+            // of the turn only up to where the tail will be when the turn starts and it swings out.
             foreach (Point2 p in r.LeftBody.Where(p => p.X > 0.1 && p.X < 2.9))
             {
                 Assert.Equal(v.Width / 2, p.Y, 6);
             }
 
-            foreach (Point2 p in r.RightBody.Where(p => p.X > 0.1 && p.X < 2.9))
+            foreach (Point2 p in r.RightBody.Where(p => p.X > 0.1 && p.X < 2.9 - v.RearOverhang))
             {
                 Assert.Equal(-v.Width / 2, p.Y, 6);
             }
@@ -398,6 +405,108 @@ namespace PointerPath.Core.Tests
             Assert.All(r.LeftBody.Where(p => p.Y > -3.5 && p.Y < 9.5), p => Assert.Equal(v.Width / 2, p.X, 6));
             Assert.All(r.LeftClearance.Where(p => p.Y > -3.5 && p.Y < 9.5), p => Assert.Equal(v.Width / 2 + 0.3, p.X, 6));
             Assert.All(r.RightClearance.Where(p => p.Y > -3.5 && p.Y < 9.5), p => Assert.Equal(-v.Width / 2 - 0.3, p.X, 6));
+        }
+
+        [Theory]
+        [InlineData("B85")]
+        [InlineData("B99")]
+        public void ReversingAtFullLockSwingsTheFrontOut(string name)
+        {
+            // Parked facing +Y, the car backs round to its right at full lock: its rear axle follows
+            // an arc about a centre on its right, so the body turns about that centre and the front,
+            // furthest from it, swings out to the left of where the car stood.
+            DesignVehicle v = Conventions().Vehicle(name);
+            double rho = v.RearAxleRadius(v.MinTurnRadius);
+            var centre = new Point2(rho, 0);
+            var path = new Path2(new List<Segment> { new ArcSegment(centre, rho, Math.PI, Math.PI / 2) }, false);
+            TurnPathResult r = TurnPathSimulator.Simulate(new TurnPathRequest { Vehicle = v, Path = path, Reference = v.RearAxleCentre, Reverse = true, InitialHeading = Math.PI / 2 });
+            Assert.Equal(Math.PI / 2, r.Poses[0].Heading, 9);
+            Assert.Equal(90, r.NetTurnDeg, 3);
+            Assert.True(r.WithinMinimumRadius);
+
+            // By hand: the front-left corner is (wheelbase + overhang) ahead of the rear axle and half
+            // the width to the left, so it turns on this radius about the centre...
+            double ahead = v.Wheelbase + v.EffectiveFrontOverhang, half = v.EffectiveWidth / 2;
+            double corner = Math.Sqrt(ahead * ahead + (rho + half) * (rho + half));
+            // ...and reaches this far left of the car's side: about a metre.
+            double swing = corner - (rho + v.Width / 2);
+            Assert.InRange(swing, 0.9, 1.2);
+            Assert.Equal(rho - corner, r.LeftBody.Min(p => p.X), 3);
+            Assert.Equal(-v.Width / 2 - swing, r.LeftBody.Min(p => p.X), 3);
+
+            // The swing is beside where the car stood, ahead of its rear axle: the front, not the rear.
+            Point2 furthest = r.LeftBody.OrderBy(p => p.X).First();
+            Assert.InRange(furthest.Y, -0.2, 0.2);
+            Assert.Contains(r.LeftBody, p => p.Y > 1 && p.X < -v.Width / 2 - 0.3);
+
+            // The outside edge is that corner's circle, the inside edge the side at the rear axle.
+            foreach (Point2 p in r.LeftBody.Where(p => p.Y < -0.5 && p.X < rho - 1))
+            {
+                Assert.Equal(corner, Dist(p, centre), 2);
+            }
+
+            foreach (Point2 p in r.RightBody.Where(p => p.Y < -0.5 && p.X < rho - 1))
+            {
+                Assert.Equal(rho - v.Width / 2, Dist(p, centre), 2);
+            }
+
+            // The front swings further than the rear moves at all: it is the front wheels that steer.
+            double frontTravel = 0, rearTravel = 0;
+            for (int i = 1; i < r.Poses.Count; i++)
+            {
+                frontTravel += Dist(r.Poses[i - 1].ToWorld(v.Wheelbase, 0), r.Poses[i].ToWorld(v.Wheelbase, 0));
+                rearTravel += Dist(r.Poses[i - 1].RearAxle, r.Poses[i].RearAxle);
+            }
+
+            Assert.Equal(rho * Math.PI / 2, rearTravel, 2);
+            Assert.Equal(Math.Sqrt(rho * rho + v.Wheelbase * v.Wheelbase) * Math.PI / 2, frontTravel, 2);
+            Assert.True(frontTravel > 1.15 * rearTravel);
+
+            // Driving forwards round the same arc the other way sweeps the same ground.
+            TurnPathResult forward = TurnPathSimulator.Simulate(new TurnPathRequest { Vehicle = v, Path = PathOps.Reverse(path), Reference = v.RearAxleCentre });
+            Assert.Equal(forward.LeftBody.Min(p => p.X), r.LeftBody.Min(p => p.X), 3);
+        }
+
+        [Fact]
+        public void CarsSavedBackToFrontAreTurnedRoundAndTrailersLeftOut()
+        {
+            // The shipped file has the cars the right way round, and nothing that tows.
+            TurnPathConventions shipped = Conventions();
+            Assert.Empty(shipped.CorrectReversedCars());
+            Assert.Empty(shipped.RemoveVehiclesWithTrailers());
+            Assert.Equal(new[] { "B99", "B85", "Service 8.8 m", "Truck 12.5 m" }, shipped.Vehicles.Keys);
+            Assert.Equal(0.92, shipped.Vehicle("B85").FrontOverhang);
+            Assert.Equal(1.2, shipped.Vehicle("B99").RearOverhang);
+
+            // A copy saved from an earlier version: both cars back to front, an edited car, and a semi-trailer.
+            string path = Path.Combine(Path.GetTempPath(), $"turn-paths-{Guid.NewGuid():N}.json");
+            File.WriteAllText(path, @"{ ""vehicles"": {
+                ""B85"": { ""length"": 4.91, ""width"": 1.87, ""wheelbase"": 2.8, ""front_overhang"": 1.19, ""rear_overhang"": 0.92,
+                           ""effective_front_overhang"": 1.1, ""effective_rear_overhang"": 0.75, ""effective_width"": 1.77, ""track"": 1.57, ""min_turn_radius"": 5.8 },
+                ""B99"": { ""length"": 5.2, ""width"": 1.94, ""wheelbase"": 3.05, ""front_overhang"": 1.2, ""rear_overhang"": 0.95,
+                           ""effective_front_overhang"": 1.15, ""effective_rear_overhang"": 0.8, ""effective_width"": 1.84, ""track"": 1.62, ""min_turn_radius"": 6.3 },
+                ""My car"": { ""length"": 4.91, ""width"": 1.87, ""wheelbase"": 2.8, ""front_overhang"": 1.21, ""rear_overhang"": 0.9,
+                           ""effective_front_overhang"": 1.1, ""effective_rear_overhang"": 0.75, ""effective_width"": 1.77, ""track"": 1.57, ""min_turn_radius"": 5.8 },
+                ""Semi"": { ""length"": 6, ""width"": 2.5, ""wheelbase"": 3.6, ""front_overhang"": 1.4, ""rear_overhang"": 1, ""track"": 2.1, ""min_turn_radius"": 12.5, ""hitch"": 0.25,
+                           ""trailers"": [ { ""name"": ""semi-trailer"", ""width"": 2.5, ""front_overhang"": 1.2, ""wheelbase"": 8.5, ""rear_overhang"": 3.3 } ] } } }");
+            try
+            {
+                TurnPathConventions saved = TurnPathConventions.Load(path);
+                Assert.Equal(new[] { "B85", "B99" }, saved.CorrectReversedCars());
+                DesignVehicle b85 = saved.Vehicle("B85"), b99 = saved.Vehicle("B99");
+                Assert.Equal((0.92, 1.19, 0.75, 1.1), (b85.FrontOverhang, b85.RearOverhang, b85.EffectiveFrontOverhang, b85.EffectiveRearOverhang));
+                Assert.Equal((0.95, 1.2, 0.8, 1.15), (b99.FrontOverhang, b99.RearOverhang, b99.EffectiveFrontOverhang, b99.EffectiveRearOverhang));
+                Assert.Empty(b85.Validate());
+                Assert.Equal(1.21, saved.Vehicle("My car").FrontOverhang);   // someone's own car is theirs
+                Assert.Empty(saved.CorrectReversedCars());                  // and once is enough
+
+                Assert.Equal(new[] { "Semi" }, saved.RemoveVehiclesWithTrailers());
+                Assert.Equal(new[] { "B85", "B99", "My car" }, saved.Vehicles.Keys);
+            }
+            finally
+            {
+                File.Delete(path);
+            }
         }
 
         [Fact]

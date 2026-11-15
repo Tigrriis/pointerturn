@@ -179,6 +179,54 @@ namespace PointerPath.Core.Vehicles
             return added;
         }
 
+        /// <summary>
+        /// Turns the right way round any car still carrying the dimensions PointerPath first shipped
+        /// for the B85 and B99, which had front and rear swapped: the long overhang (1.19 m, 1.2 m)
+        /// and the squarer end at the front, where AS/NZS 2890.1 Figures B1 and B2 have them at the
+        /// rear. A copy of the conventions saved before the correction still has them. Returns the
+        /// names of the vehicles corrected.
+        /// </summary>
+        public List<string> CorrectReversedCars()
+        {
+            // Wheelbase, then the front and rear overhangs and the effective ones, as they were shipped.
+            var shipped = new[]
+            {
+                new[] { 2.8, 1.19, 0.92, 1.1, 0.75 },
+                new[] { 3.05, 1.2, 0.95, 1.15, 0.8 },
+            };
+            bool Same(double a, double b) => Math.Abs(a - b) < 1e-6;
+            var corrected = new List<string>();
+            foreach (KeyValuePair<string, DesignVehicle> kv in Vehicles)
+            {
+                DesignVehicle v = kv.Value;
+                if (shipped.Any(s => Same(v.Wheelbase, s[0]) && Same(v.FrontOverhang, s[1]) && Same(v.RearOverhang, s[2])
+                                     && Same(v.EffectiveFrontOverhang, s[3]) && Same(v.EffectiveRearOverhang, s[4])))
+                {
+                    (v.FrontOverhang, v.RearOverhang) = (v.RearOverhang, v.FrontOverhang);
+                    (v.EffectiveFrontOverhang, v.EffectiveRearOverhang) = (v.EffectiveRearOverhang, v.EffectiveFrontOverhang);
+                    corrected.Add(kv.Key);
+                }
+            }
+
+            return corrected;
+        }
+
+        /// <summary>
+        /// Takes out the vehicles that tow trailers, and returns their names. Trailers are switched
+        /// off in the add-in until the turning of rigid vehicles is settled; the engine still has
+        /// them, for when they come back.
+        /// </summary>
+        public List<string> RemoveVehiclesWithTrailers()
+        {
+            List<string> towing = Vehicles.Where(kv => kv.Value.IsArticulated).Select(kv => kv.Key).ToList();
+            foreach (string name in towing)
+            {
+                Vehicles.Remove(name);
+            }
+
+            return towing;
+        }
+
         public void Save(string path)
         {
             string? dir = Path.GetDirectoryName(path);

@@ -15,6 +15,8 @@
   <ItemGroup>
     <!-- The shipped vehicles and settings, so the tests check they load and work. -->
     <None Include="..\..\src\PointerPath.BricsCAD\turn-paths.json" Link="turn-paths.json" CopyToOutputDirectory="PreserveNewest" />
+    <!-- The combinations, held back from the shipped file while trailers are switched off. -->
+    <None Update="articulated-vehicles.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

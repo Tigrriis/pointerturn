@@ -37,6 +37,11 @@ way out. Nothing in between knows what the drawing is drawn in.
 
 ## Core
 
+- **Trailers are switched off.** The engine below still tows and reverses them, and the tests
+  still run it, but the add-in leaves out any vehicle with trailers when it reads the vehicle file
+  (`TurnPathConventions.RemoveVehiclesWithTrailers`), and the shipped file has none: the Austroads
+  combinations are kept in `tests/PointerPath.Core.Tests/articulated-vehicles.json`. To bring them
+  back, move them into `turn-paths.json` and take that call out of `PointerPathSettings`.
 - **Vehicles** (`DesignVehicle`, `TrailerUnit`): dimensions, axle groups, the minimum turn radius
   (measured at the outer front wheel), clearances and any trailers. They are data in
   `turn-paths.json`; B99 and B85 are also built in as a fallback.
@@ -145,10 +150,10 @@ None of the add-in has been run in BricsCAD or AutoCAD yet. In this order, in Br
    moved. Then a path that was drawn by CSD-Bridge.
 7. **`PTCLEARANCE`**: on a plotted long section, then on a BricsCAD TIN surface.
 8. **Both add-ins together**: load CSD-Bridge and PointerPath in the same session.
-9. **A truck**: the 19 m semi-trailer at 12.5 m, overlaid on the Austroads turning template.
-10. **Reversing a truck**: `PTPATH`, Drive, the 19 m semi-trailer: a leg forward, then a click behind
-    the trailer, then one with an arrival direction. Check the live preview keeps up, and that a
-    click the trailer can't line up on is refused with the reason.
+9. **A truck**: the 12.5 m truck at 12.5 m, overlaid on the Austroads turning template.
+10. **Reversing a car**: `PTPATH`, Drive, the B85: point it one way, click behind it and to one side.
+    The front (the shorter, rounder end, with the wheels that steer) should swing out about a metre
+    past where the car stood, on the outside of the turn.
 
 ## Known limits
 

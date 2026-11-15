@@ -12,7 +12,7 @@ here to be an add-in of their own.
 ## What it does
 
 - **Turning paths.** A B99 or B85 car (AS/NZS 2890.1), or an Austroads truck (8.8 m service
-  vehicle, 12.5 m truck, 19 m semi-trailer, 25 m and 26 m B-doubles), drawn as a standard turn
+  vehicle and 12.5 m truck), drawn as a standard turn
   from a picked start point, driven along a line or polyline you select (forwards or in
   reverse), or driven click by click.
 - **Solve turn.** Pick where the vehicle starts and where it ends up, and the forward and
@@ -37,12 +37,13 @@ This is a first cut as a separate add-in, not a finished product.
 
 | Part | State |
 |---|---|
-| Core (vehicles, simulation, swept path, solver, conflicts, ground clearance, licence check) | Built and unit-tested: 113 tests |
+| Core (vehicles, simulation, swept path, solver, conflicts, ground clearance, licence check) | Built and unit-tested: 116 tests |
 | BricsCAD add-in | **Not yet compiled against BricsCAD, and not yet run in it.** Its files are type-checked against stand-in copies of the BricsCAD API, except `CadDrawing.cs`, which is a cut-down copy of CSD-Bridge's drawing code |
 | AutoCAD add-in | The same source, compiled against Autodesk's AutoCAD 2021 and AutoCAD 2025 APIs: it builds clean for both. **Not yet run in AutoCAD.** Reading Civil 3D surfaces is written from the API reference and untried |
 | Installer | Builds, and has been run under Wine: install for all users and for one user, upgrade, uninstall, and the BricsCAD registry entries, against stand-in BricsCAD and AutoCAD registry keys. **Not yet run on Windows, or with a real BricsCAD or AutoCAD.** Not code-signed |
 | Licence check | The checking, signing in and refreshing are unit-tested, and have been run against the website on a test database. The add-in side compiles for AutoCAD on .NET Framework; **it has not been compiled for .NET 8 or against BricsCAD, the sign-in dialog has not been seen on screen, and nothing has been run inside BricsCAD or AutoCAD.** Only the installer's build asks for a licence; a build from source doesn't: see [docs/licensing.md](docs/licensing.md) |
-| Austroads vehicles | Entered from the dimension drawings in AP-G34-23. **Not yet compared against the published turning templates** |
+| Cars (B85, B99) | Front and rear overhangs corrected to AS/NZS 2890.1: they were first shipped back to front. The B85's (920 front, 1190 rear) are confirmed against a published copy of the template; the B99's (950 front, 1200 rear) and both cars' effective overhangs follow the same correction and **should be checked against Figures B1 and B2** |
+| Austroads vehicles | Entered from the dimension drawings in AP-G34-23. **Not yet compared against the published turning templates.** Vehicles with trailers are switched off for now |
 
 See [docs/architecture.md](docs/architecture.md) for the design, and "First things to test" there.
 
@@ -214,8 +215,8 @@ Two things carry over:
 | Manoeuvre | What you pick | What it does |
 |---|---|---|
 | **Standard turn template** | Start point (centre of the rear axle of the parked car) and the direction of travel | A single turn at the nominated radius, measured at the outer front wheel as in Paragraph B3.1 (default the vehicle's minimum: B99 6.3 m, B85 5.8 m), through the turn angle(s) you enter (`90`, or `30,60,90,120,150,180` for a fan like Figures B3 to B6), left or right, with straight travel before and after. |
-| **Follow a line, arc or polyline** | The curve, near the end the vehicle starts from | Drives the vehicle along it, forwards (the front axle centre follows the line, the rear axle tracks in behind) or in reverse (the rear axle follows the line; with a trailer, see [Reversing with a trailer](#reversing-with-a-trailer)). Use it to check a driveway, ramp or aisle you have already drawn. |
-| **Drive** | The start point and direction, then where the vehicle goes next, click by click | Each click is a destination. The car drives there on one arc when that arc is no tighter than the turn radius; otherwise it turns at the turn radius until it points at the destination, then drives straight (the **Drive turns** option makes it always do the latter). A click ahead goes forward, a click behind reverses (with a trailer, a click behind the trailer reverses the trailer to it: see [Reversing with a trailer](#reversing-with-a-trailer)). With **arrival direction** on (a dialog tick box, or `D` while driving), a second pick sets which way the car faces at the destination, and the leg becomes turn, straight, turn so it arrives exactly on that heading: square into a bay, parallel to an aisle. A leg never turns more than a half turn, so a point inside the turning circle can't be reached in one leg: drive past and reverse. Every leg keeps its own swept path, so a three-point turn is three clicks. `U` takes back the last leg, Enter finishes. |
+| **Follow a line, arc or polyline** | The curve, near the end the vehicle starts from | Drives the vehicle along it, forwards (the front axle centre follows the line, the rear axle tracks in behind) or in reverse (the rear axle follows the line). Use it to check a driveway, ramp or aisle you have already drawn. |
+| **Drive** | The start point and direction, then where the vehicle goes next, click by click | Each click is a destination. The car drives there on one arc when that arc is no tighter than the turn radius; otherwise it turns at the turn radius until it points at the destination, then drives straight (the **Drive turns** option makes it always do the latter). A click ahead goes forward, a click behind reverses. With **arrival direction** on (a dialog tick box, or `D` while driving), a second pick sets which way the car faces at the destination, and the leg becomes turn, straight, turn so it arrives exactly on that heading: square into a bay, parallel to an aisle. A leg never turns more than a half turn, so a point inside the turning circle can't be reached in one leg: drive past and reverse. Every leg keeps its own swept path, so a three-point turn is three clicks. `U` takes back the last leg, Enter finishes. |
 
 | **Solve (2 points)** | The start position and direction, then the target position and direction | Finds the movements for you: forward and reverse legs from the start to the target that keep the clearance to everything on the solve boundary layers. See [Solving a multi-point turn](#solving-a-multi-point-turn). |
 | **Solve in and out (3 points)** | The entry, the stop on the site and the exit (position and direction at each), then optionally the site boundary across the driveway | Finds the way in to the stop and the way out again, so the vehicle enters forwards and leaves forwards. See [In and out of a site](#in-and-out-of-a-site-the-3-point-solve). |
@@ -245,8 +246,11 @@ circulating roadways should be at least 8 m radius (A4). Aisle widths for parkin
 from Tables B2/B3 and Figure 2.2, not from swept paths.
 
 **How it works.** The vehicles are the base dimensions of Figures B1 and B2 (B99: 5.2 × 1.94 m,
-wheelbase 3.05 m; B85: 4.91 × 1.87 m, wheelbase 2.8 m), with the effective front and rear overhangs
-and effective width that the standard uses for swept paths (rounded corners). The rear axle cannot
+wheelbase 3.05 m, overhangs 0.95 m front and 1.2 m rear; B85: 4.91 × 1.87 m, wheelbase 2.8 m, overhangs
+0.92 m front and 1.19 m rear), with the effective front and rear overhangs and effective width that the
+standard uses for swept paths (rounded corners). The front of a car is its shorter, rounder end. It is
+the front wheels that steer, so in reverse at full lock the rear axle backs round the arc and the front
+swings out past where the car stood, by about a metre for these cars. The rear axle cannot
 slip sideways, so when a point of the vehicle follows the path the heading changes by that point's
 sideways movement divided by the wheelbase: the classic tractrix. That is why a template starts with
 the car straight and the inner line only gradually tightens, as in the standard's figures. The swept
@@ -273,92 +277,33 @@ when a layer doesn't exist yet. The dialog can change all of it per run; **Save 
 `turn_paths_file` in `%APPDATA%\PointerPath\settings.json` at a shared copy). Vehicles that a saved or shared copy doesn't
 have are still taken from the shipped file, so new vehicles appear after an update.
 
-### Trucks and trailers
+### Trucks
 
-The Austroads design vehicles for roads and commercial sites are included, from the dimension drawings of
-the *Design Vehicles and Turning Path Templates Guide* (AP-G34-23, Edition 4.0):
+The Austroads rigid design vehicles are included, from the dimension drawings of the *Design Vehicles and
+Turning Path Templates Guide* (AP-G34-23, Edition 4.0):
 
 | Vehicle | Guide | Dimensions (m) | Smallest template radius |
 |---|---|---|---|
 | **Service 8.8 m** | Figure 2.3, service vehicle | 2.3 rear overhang, 5.0 wheelbase, 1.5 front overhang | 9 m |
 | **Truck 12.5 m** | Figure 2.4, single unit truck/bus | 3.45, 6.85, 2.2; two rear axles | 12.5 m |
-| **Semi 19 m** | Figure 2.7, prime mover and semi-trailer | prime mover 5.3 wheelbase, 1.6 front overhang, kingpin 0.2 ahead of the drive axles; trailer 1.4 ahead of the kingpin, 9.5 to its axles, 2.8 behind them | 12.5 m |
-| **B-double 25 m** | Figure 2.9 | prime mover 4.0, 1.0, kingpin 0.4 ahead; A-trailer 0.9 and 8.1; B-trailer 0.2, 9.4 and 2.9 | 12.5 m |
-| **B-double 26 m** | Figure 2.10 | prime mover 4.5, 1.4, kingpin over the drive axles; A-trailer 1.4 and 8.05; B-trailer 0.45, 9.15 and 2.9 | 12.5 m |
 
-All are 2.5 m wide. As for the cars, the radius is measured at the outer front wheel, which is how the guide
+Both are 2.5 m wide. As for the cars, the radius is measured at the outer front wheel, which is how the guide
 measures its templates. They default to 0.5 m clearance on both sides (Section 3.4.1: 0.5 m from the swept
-path to kerbs, edge lines and objects) and a 70° limit on the angle between coupled units (Section 3.5). The
-guide's usual choices (Table 2.3): the 19 m semi-trailer at 15 m radius for arterial and industrial
-intersections, the single unit truck at 12.5 m for collector streets, the service vehicle at 9 m for local
-residential streets, with B-doubles as checking vehicles. A few things the guide's figures don't dimension
-are scaled from them and don't move the swept path: the track widths, and how far a prime mover and an
-A-trailer reach behind their axles under the trailer that sits on them.
+path to kerbs, edge lines and objects). The guide's usual choices (Table 2.3): the single unit truck at
+12.5 m for collector streets, the service vehicle at 9 m for local residential streets. The track widths
+aren't dimensioned in the guide's figures; they are scaled from them and don't move the swept path.
 
-Any other vehicle can be added to `turn-paths.json`:
+Any other rigid vehicle can be added to `turn-paths.json`. Give the real body; the `effective_*` fields can
+be left out, because a square body sweeps with its real corners. With a group of rear axles, measure the
+wheelbase and overhangs from the centre of the group.
 
-- **Rigid trucks.** Give the real body; the `effective_*` fields can be left out, because a square body
-  sweeps with its real corners. With a group of rear axles, measure the wheelbase and overhangs from the
-  centre of the group.
-- **Trailers.** Give the towing vehicle a `hitch` (its fifth wheel, in metres ahead of the centre of its
-  rear axles) and a list of `trailers`, front to back. Each trailer has its `width`, its `front_overhang`
-  (the kingpin's setback from the front of the trailer), its `wheelbase` (kingpin to the centre of its axle
-  group), its `rear_overhang` and, when another trailer follows, its own `hitch`. The comments at the top
-  of `turn-paths.json` show the layout.
+Turns are tangential, as the guide's templates are: the vehicle arrives straight and the front wheel
+follows the arc. There is no limit on how fast the steering is wound on.
 
-A trailer is towed the way a real one is: its axles can't slip sideways, so it is dragged round behind its
-coupling and cuts inside the path of the vehicle ahead. The swept path covers the whole combination: the
-trailer's inner side on the inside of the turn, the prime mover's front corner on the outside. Every unit is
-drawn at the start and end (and along the way, with an outline interval), and the report gives the sharpest
-angle the combination folds to, with a warning if it goes past the vehicle's limit.
-
-#### Reversing with a trailer
-
-A trailer pushed backwards doesn't follow the vehicle. It folds one way or the other, faster the further it
-has folded, and the driver steers against that the whole way. PointerPath drives it the same way: the prime
-mover backs up a step at a time, steered no tighter than the turn radius, and each trailer goes where its
-coupling pushes it. What it steers to comes from the fact that driving is reversible: **a reverse along a path
-leaves exactly the tracks of driving that path the other way**. So the swept path of reversing onto a dock
-is the swept path of driving off it, and a reverse can only go where a forward drive could have come from.
-
-- **Follow, with Reverse ticked.** The prime mover's rear axle group follows the line (whatever the path
-  reference point is set to) and the combination finishes in line at the end of it. The trailers start where
-  that needs them, which is where they would be had the vehicle driven the line the other way: folded, if the
-  line turns near its start. The start position is drawn, and the command says how far a trailer starts
-  folded. Begin the line with a straight of two or three trailer lengths to start it in line.
-- **Drive.** A click **behind the last trailer** reverses, and it is the last trailer's axle group that goes
-  to the click, with the combination in line behind it: click the dock, not where the cab ends up. With the
-  arrival direction on, the second pick is the way the vehicle faces once it is there. The leg starts from
-  wherever the last leg left the trailers. To get a trailer round a turn in reverse it has to be folded into
-  the turn first, so every turn begins with a **swing**: the prime mover turns its front *away* from the
-  turn, which folds the trailer into it; the trailer pivots about its axles; and the prime mover follows it
-  round until the two are in line again. A B-double swings out and back to fold both couplings. Between
-  turns the combination backs up in line. The swings show in the leg's description (`reverse, turn left
-  21°, turn right 41°, 28.4 m straight, turn left 30°, turn right 101°`) and take room, which is the point
-  of checking it.
-- The combination is also drawn where it is **folded the most**, mid-pivot, on the layer for outlines along
-  the path: at the start and end of a reverse it is close to straight, which says little about the room it
-  takes in between. How sharply it folds is set by the turn radius. At the 12.5 m the guide's templates
-  use, the 19 m semi-trailer folds to about 40 degrees.
-- Reversing turns are planned at 85% of the lock the turn radius allows, about 1.15 times the radius. The
-  rest is kept in hand to steer the trailers with, and the vehicle is never steered tighter than the radius.
-- **No leg** is offered when the trailers can't be set up for it from where they are: the destination is too
-  close to line up on, or the last leg left a trailer folded the wrong way. Click further away, or drive
-  forward a leg to straighten up first. If a trailer still can't be brought onto its line in the length
-  there is, the command says how far off it finishes; if one folds right round, the reverse stops there.
-
-Limits for a vehicle with trailers:
-
-- **Solve** and **In and out** are for rigid vehicles. Drive a combination leg by leg instead.
-- A reverse is the manoeuvre a good driver could make with room to set up, not the only one. It doesn't
-  shuffle, and it doesn't reverse a trailer that is jackknifed away from the turn.
-- The ground clearance check is for rigid vehicles.
-- Trailer axles are fixed: steerable and self-tracking axles aren't modelled.
-- Turns are tangential, as the guide's templates are: the vehicle arrives straight and the front wheel
-  follows the arc. There is no limit on how fast the steering is wound on.
-
-The other vehicles in the guide (the buses, the long semi-trailer and the road trains) and the AS 2890.2
-vehicles aren't included; they can be added the same way from their dimension drawings.
+**Vehicles with trailers are switched off for now.** The 19 m semi-trailer and the B-doubles are no longer
+in the vehicle list, and a vehicle with trailers in your own `turn-paths.json` is left out when the file is
+read (the command line says so). They come back once the turning of rigid vehicles is settled. A path
+drawn with one can't be edited until then.
 
 ### Conflicts with kerbs, walls and columns
 
@@ -445,7 +390,7 @@ It drives in forwards and out forwards.` Each movement in the command line repor
 part can't be done, nothing is drawn and the message says which (`on the way in, ...`).
 
 The clearance, the search limits and the things to know above apply to both parts. Like the 2-point solve it
-is for cars and rigid trucks; a vehicle with a trailer is refused.
+is for cars and rigid trucks.
 
 ### Solve boundary layers
 

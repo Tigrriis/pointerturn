@@ -16,8 +16,13 @@ namespace PointerPath.Core.Tests
     /// </summary>
     public class TrailerReversingTests
     {
-        private static TurnPathConventions Conventions() =>
-            TurnPathConventions.Load(Path.Combine(AppContext.BaseDirectory, "turn-paths.json"));
+        /// <summary>The shipped vehicles, and the combinations held back from them while trailers are switched off.</summary>
+        private static TurnPathConventions Conventions()
+        {
+            TurnPathConventions c = TurnPathConventions.Load(Path.Combine(AppContext.BaseDirectory, "turn-paths.json"));
+            c.AddMissingVehicles(TurnPathConventions.Load(Path.Combine(AppContext.BaseDirectory, "articulated-vehicles.json")));
+            return c;
+        }
 
         private static DesignVehicle Semi() => Conventions().Vehicle("Semi 19 m");
 

@@ -195,11 +195,16 @@ namespace PointerPath.BricsCAD
         private static TurnPathConventions LoadConventions(Editor ed, out string savePath)
         {
             PointerPathSettings settings = PointerPathSettings.Load();
-            TurnPathConventions? conventions = settings.LoadTurnPathConventions(out string? loadError);
+            TurnPathConventions? conventions = settings.LoadTurnPathConventions(out string? loadError, out List<string> notes);
             if (conventions == null)
             {
                 ed.WriteMessage($"\nPointerPath: the turning path conventions couldn't be loaded ({loadError}); using the built-in B99/B85 defaults.\n");
                 conventions = TurnPathConventions.Default();
+            }
+
+            foreach (string note in notes)
+            {
+                ed.WriteMessage($"\nPointerPath: {note}\n");
             }
 
             savePath = string.IsNullOrWhiteSpace(settings.TurnPathsFile)
