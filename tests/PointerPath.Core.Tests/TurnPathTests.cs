@@ -705,6 +705,81 @@ namespace PointerPath.Core.Tests
             Assert.All(results, r => Assert.True(r.LeftBody.Count > 3 && r.RightBody.Count > 3));
         }
 
+        [Theory]
+        [InlineData("B85", 5.8)]
+        [InlineData("B99", 6.3)]
+        [InlineData("B99", 8.0)]
+        public void ATurnDrivenInSeveralLegsIsTheSameTurn(string name, double radius)
+        {
+            // A long turn to the left at the radius: the front axle goes round its circle. Clicking
+            // points along that circle, one leg each, has to give the same turn as one click at its end.
+            TurnPathConventions c = Conventions();
+            DesignVehicle v = c.Vehicle(name);
+            double rho = v.RearAxleRadius(radius), front = Math.Sqrt(rho * rho + v.Wheelbase * v.Wheelbase);
+            double fullLock = Math.Atan(v.Wheelbase / rho);
+            var centre = new Point2(v.Wheelbase, front);
+            Point2 On(double deg) => new Point2(centre.X + front * Math.Sin(deg * Math.PI / 180), centre.Y - front * Math.Cos(deg * Math.PI / 180));
+            ManoeuvrePlan Drive(params double[] degrees)
+            {
+                var r = new ManoeuvreRecord { Vehicle = name, Mode = "drive", Start = new[] { 0.0, 0 }, HeadingDeg = 0, Radius = radius };
+                r.Stops.AddRange(degrees.Select(d => new DriveStop { Point = new[] { On(d).X, On(d).Y } }));
+                return ManoeuvrePlanner.Plan(r, c);
+            }
+
+            ManoeuvrePlan one = Drive(150), five = Drive(30, 60, 90, 120, 150), many = Drive(Enumerable.Range(1, 30).Select(i => i * 5.0).ToArray());
+            VehiclePose end = one.Legs[0].Result.Poses[one.Legs[0].Result.Poses.Count - 1];
+            foreach (ManoeuvrePlan plan in new[] { five, many })
+            {
+                TurnPathResult last = plan.Legs[plan.Legs.Count - 1].Result;
+                VehiclePose stops = last.Poses[last.Poses.Count - 1];
+                Assert.True(Dist(end.RearAxle, stops.RearAxle) < 0.002, $"{plan.Legs.Count} legs end {Dist(end.RearAxle, stops.RearAxle)} m from where one leg does");
+                Assert.Equal(end.Heading, stops.Heading, 3);
+                Assert.All(plan.Legs, l => Assert.True(l.Result.WithinMinimumRadius));
+                Assert.Empty(plan.Warnings);
+
+                // Every leg sets off the way the last one left the front wheels pointing: no kink in the
+                // front axle's path, and the same tightest turn as the single leg.
+                for (int i = 1; i < plan.Legs.Count; i++)
+                {
+                    Assert.Equal(0, Math.IEEERemainder(plan.Legs[i].Result.Path.TangentAt(0) - plan.Legs[i - 1].Result.EndWheelHeading, 2 * Math.PI), 6);
+                }
+
+                Assert.Equal(one.Legs[0].Result.TightestRadius, plan.Legs.Min(l => l.Result.TightestRadius), 2);
+                Assert.Equal(one.Legs[0].Result.NetTurnDeg, plan.Legs.Sum(l => l.Result.NetTurnDeg), 2);
+            }
+
+            // The wheels: straight at the start, wound on through the turn towards the lock, never past it.
+            TurnPathResult turn = one.Legs[0].Result;
+            double steer = Math.IEEERemainder(turn.EndWheelHeading - end.Heading, 2 * Math.PI);
+            Assert.InRange(steer, 0.9 * fullLock, fullLock + 1e-9);
+            Assert.All(five.Legs, l =>
+            {
+                VehiclePose at = l.Result.Poses[l.Result.Poses.Count - 1];
+                Assert.InRange(Math.IEEERemainder(l.Result.EndWheelHeading - at.Heading, 2 * Math.PI), 0, fullLock + 1e-9);
+            });
+
+            // Out of the turn and straight into one the other way: the leg starts along the wheels,
+            // not along the body, and the steering comes back through straight without passing the lock.
+            Point2 nose = end.ToWorld(v.Wheelbase, 0);
+            var across = new Point2(nose.X + 14 * Math.Cos(turn.EndWheelHeading - 1.2), nose.Y + 14 * Math.Sin(turn.EndWheelHeading - 1.2));
+            TurnPathBuilder.DriveLeg right = TurnPathBuilder.DriveTo(v, end, across, radius, wheels: turn.EndWheelHeading)!;
+            Assert.False(right.Left);
+            Assert.Equal(0, Math.IEEERemainder(right.Request.Path.TangentAt(0) - turn.EndWheelHeading, 2 * Math.PI), 9);
+            TurnPathResult bend = TurnPathSimulator.Simulate(right.Request);
+            Assert.True(bend.WithinMinimumRadius, $"tightest {bend.TightestRadius}");
+            Assert.True(Dist(bend.Poses[bend.Poses.Count - 1].ToWorld(v.Wheelbase, 0), across) < 1e-6);
+
+            // Wheels said to be further over than the lock are taken as on it.
+            TurnPathBuilder.DriveLeg over = TurnPathBuilder.DriveTo(v, end, across, radius, wheels: end.Heading + 1.2)!;
+            Assert.Equal(fullLock, Math.IEEERemainder(over.Request.Path.TangentAt(0) - end.Heading, 2 * Math.PI), 9);
+
+            // A leg with the wheels straight still starts along the body, and after a reverse they are straight.
+            Assert.Equal(0, Math.IEEERemainder(TurnPathBuilder.DriveTo(v, end, across, radius)!.Request.Path.TangentAt(0) - end.Heading, 2 * Math.PI), 9);
+            TurnPathResult back = TurnPathSimulator.Simulate(TurnPathBuilder.DriveTo(v, end, end.ToWorld(-6, 2.5), radius)!.Request);
+            Assert.True(back.Reverse);
+            Assert.Equal(0, Math.IEEERemainder(back.EndWheelHeading - back.Poses[back.Poses.Count - 1].Heading, 2 * Math.PI), 9);
+        }
+
         [Fact]
         public void CurveIsRunFromTheEndNearestThePick()
         {

@@ -60,7 +60,12 @@ way out. Nothing in between knows what the drawing is drawn in.
   path. For a combination it is the union over every unit.
 - **Templates and driving** (`TurnPathBuilder`, `ManoeuvrePlanner`): a standard turn from a start
   point, a vehicle along an existing curve, or a drive leg by leg (turn at the radius, then
-  straight; forwards or in reverse; optionally arriving on a set heading). A reverse with trailers
+  straight; forwards or in reverse; optionally arriving on a set heading). Forwards it is the
+  front axle that follows the leg's path, and it travels the way its wheels point, which coming
+  out of a turn is up to the full lock away from the way the vehicle faces. So each result says
+  which way it left the wheels (`EndWheelHeading`) and the next forward leg's path starts that
+  way: the front axle's path has no kink at a click, and a turn driven in several legs is the turn
+  driven in one. A reverse with trailers
   (`TurnPathBuilder.ReverseTowed`) takes the last trailer's axle group to the destination, and
   starts with a swing of the vehicle, one way then if need be the other, whose lengths are found
   so that the leg's line starts with the trailers folded exactly as they are. Onto a heading, the

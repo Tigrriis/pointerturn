@@ -121,6 +121,14 @@ namespace PointerPath.Core.Vehicles
 
         public List<string> Warnings { get; } = new List<string>();
 
+        /// <summary>
+        /// Which way the front wheels point as the manoeuvre ends (radians): the vehicle's heading
+        /// plus its steering angle. The next forward leg of a drive sets off that way, so a turn
+        /// carries on through a click instead of starting again from straight wheels. After a
+        /// reverse they are taken as straight.
+        /// </summary>
+        public double EndWheelHeading { get; set; }
+
         /// <summary>The trailers, front to back. Empty for a rigid vehicle.</summary>
         public List<TrailerTrack> Trailers { get; } = new List<TrailerTrack>();
 
@@ -285,6 +293,7 @@ namespace PointerPath.Core.Vehicles
                 track.Curvatures.AddRange(CurvaturesOf(track.Poses, result.Reverse));
             }
 
+            result.EndWheelHeading = WheelHeadingAtEnd(req, result);
             result.MaxArticulationDeg = SharpestFold(result, out int foldedAt) * 180 / Math.PI;
             result.SharpestFoldAt = foldedAt;
             Envelopes(req, result);
@@ -376,6 +385,26 @@ namespace PointerPath.Core.Vehicles
             }
 
             return tracks;
+        }
+
+        /// <summary>
+        /// Which way the front wheels point as the manoeuvre ends. Driving forwards the front axle
+        /// travels the way they point: along the path, when it is the front axle that follows it;
+        /// otherwise the vehicle's heading plus the steering angle that turns it as tightly as it is
+        /// turning. After a reverse the vehicle has stopped, and they are taken as straight.
+        /// </summary>
+        private static double WheelHeadingAtEnd(TurnPathRequest req, TurnPathResult r)
+        {
+            DesignVehicle v = r.Vehicle;
+            int last = r.Poses.Count - 1;
+            double heading = r.Poses[last].Heading;
+            if (r.Reverse)
+            {
+                return heading;
+            }
+
+            bool frontAxle = Math.Abs(r.Reference.X - v.Wheelbase) < 1e-9 && Math.Abs(r.Reference.Y) < 1e-9;
+            return Angles.Normalize(frontAxle ? r.Path.TangentAt(r.Path.Length) : heading + Math.Atan(v.Wheelbase * r.Curvatures[last]));
         }
 
         /// <summary>A trailer's heading after its coupling has moved by (dx, dy): Heun's method, as for the vehicle itself.</summary>

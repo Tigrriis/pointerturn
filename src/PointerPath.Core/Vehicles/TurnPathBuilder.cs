@@ -150,9 +150,16 @@ namespace PointerPath.Core.Vehicles
         /// is that trailer's axle group that arrives there, with the combination in line: see
         /// <see cref="ReverseTowed"/>. <paramref name="trailerHeadings"/> is which way each trailer
         /// faces at the start (radians, front to back; null: straight behind).
+        ///
+        /// <paramref name="wheels"/> is which way the front wheels point at the start (radians; null:
+        /// straight ahead). Coming out of a turn they are still turned, and the front axle travels
+        /// the way they point, not the way the vehicle faces: a forward leg carries on from there
+        /// (see <see cref="TurnPathResult.EndWheelHeading"/>). Without it every leg would begin with
+        /// the wheels straightened and the lock wound on again, and a turn driven in several legs
+        /// would come out wider than the same turn driven in one.
         /// </summary>
         public static DriveLeg? DriveTo(DesignVehicle v, VehiclePose start, Point2 target, double? outerWheelRadius = null, bool? reverse = null, DriveTurns turns = DriveTurns.Arc,
-            IReadOnlyList<double>? trailerHeadings = null)
+            IReadOnlyList<double>? trailerHeadings = null, double? wheels = null)
         {
             double radius = outerWheelRadius ?? v.MinTurnRadius;
             if (radius < v.MinTurnRadius - 1e-9)
@@ -172,7 +179,7 @@ namespace PointerPath.Core.Vehicles
                 reverse = false;
             }
 
-            DriveLeg? leg = DriveRigid(v, start, target, radius, reverse, turns);
+            DriveLeg? leg = DriveRigid(v, start, target, radius, reverse, turns, wheels);
             if (leg != null)
             {
                 leg.Request.InitialTrailerHeadings = trailerHeadings;
@@ -181,7 +188,7 @@ namespace PointerPath.Core.Vehicles
             return leg;
         }
 
-        private static DriveLeg? DriveRigid(DesignVehicle v, VehiclePose start, Point2 target, double radius, bool? reverse, DriveTurns turns)
+        private static DriveLeg? DriveRigid(DesignVehicle v, VehiclePose start, Point2 target, double radius, bool? reverse, DriveTurns turns, double? wheels)
         {
             double c = Math.Cos(start.Heading), s = Math.Sin(start.Heading);
             double ahead = (target.X - start.RearAxle.X) * c + (target.Y - start.RearAxle.Y) * s;
@@ -191,7 +198,16 @@ namespace PointerPath.Core.Vehicles
             VehiclePoint reference = back ? v.RearAxleCentre : v.FrontAxleCentre;
             double refRadius = v.RadiusOfPoint(radius, reference, left: true);
             Point2 p0 = start.ToWorld(reference);
-            double travel = back ? start.Heading + Math.PI : start.Heading;
+            double travel = start.Heading + Math.PI;
+            if (!back)
+            {
+                // The front axle sets off the way its wheels point: as the last leg left them, no
+                // further over than the lock for this radius.
+                double fullLock = Math.Atan(v.Wheelbase / v.RearAxleRadius(radius));
+                double steer = wheels is double w ? Angles.Wrap(w - start.Heading) : 0;
+                travel = start.Heading + Math.Max(-fullLock, Math.Min(fullLock, steer));
+            }
+
             double ux = Math.Cos(travel), uy = Math.Sin(travel);
             double nx = -uy, ny = ux;
             double dxT = target.X - p0.X, dyT = target.Y - p0.Y;
