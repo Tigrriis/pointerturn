@@ -71,7 +71,7 @@
 <p class="price"><span class="price__amount"><%= price.amount %></span><% if (price.recurring) { %> <span class="price__unit">per <%= price.interval %></span><% } %></p>
 <p class="price__note"><%= [price.currency, price.tax].filter(Boolean).join(', ') %></p>
 <% } %>
-<a class="button button--amber" href="/buy">Buy a licence</a>
+<a class="button button--accent" href="/buy">Buy a licence</a>
 </div>
 </div>
 </section>

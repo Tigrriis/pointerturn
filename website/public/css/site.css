@@ -58,8 +58,8 @@ a:hover { color: #000; }
 .button:hover { background: #000; color: var(--pt-white); }
 .button[disabled] { background: var(--pt-line); color: var(--pt-graphite); cursor: not-allowed; }
 .button--small { min-height: 44px; padding: 10px 20px; font-size: 16px; border-radius: 12px; }
-.button--amber { background: var(--pt-amber); color: var(--pt-ink); }
-.button--amber:hover { background: #FFD04D; color: var(--pt-ink); }
+.button--accent { background: var(--pt-accent); color: var(--pt-ink); }
+.button--accent:hover { background: #7BE7FF; color: var(--pt-ink); }
 
 .link-button {
   min-height: 44px; padding: 10px 0; border: 0; background: none; color: var(--pt-ink);
@@ -70,7 +70,7 @@ a:hover { color: #000; }
 /* ---- Messages ---- */
 
 .flash { margin: 0 0 8px; padding: 14px 18px; border-radius: 14px; background: var(--pt-highlight); color: var(--pt-ink); font-weight: 500; }
-.notice { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 24px; margin-bottom: 24px; padding: 18px 20px; border: 1px solid var(--pt-amber); border-radius: var(--pt-radius-card); background: var(--pt-highlight); }
+.notice { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 24px; margin-bottom: 24px; padding: 18px 20px; border: 1px solid var(--pt-accent); border-radius: var(--pt-radius-card); background: var(--pt-highlight); }
 .notice p { color: var(--pt-ink); flex: 1 1 320px; }
 .notice form { margin: 0; }
 .hint { font-size: 14px; color: var(--pt-graphite); }
@@ -81,7 +81,7 @@ a:hover { color: #000; }
 .hero__text { flex: 1 1 520px; min-width: 0; display: flex; flex-direction: column; gap: 28px; }
 .hero__art { flex: 1 1 380px; min-width: 0; display: flex; justify-content: center; }
 .hero h1 { font-size: clamp(42px, 5.4vw, 78px); line-height: 1.08; }
-.mark { background: var(--pt-amber); border-radius: var(--pt-radius-highlight); padding: 0 10px; margin-left: -10px; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+.mark { background: var(--pt-accent); border-radius: var(--pt-radius-highlight); padding: 0 10px; margin-left: -10px; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
 .lead { font-size: 20px; max-width: 540px; }
 .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 16px 28px; }
 
@@ -98,7 +98,7 @@ a:hover { color: #000; }
 .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr)); gap: 24px; padding-bottom: 72px; }
 .card, .panel { background: var(--pt-white); border: 1px solid var(--pt-line); border-radius: var(--pt-radius-card); padding: 28px; }
 .card { display: flex; flex-direction: column; gap: 12px; }
-.card__bar { width: 36px; height: 8px; border-radius: 4px; background: var(--pt-amber); }
+.card__bar { width: 36px; height: 8px; border-radius: 4px; background: var(--pt-accent); }
 .card h2 { font-size: 26px; letter-spacing: -0.02em; }
 
 .band { background: var(--pt-white); border-top: 1px solid var(--pt-line); border-bottom: 1px solid var(--pt-line); }
@@ -152,7 +152,7 @@ a:hover { color: #000; }
 .panel__foot { margin-top: 16px; padding-top: 8px; border-top: 1px solid var(--pt-line); }
 .status { display: inline-block; margin-bottom: 4px; padding: 4px 12px; border-radius: var(--pt-radius-pill); font-size: 14px; font-weight: 600; background: var(--pt-paper); color: var(--pt-ink); border: 1px solid var(--pt-line); }
 .status--active { background: #E2F4E6; color: #14532D; border-color: #B5DFC0; }
-.status--past_due { background: var(--pt-highlight); border-color: var(--pt-amber); }
+.status--past_due { background: var(--pt-warning); border-color: var(--pt-warning-line); }
 .machines { margin: 16px 0 0; padding: 0; list-style: none; }
 .machines li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 24px; padding: 10px 0; border-top: 1px solid var(--pt-line); }
 .machines li > div { display: flex; flex-direction: column; }
@@ -167,7 +167,7 @@ a:hover { color: #000; }
 .site-footer__nav { display: flex; flex-wrap: wrap; gap: 4px 28px; font-weight: 500; }
 .site-footer__nav a { color: var(--pt-white); text-decoration: none; padding: 12px 0; }
 .site-footer__nav a:hover { text-decoration: underline; text-underline-offset: 6px; }
-.site-footer :focus-visible { outline-color: var(--pt-amber); }
+.site-footer :focus-visible { outline-color: var(--pt-accent); }
 
 @media (max-width: 600px) {
   .wrap { padding-left: 20px; padding-right: 20px; }

@@ -1,11 +1,13 @@
 /* PointerPath brand tokens. See README.md in this folder. */
 :root {
   /* Colour */
-  --pt-amber: #FFC21A;      /* the accent: icon tile, highlights, buttons on ink */
+  --pt-accent: #3FDCFF;     /* the accent: icon tile, highlights, buttons on ink */
   --pt-ink: #111A22;        /* logomark, headings, primary buttons, dark bands */
   --pt-paper: #F5F6F4;      /* page background */
   --pt-white: #FFFFFF;      /* cards and panels */
-  --pt-highlight: #FFEFB0;  /* pale amber fill, e.g. a clearance envelope */
+  --pt-highlight: #CBF5FF;  /* pale accent fill, e.g. a clearance envelope */
+  --pt-warning: #FFEFB0;    /* something needs attention, e.g. an overdue payment */
+  --pt-warning-line: #D9A300;
   --pt-slate: #36414B;      /* body text on paper or white */
   --pt-graphite: #55606B;   /* secondary text and small labels */
   --pt-line: #D5D9DC;       /* borders and dividers */
