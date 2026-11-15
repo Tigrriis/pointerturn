@@ -417,8 +417,9 @@ namespace PointerPath.BricsCAD
             DesignVehicle v = c.Vehicle;
             DrawingUnits units = DrawingUnits.Of(r.UnitsPerMetre);
             TurnPathConventions conv = c.Conventions;
-            // Each leg: where it went, where it left the vehicle (and any trailers), and its graphics.
-            var legs = new List<(DriveStop Stop, VehiclePose End, List<EntitySpec> Graphics, IReadOnlyList<double>? Trailers)>();
+            // Each leg: where it went, where it left the vehicle (and any trailers), its graphics, and
+            // which way it left the front wheels pointing, so the next leg carries on from there.
+            var legs = new List<(DriveStop Stop, VehiclePose End, List<EntitySpec> Graphics, IReadOnlyList<double>? Trailers, double Wheels)>();
             if (continueDrive)
             {
                 // The existing legs, as drawn: the new ones carry on from where they end.
@@ -426,18 +427,23 @@ namespace PointerPath.BricsCAD
                 for (int i = 0; i < plan.Legs.Count; i++)
                 {
                     TurnPathResult result = plan.Legs[i].Result;
-                    legs.Add((r.Stops[i], result.Poses[result.Poses.Count - 1], preview.Specs(result, startVehicle: false), result.Trailers.Count > 0 ? result.EndTrailerHeadings : null));
+                    legs.Add((r.Stops[i], result.Poses[result.Poses.Count - 1], preview.Specs(result, startVehicle: false), result.Trailers.Count > 0 ? result.EndTrailerHeadings : null, result.EndWheelHeading));
                 }
             }
             else
             {
-                if (!PickStartAndHeading(ed, units, "\nStart point (centre of the rear axle of the vehicle): ", out Point2 start, out double heading,
-                    (at, cursor) => PreviewBuilder.Vehicle(v, new VehiclePose(at, Math.Atan2(cursor.Y - at.Y, cursor.X - at.X)))))
+                // The start is picked by the front axle, as every destination ahead is: the point that
+                // leads the vehicle. The record keeps the rear axle, a wheelbase behind it.
+                VehiclePose FrontAt(Point2 front, double facing) =>
+                    new VehiclePose(new Point2(front.X - v.Wheelbase * Math.Cos(facing), front.Y - v.Wheelbase * Math.Sin(facing)), facing);
+                if (!PickStartAndHeading(ed, units, "\nStart point (centre of the front axle of the vehicle): ", out Point2 start, out double heading,
+                    (at, cursor) => PreviewBuilder.Vehicle(v, FrontAt(at, Math.Atan2(cursor.Y - at.Y, cursor.X - at.X)))))
                 {
                     return false;
                 }
 
-                r.Start = new[] { start.X, start.Y };
+                Point2 rearAxle = FrontAt(start, heading).RearAxle;
+                r.Start = new[] { rearAxle.X, rearAxle.Y };
                 r.HeadingDeg = heading * 180 / Math.PI;
             }
 
@@ -448,6 +454,7 @@ namespace PointerPath.BricsCAD
             {
                 VehiclePose from = legs.Count > 0 ? legs[legs.Count - 1].End : startPose;
                 IReadOnlyList<double>? towed = legs.Count > 0 ? legs[legs.Count - 1].Trailers : null;
+                double? wheels = legs.Count > 0 ? legs[legs.Count - 1].Wheels : (double?)null;
                 List<EntitySpec> fixedGraphics = PreviewBuilder.Vehicle(v, startPose);
                 fixedGraphics.AddRange(legs.SelectMany(l => l.Graphics));
 
@@ -457,11 +464,11 @@ namespace PointerPath.BricsCAD
                         ? "\nWhere the vehicle drives to (ahead = forward, behind the trailer = reverse the trailer to there) or [Direction]: "
                         : "\nWhere the vehicle drives to (ahead = forward, behind = reverse) or [Direction]: ")
                     : canUndo ? "\nNext destination or [Undo/Direction] (Enter to finish): " : "\nNext destination or [Direction] (Enter to finish): ";
-                Point2 fromInDrawing = units.ToDrawing(from.RearAxle);
+                Point2 fromInDrawing = units.ToDrawing(from.ToWorld(v.Wheelbase, 0));   // the rubber band runs from the front axle
                 var jig = new TurnPathJig(units, prompt, new Point3d(fromInDrawing.X, fromInDrawing.Y, 0), canUndo ? new[] { "Undo", "Direction" } : new[] { "Direction" },
                     cursor =>
                     {
-                        TurnPathBuilder.DriveLeg? leg = TurnPathBuilder.DriveTo(v, from, cursor, r.Radius, null, r.TurnsKind, towed);
+                        TurnPathBuilder.DriveLeg? leg = TurnPathBuilder.DriveTo(v, from, cursor, r.Radius, null, r.TurnsKind, towed, wheels);
                         if (leg == null)
                         {
                             return null;
@@ -530,7 +537,7 @@ namespace PointerPath.BricsCAD
                     }
                 }
 
-                TurnPathBuilder.DriveLeg? chosen = ManoeuvrePlanner.Leg(v, from, stop, r.Radius, r.TurnsKind, towed);
+                TurnPathBuilder.DriveLeg? chosen = ManoeuvrePlanner.Leg(v, from, stop, r.Radius, r.TurnsKind, towed, wheels);
                 if (chosen == null)
                 {
                     ed.WriteMessage(stop.HeadingDeg != null
@@ -554,7 +561,7 @@ namespace PointerPath.BricsCAD
                     ed.WriteMessage($"\n    {warning}");
                 }
 
-                legs.Add((stop, result.Poses[result.Poses.Count - 1], preview.Specs(result, startVehicle: false), result.Trailers.Count > 0 ? result.EndTrailerHeadings : null));
+                legs.Add((stop, result.Poses[result.Poses.Count - 1], preview.Specs(result, startVehicle: false), result.Trailers.Count > 0 ? result.EndTrailerHeadings : null, result.EndWheelHeading));
             }
 
             if (legs.Count == 0)

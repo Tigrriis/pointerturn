@@ -438,9 +438,10 @@ namespace PointerPath.Core.Vehicles
                 {
                     var pose = new VehiclePose(r.StartPoint, r.HeadingDeg * Math.PI / 180);
                     IReadOnlyList<double>? trailers = null;   // where the last leg left the trailers
+                    double? wheels = null;                    // and which way it left the front wheels pointing
                     for (int i = 0; i < r.Stops.Count; i++)
                     {
-                        TurnPathBuilder.DriveLeg? leg = Leg(v, pose, r.Stops[i], r.Radius, r.TurnsKind, trailers);
+                        TurnPathBuilder.DriveLeg? leg = Leg(v, pose, r.Stops[i], r.Radius, r.TurnsKind, trailers, wheels);
                         if (leg == null)
                         {
                             throw new ArgumentException($"The {v.Name} can't reach destination {i + 1} in one leg at a {r.Radius:0.##} m radius: it is too close, inside the turning circle, or would need more than a half turn" +
@@ -449,6 +450,7 @@ namespace PointerPath.Core.Vehicles
 
                         TurnPathResult result = Run(leg.Request);
                         trailers = result.Trailers.Count > 0 ? result.EndTrailerHeadings : null;
+                        wheels = result.EndWheelHeading;
                         plan.Warnings.AddRange(result.Warnings.Select(w => $"Leg {i + 1}: {w}"));
                         plan.Legs.Add(new PlannedLeg { Result = result, Label = v.Name, First = i == 0, Description = Describe(leg) });
                         pose = result.Poses[result.Poses.Count - 1];
@@ -555,14 +557,16 @@ namespace PointerPath.Core.Vehicles
         /// <summary>
         /// The leg to one stop: to a pose when the stop has a heading, otherwise to the point.
         /// <paramref name="trailers"/> is which way each trailer faces at the start (radians; null:
-        /// straight behind the vehicle).
+        /// straight behind the vehicle), and <paramref name="wheels"/> which way the front wheels
+        /// point (radians; null: straight ahead): both as the last leg left them.
         /// </summary>
-        public static TurnPathBuilder.DriveLeg? Leg(DesignVehicle v, VehiclePose from, DriveStop stop, double radius, TurnPathBuilder.DriveTurns turns, IReadOnlyList<double>? trailers = null)
+        public static TurnPathBuilder.DriveLeg? Leg(DesignVehicle v, VehiclePose from, DriveStop stop, double radius, TurnPathBuilder.DriveTurns turns, IReadOnlyList<double>? trailers = null,
+            double? wheels = null)
         {
             var target = new Point2(stop.Point[0], stop.Point[1]);
             return stop.HeadingDeg is double h
                 ? TurnPathBuilder.DriveToPose(v, from, target, h * Math.PI / 180, radius, null, trailers)
-                : TurnPathBuilder.DriveTo(v, from, target, radius, null, turns, trailers);
+                : TurnPathBuilder.DriveTo(v, from, target, radius, null, turns, trailers, wheels);
         }
 
         public static string Describe(TurnPathBuilder.DriveLeg leg)
