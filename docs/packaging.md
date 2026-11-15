@@ -123,11 +123,15 @@ to V26 and AutoCAD 2024 and 2025. Checked there:
 - installing over an existing install replaces it and clears out files no longer shipped;
 - uninstalling removes every file and leaves the registry exactly as it was before installing.
 
+Since then the installer has been built on Windows, with BricsCAD V26's API files, and run
+there: it installed into a real BricsCAD V26, which loaded the add-in and ran its commands.
+That is the one case checked on Windows.
+
 Not checked, because it needs Windows and the real programs:
 
-1. **A real BricsCAD and a real AutoCAD loading it.** Nothing here has been loaded by either.
-   The BricsCAD builds in the test installer were stand-ins, since BricsCAD's API files weren't
-   available: the BricsCAD project still has to be built for real.
+1. **The other programs loading it.** BricsCAD V24 and V25 (the .NET Framework build) and
+   AutoCAD have not loaded it. Upgrading over an install and uninstalling have not been tried
+   on Windows.
 2. **The registry layout.** `Software\Bricsys\BricsCAD\V25x64\en_US` is taken from the existing
    `Register-Autoload.ps1` and the developer reference. Confirm it in `regedit` for V24, V25 and
    V26, and that BricsCAD loads from the `HKEY_LOCAL_MACHINE` entry as well as the
