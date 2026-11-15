@@ -30,13 +30,18 @@ namespace PointerPath.Core.Tests
             DesignVehicle v = DesignVehicle.B99;
             (double X, double Z)[] t = v.UndersideTemplate();
             Assert.Equal(4, t.Length);
-            Assert.Equal(-0.95, t[0].X, 9);                       // rear extremity
+            Assert.Equal(-1.2, t[0].X, 9);                        // rear extremity: 1200 behind the rear axle
             Assert.Equal(0.12, t[1].Z, 9);                        // 120 mm at the rear axle
             Assert.Equal(3.05, t[2].X, 9);                        // front axle
             Assert.Equal(0.12, t[2].Z, 9);
-            Assert.Equal(4.25, t[3].X, 9);                        // front extremity
-            Assert.Equal(0.12 + 1.2 * Math.Tan(10 * Math.PI / 180), t[3].Z, 9);
-            Assert.Equal(0.12 + 0.95 * Math.Tan(10 * Math.PI / 180), t[0].Z, 9);
+            Assert.Equal(4.0, t[3].X, 9);                         // front extremity: 950 ahead of the front axle
+            Assert.Equal(0.12 + 0.95 * Math.Tan(10 * Math.PI / 180), t[3].Z, 9);
+            Assert.Equal(0.12 + 1.2 * Math.Tan(10 * Math.PI / 180), t[0].Z, 9);
+
+            // The B85: 920 front, 2800 wheelbase, 1190 rear.
+            (double X, double Z)[] b85 = DesignVehicle.B85.UndersideTemplate();
+            Assert.Equal(-1.19, b85[0].X, 9);
+            Assert.Equal(2.8 + 0.92, b85[3].X, 9);
             Assert.Equal(0.08, DesignVehicle.B85.UndersideTemplate(0.08)[1].Z, 9);
         }
 
@@ -97,11 +102,13 @@ namespace PointerPath.Core.Tests
         public void RampAgainstTheApproachAngle()
         {
             // The underside rises at 10 degrees (17.6 %) from 120 mm at the front axle, so with the
-            // wheels still on the flat a ramp grounds the 1.2 m front overhang once it is steeper than
-            // (0.12 + 1.2 tan 10) / 1.2 = 27.6 %.
+            // wheels still on the flat a ramp grounds the 0.95 m front overhang once it is steeper than
+            // (0.12 + 0.95 tan 10) / 0.95 = 30.3 %.
             DesignVehicle v = DesignVehicle.B99;
             GroundClearanceResult gentle = GroundClearanceChecker.CheckProfile(Ramp(0.25), v);
             Assert.True(gentle.Passes);
+            // The tightest it gets is at the other end: the 1.2 m rear overhang, tilted into the flat
+            // as the rear wheels start up the ramp, which would ground beyond (0.12 + 1.2 tan 10) / 1.2 = 27.6 %.
             Assert.Equal(0.12 + 1.2 * (Math.Tan(10 * Math.PI / 180) - 0.25), gentle.WorstForward!.MinGap, 2);
 
             GroundClearanceResult steep = GroundClearanceChecker.CheckProfile(Ramp(0.35), v);
@@ -109,9 +116,10 @@ namespace PointerPath.Core.Tests
             Assert.Contains(steep.Groundings, g => g.Part == "front overhang" && g.Forward);
             Assert.Contains(steep.Groundings, g => g.Part == "rear overhang" && !g.Forward); // reversing down the same ramp
 
-            // Where the front overhang hangs over the ramp: the gap point is up the ramp.
+            // It grounds worst where the rear overhang hangs back over the flat: at the foot of the ramp.
             ClearancePosition w = steep.WorstForward!;
-            Assert.True(w.GapChainage > 20 && w.GapChainage > w.FrontChainage);
+            Assert.InRange(w.GapChainage, 18.5, 20.5);
+            Assert.True(w.GapChainage < w.FrontChainage);
 
             // A vehicle with more clearance (or a lower required clearance) passes.
             Assert.True(GroundClearanceChecker.CheckProfile(Ramp(0.35), v, groundClearance: 0.3).Passes);
@@ -212,16 +220,18 @@ namespace PointerPath.Core.Tests
             PathClearanceResult r = GroundClearanceChecker.CheckAlongPath(StraightDrive(v), RampSurface(0.35), 0.1);
             Assert.False(r.Passes);
             Assert.NotNull(r.Worst);
-            Assert.Equal("front overhang", r.Worst!.Part);
+            // Both overhangs ground at the foot of this ramp: the front one as it reaches out over the
+            // ramp, and worse, the longer rear one as the rear wheels climb and tilt it into the flat.
+            Assert.Equal("rear overhang", r.Worst!.Part);
             foreach (PathClearanceSide side in r.Sides)
             {
                 Assert.NotNull(side.Worst);
                 Assert.True(side.Worst!.MinGap < 0);
                 // Grounds while the front overhang is over the ramp but the front wheels are still on the
-                // flat; and again, less, when the rear wheels reach the foot and the rear overhang tilts into the flat.
+                // flat; and again, more, when the rear wheels reach the foot and the rear overhang tilts into the flat.
                 Assert.InRange(side.Groundings.Count, 1, 2);
                 Assert.InRange(side.Groundings[0].From, 19, 21);
-                Assert.InRange(side.Worst.GapPoint.X, 20, 21.5);
+                Assert.InRange(side.Worst.GapPoint.X, 18.5, 20.5);
                 Assert.NotNull(side.WheelPathProfile);
             }
 
@@ -259,7 +269,7 @@ namespace PointerPath.Core.Tests
             Assert.All(r.Sides, s => Assert.True(s.UndersideEnvelope.Count >= 2));
             Assert.Equal(2, plots.Count(d => d.Group == "labels" && ((TextSpec)d.Spec).Text.Contains("wheel path")));
             Assert.True(plots.Count(d => d.Group == "clearance_fail") >= 2);
-            Assert.All(plots.Select(d => d.Spec).OfType<PolylineSpec>(), p => Assert.All(p.Points, pt => Assert.True(pt.X >= 99 && pt.Y <= 100.5)));
+            Assert.All(plots.Select(d => d.Spec).OfType<PolylineSpec>(), p => Assert.All(p.Points, pt => Assert.True(pt.X >= 100 - v.RearOverhang - 1e-6 && pt.Y <= 100.5)));
         }
 
         // ---------------------------------------------------------------- tool

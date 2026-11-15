@@ -342,7 +342,10 @@ namespace PointerPath.Core.Vehicles
         [JsonIgnore]
         public double CornerSweep => CornerInset < 1e-9 ? 0 : 2 * Math.Atan2(CornerInset, CornerLength);
 
-        /// <summary>AS/NZS 2890.1:2004 Figure B1: the 99.8th percentile car.</summary>
+        /// <summary>
+        /// AS/NZS 2890.1:2004 Figure B1: the 99.8th percentile car. As on the standard's cars, the
+        /// front overhang is the shorter and the front is the rounder end.
+        /// </summary>
         public static DesignVehicle B99 => new DesignVehicle
         {
             Name = "B99",
@@ -350,10 +353,10 @@ namespace PointerPath.Core.Vehicles
             Length = 5.2,
             Width = 1.94,
             Wheelbase = 3.05,
-            FrontOverhang = 1.2,
-            RearOverhang = 0.95,
-            EffectiveFrontOverhang = 1.15,
-            EffectiveRearOverhang = 0.8,
+            FrontOverhang = 0.95,
+            RearOverhang = 1.2,
+            EffectiveFrontOverhang = 0.8,
+            EffectiveRearOverhang = 1.15,
             EffectiveWidth = 1.84,
             Track = 1.62,
             MinTurnRadius = 6.3,
@@ -369,10 +372,10 @@ namespace PointerPath.Core.Vehicles
             Length = 4.91,
             Width = 1.87,
             Wheelbase = 2.8,
-            FrontOverhang = 1.19,
-            RearOverhang = 0.92,
-            EffectiveFrontOverhang = 1.1,
-            EffectiveRearOverhang = 0.75,
+            FrontOverhang = 0.92,
+            RearOverhang = 1.19,
+            EffectiveFrontOverhang = 0.75,
+            EffectiveRearOverhang = 1.1,
             EffectiveWidth = 1.77,
             Track = 1.57,
             MinTurnRadius = 5.8,

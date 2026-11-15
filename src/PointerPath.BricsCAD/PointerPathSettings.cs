@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using PointerPath.Core.Vehicles;
@@ -77,10 +79,17 @@ namespace PointerPath.BricsCAD
         }
 
         /// <summary>The turning path conventions, or null with the reason.</summary>
-        public TurnPathConventions? LoadTurnPathConventions(out string? error)
+        public TurnPathConventions? LoadTurnPathConventions(out string? error) => LoadTurnPathConventions(out error, out _);
+
+        /// <summary>
+        /// The turning path conventions, or null with the reason. <paramref name="notes"/> says what
+        /// was changed in the file as it was read: cars turned the right way round, vehicles left out.
+        /// </summary>
+        public TurnPathConventions? LoadTurnPathConventions(out string? error, out List<string> notes)
         {
             string path = ResolvedTurnPathsPath();
             error = null;
+            notes = new List<string>();
             try
             {
                 if (!File.Exists(path))
@@ -104,6 +113,32 @@ namespace PointerPath.BricsCAD
                     {
                         // The user's own file is good: a problem with the shipped one is not theirs to see here.
                     }
+                }
+
+                // A copy saved before the B85 and B99 were corrected has them back to front.
+                List<string> corrected = conventions.CorrectReversedCars();
+                if (corrected.Count > 0)
+                {
+                    notes.Add($"{string.Join(" and ", corrected)}: front and rear overhangs were the wrong way round in {path} and have been corrected to AS/NZS 2890.1 (front the shorter). " +
+                              "Paths drawn before will change when edited. Save as defaults in the dialog to keep the correction.");
+                }
+
+                // Vehicles with trailers are switched off for now.
+                List<string> towing = conventions.RemoveVehiclesWithTrailers();
+                if (towing.Count > 0)
+                {
+                    notes.Add($"vehicles with trailers are switched off for now, so {string.Join(", ", towing)} {(towing.Count == 1 ? "is" : "are")} not offered.");
+                }
+
+                if (conventions.Vehicles.Count == 0)
+                {
+                    error = $"{path} has no vehicles without trailers";
+                    return null;
+                }
+
+                if (!conventions.Vehicles.ContainsKey(conventions.DefaultVehicle ?? ""))
+                {
+                    conventions.DefaultVehicle = conventions.Vehicles.Keys.First();
                 }
 
                 return conventions;
