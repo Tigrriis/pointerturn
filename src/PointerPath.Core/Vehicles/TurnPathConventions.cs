@@ -36,6 +36,9 @@ namespace PointerPath.Core.Vehicles
         /// <summary>Drive mode turns: "arc" (one arc to the destination where its radius allows) or "corner" (turn at the radius, then straight).</summary>
         public string DriveTurns { get; set; } = "arc";
 
+        /// <summary>Drive mode: set the wheels before each forward leg moves off, rather than carrying on from where the last leg left them.</summary>
+        public bool DriveTurnWheelsWhenStationary { get; set; }
+
         /// <summary>Drive mode: ask for the direction the vehicle faces at each destination.</summary>
         public bool DriveArrivalHeading { get; set; }
 

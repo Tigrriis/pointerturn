@@ -127,6 +127,10 @@
   // Drive mode: "arc" = one arc to each destination when its radius allows (otherwise a turn at the
   // radius then straight); "corner" = always a turn at the radius then straight.
   "drive_turns": "arc",
+  // Drive mode: true = the wheels are turned while the vehicle is stationary, so every forward leg
+  // starts on its turning circle; false = each leg starts with the wheels as the last one left
+  // them (straight at the start and after reversing) and the lock winds on as the vehicle rolls.
+  "drive_turn_wheels_when_stationary": false,
   // Drive mode: also ask which way the vehicle faces at each destination (turn, straight, turn).
   "drive_arrival_heading": false,
 

@@ -157,9 +157,15 @@ namespace PointerPath.Core.Vehicles
         /// (see <see cref="TurnPathResult.EndWheelHeading"/>). Without it every leg would begin with
         /// the wheels straightened and the lock wound on again, and a turn driven in several legs
         /// would come out wider than the same turn driven in one.
+        ///
+        /// With <paramref name="turnWheelsWhenStationary"/> the driver sets the wheels before moving
+        /// off instead, as far over as the leg wants, so <paramref name="wheels"/> counts for
+        /// nothing: the vehicle is on its turning circle from the first metre. That is dry steering,
+        /// which is how a tight manoeuvre is often driven and what the standard's templates assume,
+        /// but not how a vehicle is driven through a turn without stopping.
         /// </summary>
         public static DriveLeg? DriveTo(DesignVehicle v, VehiclePose start, Point2 target, double? outerWheelRadius = null, bool? reverse = null, DriveTurns turns = DriveTurns.Arc,
-            IReadOnlyList<double>? trailerHeadings = null, double? wheels = null)
+            IReadOnlyList<double>? trailerHeadings = null, double? wheels = null, bool turnWheelsWhenStationary = false)
         {
             double radius = outerWheelRadius ?? v.MinTurnRadius;
             if (radius < v.MinTurnRadius - 1e-9)
@@ -179,7 +185,7 @@ namespace PointerPath.Core.Vehicles
                 reverse = false;
             }
 
-            DriveLeg? leg = DriveRigid(v, start, target, radius, reverse, turns, wheels);
+            DriveLeg? leg = DriveRigid(v, start, target, radius, reverse, turns, wheels, turnWheelsWhenStationary);
             if (leg != null)
             {
                 leg.Request.InitialTrailerHeadings = trailerHeadings;
@@ -188,11 +194,15 @@ namespace PointerPath.Core.Vehicles
             return leg;
         }
 
-        private static DriveLeg? DriveRigid(DesignVehicle v, VehiclePose start, Point2 target, double radius, bool? reverse, DriveTurns turns, double? wheels)
+        private static DriveLeg? DriveRigid(DesignVehicle v, VehiclePose start, Point2 target, double radius, bool? reverse, DriveTurns turns, double? wheels, bool turnWheelsWhenStationary)
         {
             double c = Math.Cos(start.Heading), s = Math.Sin(start.Heading);
             double ahead = (target.X - start.RearAxle.X) * c + (target.Y - start.RearAxle.Y) * s;
             bool back = reverse ?? ahead < v.Wheelbase / 2;
+            if (!back && turnWheelsWhenStationary)
+            {
+                return DriveFromSetWheels(v, start, target, radius, turns);
+            }
 
             // The point that drives to the destination, its turning radius, and the direction of travel.
             VehiclePoint reference = back ? v.RearAxleCentre : v.FrontAxleCentre;
@@ -282,6 +292,104 @@ namespace PointerPath.Core.Vehicles
 
                 DriveLeg leg = Leg(v, start, back, reference, new Path2(segments, false), left: back ? side < 0 : side > 0, sweep: Math.Abs(sweep), straight: straight);
                 if (best == null || leg.Length < best.Length)
+                {
+                    best = leg;
+                }
+            }
+
+            return best;
+        }
+
+        /// <summary>
+        /// A forward leg driven with the wheels set before moving off, so the vehicle turns about
+        /// one centre, on the line of its rear axle, from the start: no winding the lock on while
+        /// rolling. The front axle goes to the destination, as in every forward leg.
+        /// </summary>
+        private static DriveLeg? DriveFromSetWheels(DesignVehicle v, VehiclePose start, Point2 target, double radius, DriveTurns turns)
+        {
+            VehiclePoint reference = v.FrontAxleCentre;
+            Point2 p0 = start.ToWorld(reference);
+            double c = Math.Cos(start.Heading), s = Math.Sin(start.Heading);
+
+            // The destination seen from the rear axle: tx ahead, ty to the left.
+            double dx0 = target.X - start.RearAxle.X, dy0 = target.Y - start.RearAxle.Y;
+            double tx = dx0 * c + dy0 * s, ty = -dx0 * s + dy0 * c;
+            if (Math.Sqrt((target.X - p0.X) * (target.X - p0.X) + (target.Y - p0.Y) * (target.Y - p0.Y)) < 0.05)
+            {
+                return null;
+            }
+
+            double w = v.Wheelbase;
+            double rho = v.RearAxleRadius(radius);          // the tightest the rear axle turns
+            double maxSweep = MaxLegTurnDeg * Math.PI / 180;
+
+            // Turning about a centre r to one side of the rear axle, the front axle runs round it at sqrt(r^2 + w^2).
+            DriveLeg? Turn(double r, double side, bool toTangent)
+            {
+                var centre = new Point2(start.RearAxle.X - s * r * side, start.RearAxle.Y + c * r * side);
+                double frontRadius = Math.Sqrt(r * r + w * w);
+                double dx = target.X - centre.X, dy = target.Y - centre.Y;
+                double d = Math.Sqrt(dx * dx + dy * dy);
+                if (toTangent && d < frontRadius + 1e-9)
+                {
+                    return null; // inside this circle
+                }
+
+                double phi = Math.Atan2(dy, dx);
+                double beta = toTangent ? Math.Acos(Math.Min(1, frontRadius / d)) : 0;
+                double startAngle = Math.Atan2(p0.Y - centre.Y, p0.X - centre.X);
+                double exitAngle = side > 0 ? phi - beta : phi + beta;
+                double sweep = side > 0 ? Angles.Normalize(exitAngle - startAngle) : -Angles.Normalize(startAngle - exitAngle);
+                if (Math.Abs(sweep) > maxSweep)
+                {
+                    return null; // that would be a loop
+                }
+
+                double straight = toTangent ? Math.Sqrt(Math.Max(0, d * d - frontRadius * frontRadius)) : 0;
+                var segments = new List<Segment>();
+                if (Math.Abs(sweep) > 1e-6)
+                {
+                    segments.Add(new ArcSegment(centre, frontRadius, startAngle, sweep));
+                }
+
+                if (straight > 1e-6)
+                {
+                    segments.Add(new LineSegment(segments.Count > 0 ? segments[0].End : p0, target));
+                }
+
+                return segments.Count == 0 ? null : Leg(v, start, back: false, reference, new Path2(segments, false), left: side > 0, sweep: Math.Abs(sweep), straight: straight);
+            }
+
+            if (turns == DriveTurns.Arc)
+            {
+                if (Math.Abs(ty) < 1e-9)
+                {
+                    if (tx > w)
+                    {
+                        return Leg(v, start, back: false, reference, new Path2(new List<Segment> { new LineSegment(p0, target) }, false), left: true, sweep: 0, straight: tx - w);
+                    }
+                }
+                else
+                {
+                    // The one centre that takes the front axle through the destination.
+                    double r = (tx * tx + ty * ty - w * w) / (2 * Math.Abs(ty));
+                    if (r >= rho - 1e-9)
+                    {
+                        DriveLeg? arc = Turn(r, Math.Sign(ty), toTangent: false);
+                        if (arc != null)
+                        {
+                            return arc;
+                        }
+                    }
+                }
+            }
+
+            // Full lock one way or the other, then straight to the destination.
+            DriveLeg? best = null;
+            foreach (double side in new[] { 1.0, -1.0 })
+            {
+                DriveLeg? leg = Turn(rho, side, toTangent: true);
+                if (leg != null && (best == null || leg.Length < best.Length))
                 {
                     best = leg;
                 }
