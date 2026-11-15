@@ -143,7 +143,8 @@ after an update.
 
 ## First things to test
 
-None of the add-in has been run in BricsCAD or AutoCAD yet. In this order, in BricsCAD first
+The add-in has been loaded in BricsCAD, signed in and its commands run, but it has not been
+worked through the list below, and nothing has been run in AutoCAD. In this order, in BricsCAD first
 (then steps 2 to 7 again in AutoCAD, with a Civil 3D surface for step 7):
 
 1. **It builds** against the installed BricsCAD, for V26 and for V24/V25 if both are in use.
