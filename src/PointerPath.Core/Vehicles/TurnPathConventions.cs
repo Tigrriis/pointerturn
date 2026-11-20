@@ -50,7 +50,7 @@ namespace PointerPath.Core.Vehicles
 
         /// <summary>
         /// The units drawings are in: "auto" (what the drawing's INSUNITS says, metres when it doesn't
-        /// say), "m" or "mm". Vehicle sizes, radii, clearances and text heights stay in metres.
+        /// say), "m", "mm", "in" or "ft". Vehicle sizes, radii, clearances and text heights stay in metres.
         /// </summary>
         public string DrawingUnits { get; set; } = "auto";
 

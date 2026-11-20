@@ -95,8 +95,12 @@ way out. Nothing in between knows what the drawing is drawn in.
 
 A command runs like this, all on BricsCAD's main thread and as one UNDO step:
 
-1. The dialog collects the vehicle, radius, clearances, layers and what to draw
-   (`TurnPathDialog`, `GroundClearanceDialog`).
+1. The dialog collects the vehicle, radius, clearances, layers and what to draw. The dialogs are
+   being simplified one command at a time: `DriveDialog` and `DrawSettingsDialog` (built from
+   `DialogKit`) are the new ones, and keep each choice as it is made
+   (`PointerPathSettings.RememberDrive`); `PTQDRIVE` uses those choices without a dialog.
+   `TurnPathDialog` and `GroundClearanceDialog` are the earlier ones, with every option, still
+   behind `PTPATH`, `PTTEMPLATE`, `PTSOLVE`, `PTINOUT`, `PTEDIT` and `PTCLEARANCE`.
 2. The command prompts for the geometry in the drawing (`TurnPathCommand`). While a point is being
    picked, `TurnPathJig` simulates the manoeuvre under the cursor at a coarser step and shows it.
 3. Core plans and drafts the result.
@@ -153,6 +157,8 @@ worked through the list below, and nothing has been run in AutoCAD. In this orde
 3. **`PTPATH`, template**: a B99 90 degree turn in a metre drawing, then the same in a millimetre
    drawing. Check the layers, the radius and that it is one UNDO step.
 4. **`PTPATH`, follow and drive**: along a polyline, then click by click, with the live preview.
+   Then **`PTDRIVE`**: each vehicle button, both tick boxes (the wheels one goes red), Draw settings
+   and Units; close and reopen it to see the choices kept; and **`PTQDRIVE`** drives with them.
 5. **`PTSOLVE` and `PTINOUT`**: between kerb lines on a named layer, with and without the boundary
    line.
 6. **`PTEDIT`**: regenerate a path, change its vehicle, and edit one drawn as a block that has been

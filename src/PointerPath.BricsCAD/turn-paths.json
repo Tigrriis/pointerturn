@@ -190,7 +190,7 @@
   "default_vehicle": "B99",
 
   // Drawing units: "auto" reads the drawing's INSUNITS (millimetres, centimetres, metres, feet...)
-  // and takes metres when it isn't set; "m" or "mm" overrides it. Every length in this file, and in
+  // and takes metres when it isn't set; "m", "mm", "in" or "ft" overrides it. Every length in this file, and in
   // the dialogs, stays in metres whatever the drawing is drawn in.
   "drawing_units": "auto",
 

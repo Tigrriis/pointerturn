@@ -485,6 +485,9 @@ namespace PointerPath.BricsCAD
                 conv.Layers.ClearanceFail = c.Layers.ClearanceFail;
                 conv.Layers.Labels = c.Layers.Labels;
                 conv.Save(_savePath);
+
+                // These are now what every dialog starts from, the ones that remember their last choices too.
+                PointerPathSettings.ForgetLastUsed();
                 _status.Text = "Saved to " + _savePath + " (used from now on).";
             }
             catch (Exception ex)

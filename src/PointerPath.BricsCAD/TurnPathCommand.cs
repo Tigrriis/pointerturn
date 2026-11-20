@@ -19,10 +19,15 @@ using Teigha.Geometry;
 namespace PointerPath.BricsCAD
 {
     /// <summary>
-    /// PTPATH draws an AS/NZS 2890.1 B85/B99 swept path: the dialog collects the options, the
-    /// command prompts for the geometry (start point and direction, a curve to follow,
-    /// destinations to drive to, or a start and a target to solve the movements between), and
-    /// the result is drawn in one go, so it lands on the configured layers and is one UNDO step.
+    /// Draws a design vehicle's swept path: a dialog collects the options, the command prompts
+    /// for the geometry (start point and direction, a curve to follow, destinations to drive to,
+    /// or a start and a target to solve the movements between), and the result is drawn in one
+    /// go, so it lands on the configured layers and is one UNDO step.
+    ///
+    /// PTDRIVE and PTQDRIVE are the simplified way in to driving click by click: the Drive
+    /// dialog, or no dialog at all. PTPATH (and PTTEMPLATE, PTSOLVE, PTINOUT, which open it on
+    /// their manoeuvre) is the earlier dialog with every option, until each manoeuvre has a
+    /// dialog of its own.
     ///
     /// Everything that defines the path is kept as a <see cref="ManoeuvreRecord"/> and saved in
     /// the drawing with the entities, so PTEDIT can change the settings or the geometry and
@@ -30,7 +35,7 @@ namespace PointerPath.BricsCAD
     /// </summary>
     internal static class TurnPathCommand
     {
-        /// <param name="startIn">The manoeuvre the dialog opens on (PTSOLVE opens it on Solve, PTINOUT on Solve in and out).</param>
+        /// <param name="startIn">The manoeuvre the dialog opens on (PTTEMPLATE opens it on the template, PTSOLVE on Solve, PTINOUT on Solve in and out).</param>
         public static void Run(Document doc, TurnPathChoice.ManoeuvreMode? startIn = null)
         {
             Editor ed = doc.Editor;
@@ -46,6 +51,97 @@ namespace PointerPath.BricsCAD
                 choice = dialog.Choice;
             }
 
+            Draw(doc, choice, conventions, "To keep these, type them in the dialog and use Save as defaults.");
+        }
+
+        /// <summary>
+        /// PTDRIVE: the Drive dialog (vehicle, conflict check, wheels, units, draw settings), then
+        /// the vehicle is driven click by click. The dialog keeps every choice as it is made.
+        /// </summary>
+        public static void Drive(Document doc)
+        {
+            TurnPathConventions conventions = LoadConventions(doc.Editor, out _);
+            string insunits = doc.Database.Insunits.ToString();
+            using (var dialog = new DriveDialog(conventions, insunits, DrawingExtent(doc)))
+            {
+                if (dialog.ShowDialog() != DialogResult.OK)
+                {
+                    return;
+                }
+            }
+
+            Draw(doc, DriveChoice(conventions, insunits), conventions, null);
+        }
+
+        /// <summary>PTQDRIVE: drives straight away, with the vehicle and settings the Drive dialog was last left with.</summary>
+        public static void QuickDrive(Document doc)
+        {
+            Editor ed = doc.Editor;
+            TurnPathConventions conventions = LoadConventions(ed, out _);
+            TurnPathChoice choice = DriveChoice(conventions, doc.Database.Insunits.ToString());
+            ed.WriteMessage($"\nPointerPath: quick drive with the {choice.Vehicle.Name} (turn radius {choice.Radius:0.##} m)" +
+                            $"{(choice.TurnWheelsWhenStationary ? ", turning the wheels while stopped" : "")}, " +
+                            $"{(choice.CheckConflicts ? "detecting conflicts" : "not detecting conflicts")}, in a drawing in {choice.Units.Name}. PTDRIVE changes these.");
+
+            // The wrong units would draw the vehicle a thousand times too big or too small.
+            if (choice.Units.Doubt(DrawingExtent(doc)) is string doubt
+                && MessageBox.Show(doubt + "\n\nCarry on in " + choice.Units.Name + "? (PTDRIVE changes the units.)", "Drawing units", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes)
+            {
+                return;
+            }
+
+            Draw(doc, choice, conventions, null);
+        }
+
+        /// <summary>
+        /// A drive as the conventions have it: the default vehicle (the last one chosen) at its
+        /// minimum turn radius and with its own clearances, and the drive settings, what to draw
+        /// and the layers as they stand.
+        /// </summary>
+        private static TurnPathChoice DriveChoice(TurnPathConventions c, string? insunits)
+        {
+            DesignVehicle v = c.Vehicle(null);
+            string setting;
+            try
+            {
+                setting = DrawingUnits.Setting(c.DrawingUnits);
+            }
+            catch (ArgumentException)
+            {
+                setting = "auto";
+            }
+
+            return new TurnPathChoice
+            {
+                Vehicle = v,
+                Mode = TurnPathChoice.ManoeuvreMode.Drive,
+                Radius = v.MinTurnRadius,
+                LeadIn = c.LeadIn,
+                LeadOut = c.LeadOut,
+                Reference = ReferencePoint.FrontAxle,
+                Turns = c.DriveTurnsMode,
+                ArrivalHeading = c.DriveArrivalHeading,
+                TurnWheelsWhenStationary = c.DriveTurnWheelsWhenStationary,
+                CheckConflicts = c.CheckConflicts,
+                ConflictLayers = c.ObstructionLayers.ToList(),
+                SolveLayers = c.SolveLayers.ToList(),
+                ObstructionLayers = c.ObstructionLayers.ToList(),
+                ClearanceInside = v.ClearanceInside,
+                ClearanceOutside = v.ClearanceOutside,
+                Style = TurnPathStyle.From(c),
+                Conventions = c,
+                Units = DrawingUnits.Resolve(setting, insunits),
+                UnitsSetting = setting,
+            };
+        }
+
+        /// <summary>
+        /// Prompts for the geometry of what was chosen, then solves (a solve), checks and draws it.
+        /// </summary>
+        /// <param name="keepLayersHint">What to say about keeping obstruction layers picked in the drawing, if anything.</param>
+        private static void Draw(Document doc, TurnPathChoice choice, TurnPathConventions conventions, string? keepLayersHint)
+        {
+            Editor ed = doc.Editor;
             try
             {
                 var record = new ManoeuvreRecord { Id = ManoeuvreStore.NewId(), Mode = ModeName(choice.Mode) };
@@ -55,7 +151,7 @@ namespace PointerPath.BricsCAD
                     return;
                 }
 
-                if (!PromptObstructions(doc, record) || !Solve(doc, record, conventions, again: false))
+                if (!PromptObstructions(doc, record, keepLayersHint) || !Solve(doc, record, conventions, again: false))
                 {
                     return;
                 }
@@ -174,7 +270,7 @@ namespace PointerPath.BricsCAD
                     }
                 }
 
-                if (!PromptObstructions(doc, record) || !Solve(doc, record, conventions, again: action == "Solve"))
+                if (!PromptObstructions(doc, record, "To keep these, type them in the dialog and use Save as defaults.") || !Solve(doc, record, conventions, again: action == "Solve"))
                 {
                     ed.WriteMessage("\n  The turning path was left as it was.\n");
                     return;
@@ -200,6 +296,7 @@ namespace PointerPath.BricsCAD
             {
                 ed.WriteMessage($"\nPointerPath: the turning path conventions couldn't be loaded ({loadError}); using the built-in B99/B85 defaults.\n");
                 conventions = TurnPathConventions.Default();
+                settings.LastUsed?.ApplyTo(conventions);
             }
 
             foreach (string note in notes)
@@ -612,7 +709,7 @@ namespace PointerPath.BricsCAD
         /// With the conflict check on and no layers given, asks for objects on the obstruction layers.
         /// False only when a solve is left with nothing to manoeuvre between.
         /// </summary>
-        private static bool PromptObstructions(Document doc, ManoeuvreRecord r)
+        private static bool PromptObstructions(Document doc, ManoeuvreRecord r, string? keepLayersHint)
         {
             bool solve = r.Mode == "solve";
             if ((!r.CheckConflicts && !solve) || r.ObstructionLayers.Count > 0)
@@ -637,7 +734,7 @@ namespace PointerPath.BricsCAD
             }
 
             r.ObstructionLayers = ObstructionScanner.LayersOf(doc, res.Value.GetObjectIds());
-            ed.WriteMessage($"\n{(solve ? "Manoeuvring between" : "Checking against")}: {string.Join(", ", r.ObstructionLayers)}. To keep these, type them in the dialog and use Save as defaults.");
+            ed.WriteMessage($"\n{(solve ? "Manoeuvring between" : "Checking against")}: {string.Join(", ", r.ObstructionLayers)}.{(keepLayersHint != null ? " " + keepLayersHint : "")}");
             return true;
         }
 

@@ -35,6 +35,12 @@ namespace PointerPath.Core.Tests
             Assert.True(DrawingUnits.Resolve("m", "Millimeters").IsMetres);
             Assert.Equal(1000, DrawingUnits.Resolve("Millimetres", "Meters").PerMetre);
             Assert.Equal(1000, DrawingUnits.Resolve("mm", "Unitless").PerMetre);
+            Assert.Equal(1 / 0.0254, DrawingUnits.Resolve("in", "Meters").PerMetre, 9);
+            Assert.Equal(1 / 0.3048, DrawingUnits.Resolve("Feet", "Millimeters").PerMetre, 9);
+            Assert.Equal("ft", DrawingUnits.Setting("foot"));
+            Assert.Equal("in", DrawingUnits.Setting(" Inches "));
+            Assert.Same(DrawingUnits.Feet, DrawingUnits.FromInsunits("Feet"));
+            Assert.Same(DrawingUnits.Inches, DrawingUnits.Of(1 / 0.0254));
             Assert.Throws<ArgumentException>(() => DrawingUnits.Resolve("furlongs", "Meters"));
 
             // A scale saved with a path.

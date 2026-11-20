@@ -9,9 +9,9 @@ using PointerPath.Core.Vehicles;
 namespace PointerPath.BricsCAD
 {
     /// <summary>
-    /// Per-user settings in %APPDATA%\PointerPath\settings.json (optional: the file only needs to
-    /// exist to point at a shared copy of the turning path conventions), and where the
-    /// conventions themselves are found.
+    /// Per-user settings in %APPDATA%\PointerPath\settings.json: where a shared copy of the
+    /// turning path conventions is (optional), and what was last chosen in the dialogs that
+    /// remember their choices. Also where the conventions themselves are found.
     /// </summary>
     internal sealed class PointerPathSettings
     {
@@ -28,13 +28,24 @@ namespace PointerPath.BricsCAD
         [JsonPropertyName("turn_paths_file")]
         public string? TurnPathsFile { get; set; }
 
+        /// <summary>
+        /// What was last chosen in the dialogs that remember their choices (Drive and Draw
+        /// settings). Laid over the conventions each time they are loaded.
+        /// </summary>
+        [JsonPropertyName("last_used")]
+        public LastUsed? LastUsed { get; set; }
+
+        /// <summary>Anything else in the file, kept as it is when the file is saved.</summary>
+        [JsonExtensionData]
+        public Dictionary<string, JsonElement>? Other { get; set; }
+
         public static PointerPathSettings Load()
         {
             try
             {
                 if (File.Exists(SettingsPath))
                 {
-                    return JsonSerializer.Deserialize<PointerPathSettings>(File.ReadAllText(SettingsPath)) ?? new PointerPathSettings();
+                    return JsonSerializer.Deserialize<PointerPathSettings>(File.ReadAllText(SettingsPath), TurnPathConventions.JsonOptions) ?? new PointerPathSettings();
                 }
             }
             catch (Exception)
@@ -43,6 +54,60 @@ namespace PointerPath.BricsCAD
             }
 
             return new PointerPathSettings();
+        }
+
+        public void Save()
+        {
+            Directory.CreateDirectory(Folder);
+            File.WriteAllText(SettingsPath, JsonSerializer.Serialize(this, TurnPathConventions.JsonOptions));
+        }
+
+        /// <summary>
+        /// Keeps the Drive dialog's choices in <paramref name="conventions"/> (vehicle, conflict
+        /// check, wheels, units) as the ones to start from next time. They go in the user's
+        /// settings.json, not in turn-paths.json: that file, which may be a shared one, stays the
+        /// vehicles and the office's standards.
+        /// </summary>
+        public static void RememberDrive(TurnPathConventions conventions)
+        {
+            PointerPathSettings settings = Load();
+            LastUsed last = settings.LastUsed ?? (settings.LastUsed = new LastUsed());
+            last.Vehicle = conventions.DefaultVehicle;
+            last.DetectConflicts = conventions.CheckConflicts;
+            last.TurnWheelsWhenStationary = conventions.DriveTurnWheelsWhenStationary;
+            last.DrawingUnits = conventions.DrawingUnits;
+            settings.Save();
+        }
+
+        /// <summary>
+        /// Keeps what the Draw settings dialog was OK'd with: what to draw, and the layers that were
+        /// changed there (the rest still follow turn-paths.json).
+        /// </summary>
+        public static void RememberDrawSettings(TurnPathDrawOptions draw, IEnumerable<KeyValuePair<string, string>> changedLayers)
+        {
+            PointerPathSettings settings = Load();
+            LastUsed last = settings.LastUsed ?? (settings.LastUsed = new LastUsed());
+            last.Draw = draw.Clone();
+            foreach (KeyValuePair<string, string> kv in changedLayers)
+            {
+                (last.Layers ?? (last.Layers = new Dictionary<string, string>()))[kv.Key] = kv.Value;
+            }
+
+            settings.Save();
+        }
+
+        /// <summary>
+        /// Drops what was last chosen. The earlier dialogs do this on Save as defaults: the
+        /// conventions they have just written are then what every dialog starts from.
+        /// </summary>
+        public static void ForgetLastUsed()
+        {
+            PointerPathSettings settings = Load();
+            if (settings.LastUsed != null)
+            {
+                settings.LastUsed = null;
+                settings.Save();
+            }
         }
 
         /// <summary>Where the dialogs save the user's turning path conventions.</summary>
@@ -136,6 +201,8 @@ namespace PointerPath.BricsCAD
                     return null;
                 }
 
+                LastUsed?.ApplyTo(conventions);
+
                 if (!conventions.Vehicles.ContainsKey(conventions.DefaultVehicle ?? ""))
                 {
                     conventions.DefaultVehicle = conventions.Vehicles.Keys.First();
@@ -147,6 +214,59 @@ namespace PointerPath.BricsCAD
             {
                 error = $"{path}: {ex.Message}";
                 return null;
+            }
+        }
+    }
+
+    /// <summary>
+    /// The choices the Drive and Draw settings dialogs remember from one run to the next, so
+    /// the dialog opens as it was left and Quick drive can go without one. Anything not set
+    /// here comes from the conventions; see <see cref="PointerPathSettings.RememberDrive"/> and
+    /// <see cref="PointerPathSettings.RememberDrawSettings"/>.
+    /// </summary>
+    internal sealed class LastUsed
+    {
+        public string? Vehicle { get; set; }
+
+        public bool? DetectConflicts { get; set; }
+
+        public bool? TurnWheelsWhenStationary { get; set; }
+
+        /// <summary>"auto", "m", "mm", "in" or "ft".</summary>
+        public string? DrawingUnits { get; set; }
+
+        public TurnPathDrawOptions? Draw { get; set; }
+
+        /// <summary>The layers changed in Draw settings, by part as in turn-paths.json ("swept_path", "clearance", ...).</summary>
+        public Dictionary<string, string>? Layers { get; set; }
+
+        public void ApplyTo(TurnPathConventions c)
+        {
+            // A vehicle that has since gone from the conventions leaves their default standing.
+            string? vehicle = c.Vehicles.Keys.FirstOrDefault(k => string.Equals(k, Vehicle, StringComparison.OrdinalIgnoreCase));
+            if (vehicle != null)
+            {
+                c.DefaultVehicle = vehicle;
+            }
+
+            c.CheckConflicts = DetectConflicts ?? c.CheckConflicts;
+            c.DriveTurnWheelsWhenStationary = TurnWheelsWhenStationary ?? c.DriveTurnWheelsWhenStationary;
+            if (!string.IsNullOrWhiteSpace(DrawingUnits))
+            {
+                c.DrawingUnits = DrawingUnits!;
+            }
+
+            if (Draw != null)
+            {
+                c.Draw = Draw.Clone();
+            }
+
+            foreach (KeyValuePair<string, string> kv in Layers ?? new Dictionary<string, string>())
+            {
+                if (!string.IsNullOrWhiteSpace(kv.Value))
+                {
+                    c.Layers.Set(kv.Key, kv.Value);
+                }
             }
         }
     }

@@ -55,7 +55,8 @@ namespace PointerPath.BricsCAD
             }
 
             CadApp.DocumentManager.MdiActiveDocument?.Editor.WriteMessage(
-                "\nPointerPath loaded. Commands: PTPATH, PTSOLVE, PTINOUT, PTEDIT, PTCLEARANCE, PTLICENCE (or use the PointerPath ribbon tab)." + licence + "\n");
+                "\nPointerPath loaded. Commands: PTDRIVE, PTQDRIVE, PTTEMPLATE, PTLICENCE (or use the PointerPath ribbon tab). " +
+                "Typed only, while their dialogs are reworked: PTPATH, PTSOLVE, PTINOUT, PTEDIT, PTCLEARANCE." + licence + "\n");
         }
     }
 

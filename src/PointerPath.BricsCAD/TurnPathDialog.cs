@@ -914,6 +914,9 @@ namespace PointerPath.BricsCAD
                 choice.Vehicle.ClearanceInside = choice.ClearanceInside;
                 choice.Vehicle.ClearanceOutside = choice.ClearanceOutside;
                 c.Save(_savePath);
+
+                // These are now what every dialog starts from, the ones that remember their last choices too.
+                PointerPathSettings.ForgetLastUsed();
                 _status.Text = "Saved to " + _savePath + " (used from now on).";
             }
             catch (Exception ex)
