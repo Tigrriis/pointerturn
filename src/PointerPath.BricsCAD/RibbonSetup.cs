@@ -19,8 +19,10 @@ namespace PointerPath.BricsCAD
 {
     /// <summary>
     /// Adds a "PointerPath" tab to the BricsCAD ribbon, with two panels:
-    ///   Vehicles: Turn path | Solve turn | In and out | Edit path | Clearance
+    ///   Vehicles: Drive | Quick drive | Template
     ///   Account:  Licence
+    /// Solve turn, In and out, Edit path and Clearance are off the ribbon until they have their
+    /// simplified dialogs (see <see cref="ShowLaterCommands"/>); typed, they work as before.
     /// The ribbon is optional: if it is turned off, or BricsCAD rebuilds it (e.g. a
     /// workspace switch), the commands still work and PTRIBBON adds the tab again.
     ///
@@ -31,6 +33,13 @@ namespace PointerPath.BricsCAD
     internal static class RibbonSetup
     {
         private const string TabId = "POINTERPATH_TAB";
+
+        /// <summary>
+        /// Whether the commands that still use the earlier dialog (PTSOLVE, PTINOUT, PTEDIT,
+        /// PTCLEARANCE) have ribbon buttons. Off while the dialogs are simplified, one command at a
+        /// time: as each gets its new dialog, its button moves up with Drive.
+        /// </summary>
+        private static readonly bool ShowLaterCommands = false;
         private static bool _waitingForRibbon;
         private static bool _waitingForIdle;
         private static bool _watchingWorkspace;
@@ -99,11 +108,16 @@ namespace PointerPath.BricsCAD
                 }
 
                 var vehicles = new RibbonPanelSource { Id = "POINTERPATH_VEHICLES", Name = "Vehicles", Title = "Vehicles" };
-                vehicles.Items.Add(Button("Turn path", "PTPATH", "Draw a design vehicle's swept path (AS/NZS 2890.1 B85 and B99 cars, Austroads trucks, semi-trailer and B-doubles): a turning template, a vehicle driven along a line you pick, or driven click by click", "turnpath", large: true));
-                vehicles.Items.Add(Button("Solve turn", "PTSOLVE", "Work out a multi-point turn (2 points): pick where a car or rigid truck starts and where it ends up, and the movements between the kerbs, walls and columns on the solve boundary layers are found and drawn", "turnsolve", large: true));
-                vehicles.Items.Add(Button("In and out", "PTINOUT", "Show forward entry and exit from a site (3 points): pick where a car or rigid truck arrives, where it stops on the site and where it leaves, and the movements are found so it drives in forwards and out forwards", "turninout", large: true));
-                vehicles.Items.Add(Button("Edit path", "PTEDIT", "Change a turning path drawn by Turn path: its vehicle, radius, clearances, layers or geometry, then regenerate it", "turnedit", large: true));
-                vehicles.Items.Add(Button("Clearance", "PTCLEARANCE", "Check a B85 or B99 car's ground clearance (AS/NZS 2890.1 Appendix C) along a plotted long section, or on a surface along a path", "clearance", large: true));
+                vehicles.Items.Add(Button("Drive", "PTDRIVE", "Drive a design vehicle click by click (AS/NZS 2890.1 B85 and B99 cars, AS 2890.2 SRV, MRV and HRV trucks): choose the vehicle, then click where it goes next; a click behind it reverses", "drive", large: true));
+                vehicles.Items.Add(Button("Quick drive", "PTQDRIVE", "Drive straight away, with the vehicle and settings Drive was last left with", "quickdrive", large: true));
+                vehicles.Items.Add(Button("Template", "PTTEMPLATE", "Draw a design vehicle's turning template: a single turn at a set radius and angle from a start point", "turnpath", large: true));
+                if (ShowLaterCommands)
+                {
+                    vehicles.Items.Add(Button("Solve turn", "PTSOLVE", "Work out a multi-point turn (2 points): pick where a car or rigid truck starts and where it ends up, and the movements between the kerbs, walls and columns on the solve boundary layers are found and drawn", "turnsolve", large: true));
+                    vehicles.Items.Add(Button("In and out", "PTINOUT", "Show forward entry and exit from a site (3 points): pick where a car or rigid truck arrives, where it stops on the site and where it leaves, and the movements are found so it drives in forwards and out forwards", "turninout", large: true));
+                    vehicles.Items.Add(Button("Edit path", "PTEDIT", "Change a turning path: its vehicle, radius, clearances, layers or geometry, then regenerate it", "turnedit", large: true));
+                    vehicles.Items.Add(Button("Clearance", "PTCLEARANCE", "Check a B85 or B99 car's ground clearance (AS/NZS 2890.1 Appendix C) along a plotted long section, or on a surface along a path", "clearance", large: true));
+                }
 
                 var tab = new RibbonTab { Id = TabId, Name = "PointerPath", Title = "PointerPath" };
                 tab.Panels.Add(new RibbonPanel { Source = vehicles });

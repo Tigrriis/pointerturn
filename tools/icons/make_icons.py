@@ -49,6 +49,33 @@ def turn_path():
     return img
 
 
+def drive():
+    """A car driven click by click: its path through two clicked points, ending in an arrow."""
+    img, d = canvas()
+    RED = (205, 55, 45, 255)
+    path = [(90, 150), (96, 96), (150, 70), (186, 116), (206, 60)]
+    d.line(path, fill=RED, width=20, joint="curve")
+    d.polygon([(214, 14), (176, 62), (236, 72)], fill=RED)
+    # the points clicked
+    for (x, y) in ((150, 70), (186, 116)):
+        d.ellipse((x - 20, y - 20, x + 20, y + 20), fill=WHITE, outline=RED, width=OUTLINE)
+    # the car at the start, pointing up
+    d.rounded_rectangle((52, 128, 128, 244), radius=18, fill=BLUE, outline=BLUE_DARK, width=OUTLINE)
+    for (x0, y0) in ((44, 142), (118, 142), (44, 204), (118, 204)):
+        d.rectangle((x0, y0, x0 + 18, y0 + 30), fill=BLUE_DARK)
+    return img
+
+
+def quick_drive():
+    """The drive icon with a lightning bolt: drive without the dialog."""
+    img = drive()
+    d = ImageDraw.Draw(img)
+    bolt = [(204, 122), (152, 196), (190, 196), (170, 250), (238, 166), (198, 166), (222, 122)]
+    d.polygon(bolt, fill=GOLD)
+    d.line(bolt + [bolt[0]], fill=GOLD_DARK, width=OUTLINE, joint="curve")
+    return img
+
+
 def turn_edit():
     """The turn path icon with a pencil over it."""
     img = turn_path()
@@ -133,6 +160,8 @@ def licence():
 
 
 ICONS = {
+    "drive": drive,
+    "quickdrive": quick_drive,
     "turnpath": turn_path,
     "turnsolve": turn_solve,
     "turninout": turn_in_out,

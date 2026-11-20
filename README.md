@@ -29,7 +29,7 @@ here to be an add-in of their own.
 - **Metres or millimetres.** It reads the drawing's units and works in either.
 
 Vehicles, clearances, layers and what is drawn are all set in `turn-paths.json`, or in the
-dialogs with **Save as defaults**.
+dialogs.
 
 ## Status
 
@@ -84,7 +84,7 @@ an administrator) or just for you, and then:
   PointerPath where AutoCAD loads add-ins from by itself, so it also loads in an AutoCAD
   installed afterwards. AutoCAD LT can't run add-ins of this kind.
 
-Start the CAD program and look for the **PointerPath** ribbon tab, or type `PTPATH`. Remove it
+Start the CAD program and look for the **PointerPath** ribbon tab, or type `PTDRIVE`. Remove it
 from Windows' installed apps. Your saved defaults (`%APPDATA%\PointerPath`) are kept.
 
 For an unattended install: `PointerPath-<version>-setup.exe /VERYSILENT /ALLUSERS` (or
@@ -168,15 +168,28 @@ that runs the same update when you log in and daily at 07:30. Run it with `-Remo
 
 ## Commands
 
+The dialogs are being simplified, one command at a time. The commands on the ribbon are the ones
+done so far, plus the template, which waits for its own dialog:
+
 | Command | Ribbon button | What it does |
 |---|---|---|
-| `PTPATH` | Turn path | Draw a design vehicle's swept path: a turning template, a vehicle driven along a line you pick, or driven click by click. See [Turning paths](#turning-paths). |
-| `PTSOLVE` | Solve turn | Work out a multi-point turn: pick where the vehicle starts and where it ends up, and the movements between the linework on the solve boundary layers are found and drawn. The same as `PTPATH` with **Solve (2 points)** chosen. See [Solving a multi-point turn](#solving-a-multi-point-turn). |
-| `PTINOUT` | In and out | Show forward entry and exit from a site: pick where the vehicle arrives, where it stops on the site and where it leaves. The same as `PTPATH` with **Solve in and out (3 points)** chosen. See [In and out of a site](#in-and-out-of-a-site-the-3-point-solve). |
-| `PTEDIT` | Edit path | Change a turning path (its vehicle, radius, clearances, layers or geometry) and regenerate it. See [Editing a turning path](#editing-a-turning-path). |
-| `PTCLEARANCE` | Clearance | Check a car's ground clearance along a plotted long section, or on a surface along a path. See [Ground clearance](#ground-clearance-appendix-c). |
+| `PTDRIVE` | Drive | Drive a design vehicle click by click: choose the vehicle and what to check in a small dialog, press **GO**, then click where it goes. See [Drive](#drive). |
+| `PTQDRIVE` | Quick drive | The same without the dialog: straight to the drawing, with the vehicle and settings Drive was last left with. |
+| `PTTEMPLATE` | Template | Draw a turning template. For now this opens the earlier dialog (as `PTPATH`) on **Standard turn template**. See [Turning paths](#turning-paths). |
 | `PTLICENCE` | Licence | Sign in with your PointerPath account, see the licence on this computer, or sign out. `PTLICENSE` works too. See [Licence](#licence). |
 | `PTRIBBON` | | Add the PointerPath ribbon tab again, if a workspace change removed it. |
+
+These still work as before when typed, with the earlier dialog. They are off the ribbon until each
+has its simplified dialog (to put the buttons back meanwhile, set `ShowLaterCommands` in
+`RibbonSetup.cs`):
+
+| Command | What it does |
+|---|---|
+| `PTPATH` | Draw a design vehicle's swept path: a turning template, a vehicle driven along a line you pick, or driven click by click. See [Turning paths](#turning-paths). |
+| `PTSOLVE` | Work out a multi-point turn: pick where the vehicle starts and where it ends up, and the movements between the linework on the solve boundary layers are found and drawn. The same as `PTPATH` with **Solve (2 points)** chosen. See [Solving a multi-point turn](#solving-a-multi-point-turn). |
+| `PTINOUT` | Show forward entry and exit from a site: pick where the vehicle arrives, where it stops on the site and where it leaves. The same as `PTPATH` with **Solve in and out (3 points)** chosen. See [In and out of a site](#in-and-out-of-a-site-the-3-point-solve). |
+| `PTEDIT` | Change a turning path (its vehicle, radius, clearances, layers or geometry) and regenerate it. See [Editing a turning path](#editing-a-turning-path). |
+| `PTCLEARANCE` | Check a car's ground clearance along a plotted long section, or on a surface along a path. See [Ground clearance](#ground-clearance-appendix-c). |
 
 ## Licence
 
@@ -209,9 +222,39 @@ Two things carry over:
 - **Saved defaults.** Until you use **Save as defaults** in PointerPath, a copy saved from
   CSD-Bridge (`%APPDATA%\CsdBridge\turn-paths.json`) is used. PointerPath never writes to it.
 
+## Drive
+
+`PTDRIVE` (ribbon: **Vehicles > Drive**) opens the Drive dialog:
+
+- **Vehicle**: a button each for the B85, B99, SRV, MRV (8.8 m) and HRV (12.5 m). Hover over one
+  for its size and turn radius. The vehicle turns at its minimum radius and keeps its own
+  clearances, as `turn-paths.json` has them.
+- **Detect conflicts**: flags where the swept path or its clearance meets kerbs, walls and columns
+  (see [Conflicts with kerbs, walls and columns](#conflicts-with-kerbs-walls-and-columns)). With no `obstruction_layers` in
+  `turn-paths.json`, you pick objects on those layers once the vehicle has been driven.
+- **Allow turn wheels while stopped**: the wheels are set before each forward move, so every leg is
+  on its turning circle from the first metre. It shows red while it is on: it is steering on the
+  spot.
+- **Draw settings...**: which parts are drawn (swept path, clearances, vehicle, driven path, wheel
+  paths, label, hatch, block) and the layer for each.
+- **Units**: m, mm, in or ft. Until you choose one it follows the drawing's `INSUNITS`.
+- **GO** closes the dialog and prompts for the start point and direction, then each destination,
+  as described for **Drive** in the table below. Esc, or closing the dialog, cancels.
+
+There is no Save button: each choice is kept as it is made (in
+`%APPDATA%\PointerPath\settings.json`, under `last_used`), so the dialog opens as you left it.
+`PTQDRIVE` (ribbon: **Vehicles > Quick drive**) skips the dialog and drives with those same
+choices, saying on the command line which vehicle and settings it is using.
+
+What the earlier dialog offered for a drive and this one doesn't is kept, for the dialogs still to
+come: a turn radius above the vehicle's minimum, clearances other than the vehicle's own, the
+Austroads trucks and vehicles of your own are in `PTPATH`; **Drive turns**, the arrival direction as
+a default, vehicle outlines along the path and the label text height are read by Drive from
+`turn-paths.json`; and `D` still switches the arrival direction while driving.
+
 ## Turning paths
 
-`PTPATH` (ribbon: **Vehicles > Turn path**) opens a dialog, then prompts in the drawing:
+`PTPATH` opens the earlier dialog, with every manoeuvre and option, then prompts in the drawing:
 
 | Manoeuvre | What you pick | What it does |
 |---|---|---|
@@ -258,9 +301,11 @@ the car straight and the inner line only gradually tightens, as in the standard'
 path is the boundary of the union of the body over every position: every corner's and side's trace,
 minus whatever another position of the body covers.
 
-**Drawing units.** The tools work in drawings in metres, millimetres or any other unit. The dialogs
-have a **Drawing units** box: *Automatic* reads the drawing's `INSUNITS` (and takes metres when that
-isn't set), or choose *Metres* or *Millimetres* yourself; **Save as defaults** keeps the choice.
+**Drawing units.** The tools work in drawings in metres, millimetres or any other unit. The earlier
+dialogs have a **Drawing units** box: *Automatic* reads the drawing's `INSUNITS` (and takes metres
+when that isn't set), or choose *Metres* or *Millimetres* yourself; **Save as defaults** keeps the
+choice. The Drive dialog's **Units** box does the same with m, mm, in and ft, and keeps the choice
+as soon as it is made.
 Everything you type stays in metres whatever the drawing: vehicle sizes, radii, clearances, outline
 intervals and the label text height (0.3 is 300 in a millimetre drawing). Points you pick, the kerbs
 and walls on the obstruction layers, a line the vehicle follows and surface levels are read in the
@@ -277,6 +322,10 @@ when a layer doesn't exist yet. The dialog can change all of it per run; **Save 
 `%APPDATA%\PointerPath\turn-paths.json`, which is then used instead of the shipped file (or point
 `turn_paths_file` in `%APPDATA%\PointerPath\settings.json` at a shared copy). Vehicles that a saved or shared copy doesn't
 have are still taken from the shipped file, so new vehicles appear after an update.
+What the Drive and Draw settings dialogs were last left with is kept apart from all that, under
+`last_used` in `settings.json`, and laid over the file each time it is read: `turn-paths.json` is
+never written by them. **Save as defaults** in an earlier dialog clears `last_used`, so what it
+saved is what every dialog then starts from.
 
 ### Commercial vehicles (AS 2890.2)
 
@@ -354,7 +403,7 @@ point and a note (`HIT 120 mm`, or `215 mm (needs 300)`).
 
 ### Solving a multi-point turn
 
-`PTSOLVE` (ribbon: **Vehicles > Solve turn**, or **Solve (2 points)** in the `PTPATH` dialog) answers "can it
+`PTSOLVE` (or **Solve (2 points)** in the `PTPATH` dialog) answers "can it
 turn round here, and in how many movements?" without you driving it click by click.
 
 1. In the dialog, choose the vehicle, the turn radius (default its minimum) and the clearance, and name the
@@ -397,7 +446,7 @@ route was found) and draws nothing. Things to know:
 
 ### In and out of a site (the 3-point solve)
 
-`PTINOUT` (ribbon: **Vehicles > In and out**, or **Solve in and out (3 points)** in the `PTPATH` dialog)
+`PTINOUT` (or **Solve in and out (3 points)** in the `PTPATH` dialog)
 shows that a vehicle can enter a site forwards and leave it forwards, which is what most councils ask of a
 service or waste vehicle. Left to itself, the 2-point solve will happily drive past a driveway and reverse in
 off the street. This one will not.
@@ -439,7 +488,7 @@ was solved between.
 
 ### Editing a turning path
 
-Every path remembers how it was made. `PTEDIT` (ribbon: **Vehicles > Edit path**): pick any part of a path,
+Every path remembers how it was made. `PTEDIT`: pick any part of a path,
 or its block. The dialog opens with that path's settings; change the vehicle, radius, clearances, what is drawn,
 the layers or the conflict layers, then choose:
 
@@ -458,7 +507,7 @@ this version carry no settings and can't be edited: draw them again.
 
 ### Ground clearance (Appendix C)
 
-`PTCLEARANCE` (ribbon: **Vehicles > Clearance**) checks that the car's underside clears a grade change: a
+`PTCLEARANCE` checks that the car's underside clears a grade change: a
 ramp, hump, dip or gutter. The template is Figure C1: 120 mm clearance under the body between the axles,
 and an underside rising at the 10° approach and departure angles over the overhangs (Paragraph B5). It is
 placed with both wheels on the ground and slid along in small steps; it must never fall below the ground.

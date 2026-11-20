@@ -32,6 +32,10 @@ namespace PointerPath.Core.Vehicles
 
         public static DrawingUnits Millimetres { get; } = new DrawingUnits(1000, "millimetres");
 
+        public static DrawingUnits Inches { get; } = new DrawingUnits(1 / 0.0254, "inches");
+
+        public static DrawingUnits Feet { get; } = new DrawingUnits(1 / 0.3048, "feet");
+
         private static readonly (string Insunits, double PerMetre, string Name)[] Known =
         {
             ("Millimeters", 1000, "millimetres"),
@@ -57,7 +61,7 @@ namespace PointerPath.Core.Vehicles
             {
                 if (Math.Abs(scale - perMetre) <= 1e-9 * scale)
                 {
-                    return scale == 1 ? Metres : scale == 1000 ? Millimetres : new DrawingUnits(scale, name);
+                    return scale == 1 ? Metres : scale == 1000 ? Millimetres : name == "inches" ? Inches : name == "feet" ? Feet : new DrawingUnits(scale, name);
                 }
             }
 
@@ -82,7 +86,7 @@ namespace PointerPath.Core.Vehicles
             return null;
         }
 
-        /// <summary>"auto", "m" or "mm" from a setting as typed ("Millimetres", "metres", "", ...).</summary>
+        /// <summary>"auto", "m", "mm", "in" or "ft" from a setting as typed ("Millimetres", "metres", "feet", "", ...).</summary>
         public static string Setting(string? text)
         {
             switch ((text ?? "").Trim().ToLowerInvariant())
@@ -103,14 +107,22 @@ namespace PointerPath.Core.Vehicles
                 case "millimeter":
                 case "millimeters":
                     return "mm";
+                case "in":
+                case "inch":
+                case "inches":
+                    return "in";
+                case "ft":
+                case "foot":
+                case "feet":
+                    return "ft";
                 default:
-                    throw new ArgumentException($"Drawing units '{text}' aren't known: use auto, m or mm.");
+                    throw new ArgumentException($"Drawing units '{text}' aren't known: use auto, m, mm, in or ft.");
             }
         }
 
         /// <summary>
-        /// The units to work in: metres or millimetres when the setting says so; otherwise what the
-        /// drawing says it is in, or metres when it doesn't say.
+        /// The units to work in: metres, millimetres, inches or feet when the setting says so;
+        /// otherwise what the drawing says it is in, or metres when it doesn't say.
         /// </summary>
         public static DrawingUnits Resolve(string? setting, string? insunits)
         {
@@ -120,6 +132,10 @@ namespace PointerPath.Core.Vehicles
                     return Metres;
                 case "mm":
                     return Millimetres;
+                case "in":
+                    return Inches;
+                case "ft":
+                    return Feet;
                 default:
                     return FromInsunits(insunits) ?? Metres;
             }

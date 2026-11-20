@@ -5,7 +5,7 @@ is in [website/README.md](../website/README.md); this is the add-in side.
 
 ## What the user sees
 
-- The first time a drawing command (`PTPATH`, `PTSOLVE`, `PTINOUT`, `PTEDIT`, `PTCLEARANCE`) is
+- The first time a drawing command (`PTDRIVE`, `PTQDRIVE`, `PTTEMPLATE`, `PTPATH`, `PTSOLVE`, `PTINOUT`, `PTEDIT`, `PTCLEARANCE`) is
   run on a computer, a dialog asks for the email address and password of a PointerPath account.
   Signing in succeeds if the account has an active licence with a free place.
 - After that the commands just run. The computer stays signed in across restarts.

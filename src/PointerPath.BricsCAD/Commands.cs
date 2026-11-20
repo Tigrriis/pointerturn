@@ -13,14 +13,19 @@ using CadApp = Bricscad.ApplicationServices.Application;
 namespace PointerPath.BricsCAD
 {
     /// <summary>
-    /// The PointerPath commands:
+    /// The PointerPath commands. On the ribbon, with the simplified dialogs:
+    /// PTDRIVE     drive a design vehicle click by click: the Drive dialog (vehicle, options), then the drawing
+    /// PTQDRIVE    the same without the dialog, with the vehicle and settings it was last left with
+    /// PTTEMPLATE  draw a turning template (for now, the earlier dialog opened on the template)
+    /// PTLICENCE   sign in with a PointerPath account, see the licence on this computer, or sign out
+    /// PTRIBBON    add the PointerPath ribbon tab again (if a workspace change removed it)
+    ///
+    /// Still here, typed, with the earlier dialog, until their own simplified dialogs are done:
     /// PTPATH      draw a design vehicle's swept path (turning template, along a path, or driven)
     /// PTSOLVE     work out a multi-point turn: the movements from a start to a target between the solve boundary layers
     /// PTINOUT     work out the way into a site, to a stop on it, and out again, forwards both ways
     /// PTEDIT      change a turning path (settings or geometry) and regenerate it
     /// PTCLEARANCE check a design vehicle's ground clearance (AS/NZS 2890.1 Appendix C) on a long section or a surface
-    /// PTRIBBON    add the PointerPath ribbon tab again (if a workspace change removed it)
-    /// PTLICENCE   sign in with a PointerPath account, see the licence on this computer, or sign out
     ///
     /// The commands that draw need a licence (see Licence): on a computer that isn't signed in
     /// they show the sign-in dialog first.
@@ -28,6 +33,15 @@ namespace PointerPath.BricsCAD
     public sealed class Commands
     {
         private const string Group = "POINTERPATH";
+
+        [CommandMethod(Group, "PTDRIVE", CommandFlags.Modal)]
+        public void PtDrive() => Licensed(doc => TurnPathCommand.Drive(doc));
+
+        [CommandMethod(Group, "PTQDRIVE", CommandFlags.Modal)]
+        public void PtQuickDrive() => Licensed(doc => TurnPathCommand.QuickDrive(doc));
+
+        [CommandMethod(Group, "PTTEMPLATE", CommandFlags.Modal)]
+        public void PtTemplate() => Licensed(doc => TurnPathCommand.Run(doc, TurnPathChoice.ManoeuvreMode.Template));
 
         [CommandMethod(Group, "PTPATH", CommandFlags.Modal)]
         public void PtPath() => Licensed(doc => TurnPathCommand.Run(doc));
