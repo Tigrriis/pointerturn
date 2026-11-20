@@ -41,7 +41,7 @@ namespace PointerPath.BricsCAD
             Editor ed = doc.Editor;
             TurnPathConventions conventions = LoadConventions(ed, out string savePath);
             TurnPathChoice choice;
-            using (var dialog = new TurnPathDialog(conventions, savePath, doc.Database.Insunits.ToString(), DrawingExtent(doc), null, startIn))
+            using (var dialog = new TurnPathDialog(conventions, savePath, doc.Database.Insunits.ToString(), UnitsWarningFor(doc), null, startIn))
             {
                 if (dialog.ShowDialog() != DialogResult.OK)
                 {
@@ -62,7 +62,7 @@ namespace PointerPath.BricsCAD
         {
             TurnPathConventions conventions = LoadConventions(doc.Editor, out _);
             string insunits = doc.Database.Insunits.ToString();
-            using (var dialog = new DriveDialog(conventions, insunits, DrawingExtent(doc)))
+            using (var dialog = new DriveDialog(conventions, insunits, UnitsWarningFor(doc)))
             {
                 if (dialog.ShowDialog() != DialogResult.OK)
                 {
@@ -83,9 +83,13 @@ namespace PointerPath.BricsCAD
                             $"{(choice.TurnWheelsWhenStationary ? ", turning the wheels while stopped" : "")}, " +
                             $"{(choice.CheckConflicts ? "detecting conflicts" : "not detecting conflicts")}, in a drawing in {choice.Units.Name}. PTDRIVE changes these.");
 
-            // The wrong units would draw the vehicle a thousand times too big or too small.
-            if (choice.Units.Doubt(DrawingExtent(doc)) is string doubt
-                && MessageBox.Show(doubt + "\n\nCarry on in " + choice.Units.Name + "? (PTDRIVE changes the units.)", "Drawing units", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes)
+            // Units that look wrong for the drawing are asked about once for each file; after that, said here.
+            UnitsWarning unitsWarning = UnitsWarningFor(doc);
+            if (unitsWarning.AlreadyAnswered && unitsWarning.Doubt(choice.Units) is string doubt)
+            {
+                ed.WriteMessage("\n  Warning: " + doubt + " PTDRIVE changes the units.");
+            }
+            else if (!unitsWarning.CarryOn(null, choice.Units, "(PTDRIVE changes the units.)"))
             {
                 return;
             }
@@ -212,7 +216,7 @@ namespace PointerPath.BricsCAD
                 }
 
                 TurnPathChoice choice;
-                using (var dialog = new TurnPathDialog(conventions, savePath, doc.Database.Insunits.ToString(), DrawingExtent(doc), record))
+                using (var dialog = new TurnPathDialog(conventions, savePath, doc.Database.Insunits.ToString(), UnitsWarningFor(doc), record))
                 {
                     if (dialog.ShowDialog() != DialogResult.OK)
                     {
@@ -931,6 +935,9 @@ namespace PointerPath.BricsCAD
 
             ed.WriteMessage("\n  Change it later with PTEDIT.\n");
         }
+
+        /// <summary>The units question for a drawing: asked once for each drawing file.</summary>
+        internal static UnitsWarning UnitsWarningFor(Document doc) => new UnitsWarning(doc.Name, DrawingExtent(doc));
 
         /// <summary>
         /// How big the drawing is: the larger of the width and height of its extents, in drawing

@@ -50,7 +50,7 @@ namespace PointerPath.BricsCAD
             }
 
             GroundClearanceChoice choice;
-            using (var dialog = new GroundClearanceDialog(conventions, savePath, surfaces, doc.Database.Insunits.ToString(), TurnPathCommand.DrawingExtent(doc)))
+            using (var dialog = new GroundClearanceDialog(conventions, savePath, surfaces, doc.Database.Insunits.ToString(), TurnPathCommand.UnitsWarningFor(doc)))
             {
                 if (dialog.ShowDialog() != DialogResult.OK)
                 {

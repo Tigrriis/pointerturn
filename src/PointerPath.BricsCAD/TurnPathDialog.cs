@@ -86,6 +86,7 @@ namespace PointerPath.BricsCAD
         private readonly ComboBox _units;
         private readonly Label _unitsNote;
         private readonly DrawingUnits _drawingSays;
+        private readonly UnitsWarning _unitsWarning;
         private readonly double? _drawingExtent;
         private readonly Label _vehicleInfo;
         private readonly RadioButton _modeTemplate;
@@ -127,13 +128,14 @@ namespace PointerPath.BricsCAD
         private string _lastVehicle = "";
 
         /// <param name="insunits">The drawing's INSUNITS, by name ("Millimeters", "Meters", "Undefined"...).</param>
-        /// <param name="drawingExtent">How big the drawing is (the larger of its width and height, in drawing units), if known.</param>
+        /// <param name="unitsWarning">How big the drawing is, and whether its units have been asked about.</param>
         /// <param name="editing">A saved turning path to change: its settings fill the dialog and its manoeuvre can't be switched.</param>
-        public TurnPathDialog(TurnPathConventions conventions, string savePath, string? insunits, double? drawingExtent, ManoeuvreRecord? editing = null, TurnPathChoice.ManoeuvreMode? startIn = null)
+        public TurnPathDialog(TurnPathConventions conventions, string savePath, string? insunits, UnitsWarning unitsWarning, ManoeuvreRecord? editing = null, TurnPathChoice.ManoeuvreMode? startIn = null)
         {
             _conventions = conventions;
             _savePath = savePath;
-            _drawingExtent = drawingExtent;
+            _unitsWarning = unitsWarning;
+            _drawingExtent = unitsWarning.Extent;
             DrawingUnits? known = DrawingUnits.FromInsunits(insunits);
             _drawingSays = known ?? DrawingUnits.Metres;
             _editing = editing != null;
@@ -358,10 +360,9 @@ namespace PointerPath.BricsCAD
                     MessageBox.Show(this, problem, "Turning path", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     e.Cancel = true;
                 }
-                else if (SelectedUnits.Doubt(_drawingExtent) is string doubt
-                    && MessageBox.Show(this, doubt + "\n\nCarry on in " + SelectedUnits.Name + "?", "Drawing units", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes)
+                else if (!_unitsWarning.CarryOn(this, SelectedUnits))
                 {
-                    // The wrong units would draw the vehicle a thousand times too big or too small.
+                    // Asked once for each drawing file; the note in red stays either way.
                     e.Cancel = true;
                 }
             };

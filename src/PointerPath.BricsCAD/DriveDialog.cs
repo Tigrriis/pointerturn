@@ -47,6 +47,7 @@ namespace PointerPath.BricsCAD
 
         private readonly TurnPathConventions _conventions;
         private readonly DrawingUnits _drawingSays;
+        private readonly UnitsWarning _unitsWarning;
         private readonly double? _drawingExtent;
         private readonly List<RadioButton> _vehicles = new List<RadioButton>();
         private readonly CheckBox _detect;
@@ -58,12 +59,13 @@ namespace PointerPath.BricsCAD
 
         /// <param name="conventions">Edited as choices are made.</param>
         /// <param name="insunits">The drawing's INSUNITS, by name ("Millimeters", "Meters", "Undefined"...).</param>
-        /// <param name="drawingExtent">How big the drawing is (the larger of its width and height, in drawing units), if known.</param>
-        public DriveDialog(TurnPathConventions conventions, string? insunits, double? drawingExtent)
+        /// <param name="unitsWarning">How big the drawing is, and whether its units have been asked about.</param>
+        public DriveDialog(TurnPathConventions conventions, string? insunits, UnitsWarning unitsWarning)
         {
             _conventions = conventions;
             _drawingSays = DrawingUnits.FromInsunits(insunits) ?? DrawingUnits.Metres;
-            _drawingExtent = drawingExtent;
+            _unitsWarning = unitsWarning;
+            _drawingExtent = unitsWarning.Extent;
 
             DialogKit.Style(this, "PointerPath - Drive");
 
@@ -201,10 +203,9 @@ namespace PointerPath.BricsCAD
                     MessageBox.Show(this, "Choose a vehicle.", "Drive", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     e.Cancel = true;
                 }
-                else if (SelectedUnits.Doubt(_drawingExtent) is string doubt
-                    && MessageBox.Show(this, doubt + "\n\nCarry on in " + SelectedUnits.Name + "?", "Drawing units", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes)
+                else if (!_unitsWarning.CarryOn(this, SelectedUnits))
                 {
-                    // The wrong units would draw the vehicle a thousand times too big or too small.
+                    // Asked once for each drawing file; the note in red stays either way.
                     e.Cancel = true;
                 }
                 else
