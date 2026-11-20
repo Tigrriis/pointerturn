@@ -169,13 +169,13 @@ that runs the same update when you log in and daily at 07:30. Run it with `-Remo
 ## Commands
 
 The dialogs are being simplified, one command at a time. The commands on the ribbon are the ones
-done so far, plus the template, which waits for its own dialog:
+done so far:
 
 | Command | Ribbon button | What it does |
 |---|---|---|
 | `PTDRIVE` | Drive | Drive a design vehicle click by click: choose the vehicle and what to check in a small dialog, press **GO**, then click where it goes. See [Drive](#drive). |
 | `PTQDRIVE` | Quick drive | The same without the dialog: straight to the drawing, with the vehicle and settings Drive was last left with. |
-| `PTTEMPLATE` | Template | Draw a turning template. For now this opens the earlier dialog (as `PTPATH`) on **Standard turn template**. See [Turning paths](#turning-paths). |
+| `PTTEMPLATE` | Template | Draw a turning template: choose the vehicle, the turn angle and left or right in a small dialog, press **GO**, then pick the start point and direction. See [Template](#template). |
 | `PTLICENCE` | Licence | Sign in with your PointerPath account, see the licence on this computer, or sign out. `PTLICENSE` works too. See [Licence](#licence). |
 | `PTRIBBON` | | Add the PointerPath ribbon tab again, if a workspace change removed it. |
 
@@ -252,6 +252,23 @@ Austroads trucks and vehicles of your own are in `PTPATH`; **Drive turns**, the 
 a default, vehicle outlines along the path and the label text height are read by Drive from
 `turn-paths.json`; and `D` still switches the arrival direction while driving.
 
+## Template
+
+`PTTEMPLATE` (ribbon: **Vehicles > Template**) opens the Turning template dialog:
+
+- **Vehicle**, **Draw settings...**, **Units** and **GO**: as in the Drive dialog. The vehicle and
+  the units are the ones Drive was left with, and the other way round.
+- **Turn angle(s), degrees**: `90`, or several for a fan like Figures B3 to B6 (`30, 60, 90, 120,
+  150, 180`): one swept path for each.
+- **Direction**: left or right.
+- **Straight before / after (m)**: the straight travel into and out of the turn.
+
+**GO** then asks for the start point (the centre of the rear axle of the parked vehicle) and the
+direction of travel, as described for **Standard turn template** in the table below. The turn is at
+the vehicle's minimum radius, measured at the outer front wheel. These choices are kept too, so the
+dialog opens as you left it. A larger radius, other clearances and the conflict check are in
+`PTPATH`.
+
 ## Turning paths
 
 `PTPATH` opens the earlier dialog, with every manoeuvre and option, then prompts in the drawing:
@@ -318,13 +335,13 @@ A path remembers the units it was drawn with; changing them in `PTEDIT` keeps it
 redraws the vehicle at the new scale.
 
 **Configuration.** `turn-paths.json` next to the add-in holds the vehicles (add your own with the
-same fields), the drawing units, the default clearances, lead-in/lead-out, text height, what to draw and the layer for
+same fields), the drawing units, the default clearances, lead-in/lead-out, the template's angles and direction, text height, what to draw and the layer for
 each part (`{vehicle}` in a layer name is replaced by the vehicle's name). Layer styles apply only
 when a layer doesn't exist yet. The dialog can change all of it per run; **Save as defaults** writes
 `%APPDATA%\PointerPath\turn-paths.json`, which is then used instead of the shipped file (or point
 `turn_paths_file` in `%APPDATA%\PointerPath\settings.json` at a shared copy). Vehicles that a saved or shared copy doesn't
 have are still taken from the shipped file, so new vehicles appear after an update.
-What the Drive and Draw settings dialogs were last left with is kept apart from all that, under
+What the Drive, Turning template and Draw settings dialogs were last left with is kept apart from all that, under
 `last_used` in `settings.json`, and laid over the file each time it is read: `turn-paths.json` is
 never written by them. **Save as defaults** in an earlier dialog clears `last_used`, so what it
 saved is what every dialog then starts from.

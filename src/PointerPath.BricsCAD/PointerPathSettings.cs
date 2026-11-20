@@ -29,8 +29,8 @@ namespace PointerPath.BricsCAD
         public string? TurnPathsFile { get; set; }
 
         /// <summary>
-        /// What was last chosen in the dialogs that remember their choices (Drive and Draw
-        /// settings). Laid over the conventions each time they are loaded.
+        /// What was last chosen in the dialogs that remember their choices (Drive, Turning
+        /// template and Draw settings). Laid over the conventions each time they are loaded.
         /// </summary>
         [JsonPropertyName("last_used")]
         public LastUsed? LastUsed { get; set; }
@@ -76,6 +76,24 @@ namespace PointerPath.BricsCAD
             last.DetectConflicts = conventions.CheckConflicts;
             last.TurnWheelsWhenStationary = conventions.DriveTurnWheelsWhenStationary;
             last.DrawingUnits = conventions.DrawingUnits;
+            settings.Save();
+        }
+
+        /// <summary>
+        /// Keeps the Turning template dialog's choices in <paramref name="conventions"/> (vehicle,
+        /// units, turn angles, direction, straight before and after) as the ones to start from next
+        /// time. The vehicle and the units are the same ones Drive remembers.
+        /// </summary>
+        public static void RememberTemplate(TurnPathConventions conventions)
+        {
+            PointerPathSettings settings = Load();
+            LastUsed last = settings.LastUsed ?? (settings.LastUsed = new LastUsed());
+            last.Vehicle = conventions.DefaultVehicle;
+            last.DrawingUnits = conventions.DrawingUnits;
+            last.TemplateAngles = conventions.TemplateAngles.ToList();
+            last.TemplateLeft = conventions.TemplateLeft;
+            last.LeadIn = conventions.LeadIn;
+            last.LeadOut = conventions.LeadOut;
             settings.Save();
         }
 
@@ -219,10 +237,11 @@ namespace PointerPath.BricsCAD
     }
 
     /// <summary>
-    /// The choices the Drive and Draw settings dialogs remember from one run to the next, so
-    /// the dialog opens as it was left and Quick drive can go without one. Anything not set
-    /// here comes from the conventions; see <see cref="PointerPathSettings.RememberDrive"/> and
-    /// <see cref="PointerPathSettings.RememberDrawSettings"/>.
+    /// The choices the Drive, Turning template and Draw settings dialogs remember from one run
+    /// to the next, so a dialog opens as it was left and Quick drive can go without one.
+    /// Anything not set here comes from the conventions; see
+    /// <see cref="PointerPathSettings.RememberDrive"/>, <see cref="PointerPathSettings.RememberTemplate"/>
+    /// and <see cref="PointerPathSettings.RememberDrawSettings"/>.
     /// </summary>
     internal sealed class LastUsed
     {
@@ -234,6 +253,17 @@ namespace PointerPath.BricsCAD
 
         /// <summary>"auto", "m", "mm", "in" or "ft".</summary>
         public string? DrawingUnits { get; set; }
+
+        /// <summary>Turning template: the turn angle or angles, in degrees.</summary>
+        public List<double>? TemplateAngles { get; set; }
+
+        /// <summary>Turning template: to the left (otherwise to the right).</summary>
+        public bool? TemplateLeft { get; set; }
+
+        /// <summary>Turning template: straight travel before and after the turn (m).</summary>
+        public double? LeadIn { get; set; }
+
+        public double? LeadOut { get; set; }
 
         public TurnPathDrawOptions? Draw { get; set; }
 
@@ -256,6 +286,14 @@ namespace PointerPath.BricsCAD
                 c.DrawingUnits = DrawingUnits!;
             }
 
+            if (TemplateAngles != null && TemplateAngles.Count > 0)
+            {
+                c.TemplateAngles = TemplateAngles.ToList();
+            }
+
+            c.TemplateLeft = TemplateLeft ?? c.TemplateLeft;
+            c.LeadIn = LeadIn ?? c.LeadIn;
+            c.LeadOut = LeadOut ?? c.LeadOut;
             if (Draw != null)
             {
                 c.Draw = Draw.Clone();

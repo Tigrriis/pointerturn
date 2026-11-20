@@ -16,7 +16,7 @@ namespace PointerPath.BricsCAD
     /// The PointerPath commands. On the ribbon, with the simplified dialogs:
     /// PTDRIVE     drive a design vehicle click by click: the Drive dialog (vehicle, options), then the drawing
     /// PTQDRIVE    the same without the dialog, with the vehicle and settings it was last left with
-    /// PTTEMPLATE  draw a turning template (for now, the earlier dialog opened on the template)
+    /// PTTEMPLATE  draw a turning template: the Turning template dialog (vehicle, angle, direction), then its start
     /// PTLICENCE   sign in with a PointerPath account, see the licence on this computer, or sign out
     /// PTRIBBON    add the PointerPath ribbon tab again (if a workspace change removed it)
     ///
@@ -41,7 +41,7 @@ namespace PointerPath.BricsCAD
         public void PtQuickDrive() => Licensed(doc => TurnPathCommand.QuickDrive(doc));
 
         [CommandMethod(Group, "PTTEMPLATE", CommandFlags.Modal)]
-        public void PtTemplate() => Licensed(doc => TurnPathCommand.Run(doc, TurnPathChoice.ManoeuvreMode.Template));
+        public void PtTemplate() => Licensed(doc => TurnPathCommand.Template(doc));
 
         [CommandMethod(Group, "PTPATH", CommandFlags.Modal)]
         public void PtPath() => Licensed(doc => TurnPathCommand.Run(doc));

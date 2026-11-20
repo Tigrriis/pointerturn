@@ -24,8 +24,8 @@ namespace PointerPath.BricsCAD
     /// or a start and a target to solve the movements between), and the result is drawn in one
     /// go, so it lands on the configured layers and is one UNDO step.
     ///
-    /// PTDRIVE and PTQDRIVE are the simplified way in to driving click by click: the Drive
-    /// dialog, or no dialog at all. PTPATH (and PTTEMPLATE, PTSOLVE, PTINOUT, which open it on
+    /// PTDRIVE, PTQDRIVE and PTTEMPLATE are the simplified ways in: the Drive dialog, no dialog
+    /// at all, and the Turning template dialog. PTPATH (and PTSOLVE and PTINOUT, which open it on
     /// their manoeuvre) is the earlier dialog with every option, until each manoeuvre has a
     /// dialog of its own.
     ///
@@ -35,7 +35,7 @@ namespace PointerPath.BricsCAD
     /// </summary>
     internal static class TurnPathCommand
     {
-        /// <param name="startIn">The manoeuvre the dialog opens on (PTTEMPLATE opens it on the template, PTSOLVE on Solve, PTINOUT on Solve in and out).</param>
+        /// <param name="startIn">The manoeuvre the dialog opens on (PTSOLVE opens it on Solve, PTINOUT on Solve in and out).</param>
         public static void Run(Document doc, TurnPathChoice.ManoeuvreMode? startIn = null)
         {
             Editor ed = doc.Editor;
@@ -73,6 +73,26 @@ namespace PointerPath.BricsCAD
             Draw(doc, DriveChoice(conventions, insunits), conventions, null);
         }
 
+        /// <summary>
+        /// PTTEMPLATE: the Turning template dialog (vehicle, turn angles, direction, straight before
+        /// and after, units, draw settings), then the start point and direction are picked. The
+        /// dialog keeps every choice.
+        /// </summary>
+        public static void Template(Document doc)
+        {
+            TurnPathConventions conventions = LoadConventions(doc.Editor, out _);
+            string insunits = doc.Database.Insunits.ToString();
+            using (var dialog = new TemplateDialog(conventions, insunits, UnitsWarningFor(doc)))
+            {
+                if (dialog.ShowDialog() != DialogResult.OK)
+                {
+                    return;
+                }
+            }
+
+            Draw(doc, TemplateChoice(conventions, insunits), conventions, null);
+        }
+
         /// <summary>PTQDRIVE: drives straight away, with the vehicle and settings the Drive dialog was last left with.</summary>
         public static void QuickDrive(Document doc)
         {
@@ -104,6 +124,33 @@ namespace PointerPath.BricsCAD
         /// </summary>
         private static TurnPathChoice DriveChoice(TurnPathConventions c, string? insunits)
         {
+            TurnPathChoice choice = ChoiceFrom(c, insunits);
+            choice.Mode = TurnPathChoice.ManoeuvreMode.Drive;
+            choice.Reference = ReferencePoint.FrontAxle;
+            choice.CheckConflicts = c.CheckConflicts;
+            return choice;
+        }
+
+        /// <summary>
+        /// A turning template as the conventions have it: the default vehicle (the last one chosen)
+        /// at its minimum turn radius, measured at the outer front wheel, through the template
+        /// angles, left or right, with the straight travel before and after. The template dialog
+        /// has no conflict check, so there is none.
+        /// </summary>
+        private static TurnPathChoice TemplateChoice(TurnPathConventions c, string? insunits)
+        {
+            TurnPathChoice choice = ChoiceFrom(c, insunits);
+            choice.Mode = TurnPathChoice.ManoeuvreMode.Template;
+            choice.Reference = ReferencePoint.OuterFrontWheel;
+            choice.TurnAngles = c.TemplateAngles.Count > 0 ? c.TemplateAngles.ToList() : new List<double> { 90 };
+            choice.Left = c.TemplateLeft;
+            choice.CheckConflicts = false;
+            return choice;
+        }
+
+        /// <summary>What the simplified dialogs' manoeuvres share: the vehicle, its radius and clearances, the units, what to draw.</summary>
+        private static TurnPathChoice ChoiceFrom(TurnPathConventions c, string? insunits)
+        {
             DesignVehicle v = c.Vehicle(null);
             string setting;
             try
@@ -118,15 +165,12 @@ namespace PointerPath.BricsCAD
             return new TurnPathChoice
             {
                 Vehicle = v,
-                Mode = TurnPathChoice.ManoeuvreMode.Drive,
                 Radius = v.MinTurnRadius,
                 LeadIn = c.LeadIn,
                 LeadOut = c.LeadOut,
-                Reference = ReferencePoint.FrontAxle,
                 Turns = c.DriveTurnsMode,
                 ArrivalHeading = c.DriveArrivalHeading,
                 TurnWheelsWhenStationary = c.DriveTurnWheelsWhenStationary,
-                CheckConflicts = c.CheckConflicts,
                 ConflictLayers = c.ObstructionLayers.ToList(),
                 SolveLayers = c.SolveLayers.ToList(),
                 ObstructionLayers = c.ObstructionLayers.ToList(),

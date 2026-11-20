@@ -83,6 +83,12 @@ namespace PointerPath.Core.Tests
             Assert.True(c.LayerStyles.ContainsKey(c.Layers.Block));
             Assert.True(c.LayerStyles.ContainsKey(c.Layers.Clearance));
             Assert.Equal("DASHED", c.LayerStyles[c.Layers.Clearance].Linetype);
+
+            // The template turn the dialog starts from: one 90 degree turn to the left, 6 m straight after.
+            Assert.Equal(new[] { 90.0 }, c.TemplateAngles);
+            Assert.True(c.TemplateLeft);
+            Assert.Equal(0, c.LeadIn);
+            Assert.Equal(6, c.LeadOut);
         }
 
         [Fact]
@@ -93,6 +99,8 @@ namespace PointerPath.Core.Tests
             c.Draw.Hatch = true;
             c.Draw.Block = true;
             c.Layers.Set("block", "BLK-{vehicle}");
+            c.TemplateAngles = new List<double> { 30, 60, 90 };
+            c.TemplateLeft = false;
             string path = Path.Combine(Path.GetTempPath(), "csdbridge-turn-paths-" + Guid.NewGuid().ToString("N") + ".json");
             try
             {
@@ -103,6 +111,8 @@ namespace PointerPath.Core.Tests
                 Assert.True(back.Draw.Hatch);
                 Assert.True(back.Draw.Block);
                 Assert.Equal("BLK-B99", back.Layers.Resolve("B99").Block);
+                Assert.Equal(new[] { 30.0, 60, 90 }, back.TemplateAngles);
+                Assert.False(back.TemplateLeft);
                 Assert.Equal(2, back.Vehicles.Count);
                 Assert.Equal(6.3, back.Vehicle("b99").MinTurnRadius);
             }
