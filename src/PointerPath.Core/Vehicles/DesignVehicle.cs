@@ -287,6 +287,16 @@ namespace PointerPath.Core.Vehicles
         /// <summary>Minimum turn radius, measured to the outer front wheel (AS/NZS 2890.1 Paragraph B3.1).</summary>
         public double MinTurnRadius { get; set; }
 
+        /// <summary>
+        /// The turn radius is measured to the outside edge of the outer front tyre, as AS 2890.2
+        /// defines its design turning radius (Clause 1.4.22), instead of to the centre of the wheel.
+        /// </summary>
+        public bool RadiusToTyreEdge { get; set; }
+
+        /// <summary>How far from the centreline the point of the outer front wheel is that the turn radius is measured to.</summary>
+        [JsonIgnore]
+        public double OuterWheelOffset => Track / 2 + (RadiusToTyreEdge ? WheelWidth / 2 : 0);
+
         /// <summary>Manoeuvring clearance added on the inside of the turn (m).</summary>
         public double ClearanceInside { get; set; } = 0.3;
 
@@ -301,6 +311,12 @@ namespace PointerPath.Core.Vehicles
 
         /// <summary>Angle of the underside behind the rear axle, degrees above the chassis line (B5: 10 degrees).</summary>
         public double DepartureAngleDeg { get; set; } = 10;
+
+        /// <summary>
+        /// How far behind the rear axle the underside stays at the ground clearance before it rises
+        /// at the departure angle (m). AS 2890.2 Figure A1: 1.0 m for its trucks; a car's rises from the axle.
+        /// </summary>
+        public double DepartureFlat { get; set; }
 
         /// <summary>Length of a drawn wheel (tyre footprint), for the vehicle outline.</summary>
         public double WheelLength { get; set; } = 0.65;
@@ -389,14 +405,19 @@ namespace PointerPath.Core.Vehicles
         /// The ground clearance template of AS/NZS 2890.1 Figure C1 in the chassis frame: X along
         /// the vehicle from the rear axle, Z up from the line through the wheel contact points.
         /// Rear extremity, rear axle, front axle, front extremity; the underside is straight between
-        /// the axles and rises at the departure/approach angles over the overhangs.
+        /// the axles and rises at the departure/approach angles over the overhangs. A truck's stays
+        /// level for <see cref="DepartureFlat"/> behind the rear axle first (AS 2890.2 Figure A1),
+        /// which adds a point there.
         /// </summary>
         public (double X, double Z)[] UndersideTemplate(double? groundClearance = null)
         {
             double h = groundClearance ?? GroundClearance;
-            double rear = h + RearOverhang * Math.Tan(DepartureAngleDeg * Math.PI / 180);
+            double flat = Math.Max(0, Math.Min(DepartureFlat, RearOverhang));
+            double rear = h + (RearOverhang - flat) * Math.Tan(DepartureAngleDeg * Math.PI / 180);
             double front = h + FrontOverhang * Math.Tan(ApproachAngleDeg * Math.PI / 180);
-            return new[] { (-RearOverhang, rear), (0.0, h), (Wheelbase, h), (Wheelbase + FrontOverhang, front) };
+            return flat > 1e-9 && flat < RearOverhang - 1e-9
+                ? new[] { (-RearOverhang, rear), (-flat, h), (0.0, h), (Wheelbase, h), (Wheelbase + FrontOverhang, front) }
+                : new[] { (-RearOverhang, rear), (0.0, h), (Wheelbase, h), (Wheelbase + FrontOverhang, front) };
         }
 
         /// <summary>Problems with the dimensions, or an empty list.</summary>
@@ -456,6 +477,11 @@ namespace PointerPath.Core.Vehicles
                 problems.Add("ground_clearance must be 0 or more and the approach/departure angles between 0 and 90 degrees");
             }
 
+            if (DepartureFlat < 0)
+            {
+                problems.Add("departure_flat can't be negative");
+            }
+
             for (int i = 0; i < Trailers.Count; i++)
             {
                 TrailerUnit t = Trailers[i];
@@ -490,18 +516,19 @@ namespace PointerPath.Core.Vehicles
         /// <summary>
         /// Radius of the rear axle centre's path in a steady turn whose outer front wheel is at
         /// <paramref name="outerWheelRadius"/>. In a steady turn the instantaneous centre lies on
-        /// the rear axle line, so wheel radius² = (rear radius + track/2)² + wheelbase².
+        /// the rear axle line, so wheel radius² = (rear radius + track/2)² + wheelbase² (with half the
+        /// tyre's width added to track/2 when the radius is measured to the tyre's edge).
         /// </summary>
         public double RearAxleRadius(double outerWheelRadius)
         {
-            double r = Math.Sqrt(Math.Max(0, outerWheelRadius * outerWheelRadius - Wheelbase * Wheelbase)) - Track / 2;
+            double r = Math.Sqrt(Math.Max(0, outerWheelRadius * outerWheelRadius - Wheelbase * Wheelbase)) - OuterWheelOffset;
             return Math.Max(0.01, r);
         }
 
         /// <summary>Outer front wheel radius in a steady turn with the rear axle centre at <paramref name="rearAxleRadius"/>.</summary>
         public double OuterWheelRadius(double rearAxleRadius)
         {
-            double a = rearAxleRadius + Track / 2;
+            double a = rearAxleRadius + OuterWheelOffset;
             return Math.Sqrt(a * a + Wheelbase * Wheelbase);
         }
 
@@ -522,8 +549,8 @@ namespace PointerPath.Core.Vehicles
 
         public VehiclePoint RearAxleCentre => new VehiclePoint(0, 0);
 
-        /// <summary>The front wheel on the outside of a turn.</summary>
-        public VehiclePoint OuterFrontWheel(bool left) => new VehiclePoint(Wheelbase, left ? -Track / 2 : Track / 2);
+        /// <summary>The front wheel on the outside of a turn: the point of it the turn radius is measured to.</summary>
+        public VehiclePoint OuterFrontWheel(bool left) => new VehiclePoint(Wheelbase, left ? -OuterWheelOffset : OuterWheelOffset);
 
         public VehiclePoint Resolve(ReferencePoint reference, bool leftTurn)
         {

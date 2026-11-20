@@ -76,7 +76,7 @@ namespace PointerPath.Core.Tests
                 Assert.Equal(built.ClearanceOutside, file.ClearanceOutside);
             }
 
-            Assert.Throws<ArgumentException>(() => c.Vehicle("HRV"));
+            Assert.Throws<ArgumentException>(() => c.Vehicle("Road train"));
             Assert.Equal("AE CIV PLN - VEHICLE BLOCK", c.Layers.Block);
             Assert.False(c.Draw.Block);
             Assert.Contains(c.Layers.All(), kv => kv.Key == "block");
@@ -474,7 +474,7 @@ namespace PointerPath.Core.Tests
             TurnPathConventions shipped = Conventions();
             Assert.Empty(shipped.CorrectReversedCars());
             Assert.Empty(shipped.RemoveVehiclesWithTrailers());
-            Assert.Equal(new[] { "B99", "B85", "SRV", "Service 8.8 m", "Truck 12.5 m" }, shipped.Vehicles.Keys);
+            Assert.Equal(new[] { "B99", "B85", "SRV", "MRV", "HRV", "Service 8.8 m", "Truck 12.5 m" }, shipped.Vehicles.Keys);
             Assert.Equal(0.92, shipped.Vehicle("B85").FrontOverhang);
             Assert.Equal(1.2, shipped.Vehicle("B99").RearOverhang);
 
