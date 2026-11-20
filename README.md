@@ -311,7 +311,9 @@ intervals and the label text height (0.3 is 300 in a millimetre drawing). Points
 and walls on the obstruction layers, a line the vehicle follows and surface levels are read in the
 drawing's units, and the result is drawn at the drawing's scale. If the units look wrong for the
 size of the drawing (a "millimetre" drawing only 300 units across, say) the dialog says so in red
-and asks before carrying on.
+and asks before carrying on. It asks once for each drawing file: once you have answered, yes or no,
+that file isn't asked about again until the CAD program is restarted. The warning still shows in
+red in the dialogs, and Quick drive says it on the command line.
 A path remembers the units it was drawn with; changing them in `PTEDIT` keeps it where it is and
 redraws the vehicle at the new scale.
 

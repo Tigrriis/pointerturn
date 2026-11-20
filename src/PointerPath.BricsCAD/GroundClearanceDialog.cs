@@ -55,6 +55,7 @@ namespace PointerPath.BricsCAD
         private readonly ComboBox _units;
         private readonly Label _unitsNote;
         private readonly DrawingUnits _drawingSays;
+        private readonly UnitsWarning _unitsWarning;
         private readonly double? _drawingExtent;
         private readonly Label _vehicleInfo;
         private readonly RadioButton _modeSection;
@@ -81,12 +82,13 @@ namespace PointerPath.BricsCAD
         private string _lastVehicle = "";
 
         /// <param name="insunits">The drawing's INSUNITS, by name ("Millimeters", "Meters", "Undefined"...).</param>
-        /// <param name="drawingExtent">How big the drawing is (the larger of its width and height, in drawing units), if known.</param>
-        public GroundClearanceDialog(TurnPathConventions conventions, string savePath, IReadOnlyList<string> surfaces, string? insunits, double? drawingExtent)
+        /// <param name="unitsWarning">How big the drawing is, and whether its units have been asked about.</param>
+        public GroundClearanceDialog(TurnPathConventions conventions, string savePath, IReadOnlyList<string> surfaces, string? insunits, UnitsWarning unitsWarning)
         {
             _conventions = conventions;
             _savePath = savePath;
-            _drawingExtent = drawingExtent;
+            _unitsWarning = unitsWarning;
+            _drawingExtent = unitsWarning.Extent;
             DrawingUnits? known = DrawingUnits.FromInsunits(insunits);
             _drawingSays = known ?? DrawingUnits.Metres;
 
@@ -252,8 +254,7 @@ namespace PointerPath.BricsCAD
                     MessageBox.Show(this, problem, "Ground clearance", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     e.Cancel = true;
                 }
-                else if (SelectedUnits.Doubt(_drawingExtent) is string doubt
-                    && MessageBox.Show(this, doubt + "\n\nCarry on in " + SelectedUnits.Name + "?", "Drawing units", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes)
+                else if (!_unitsWarning.CarryOn(this, SelectedUnits))
                 {
                     e.Cancel = true;
                 }
