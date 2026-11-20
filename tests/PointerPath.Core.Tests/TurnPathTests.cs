@@ -474,7 +474,7 @@ namespace PointerPath.Core.Tests
             TurnPathConventions shipped = Conventions();
             Assert.Empty(shipped.CorrectReversedCars());
             Assert.Empty(shipped.RemoveVehiclesWithTrailers());
-            Assert.Equal(new[] { "B99", "B85", "Service 8.8 m", "Truck 12.5 m" }, shipped.Vehicles.Keys);
+            Assert.Equal(new[] { "B99", "B85", "SRV", "Service 8.8 m", "Truck 12.5 m" }, shipped.Vehicles.Keys);
             Assert.Equal(0.92, shipped.Vehicle("B85").FrontOverhang);
             Assert.Equal(1.2, shipped.Vehicle("B99").RearOverhang);
 

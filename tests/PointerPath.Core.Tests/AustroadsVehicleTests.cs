@@ -28,6 +28,45 @@ namespace PointerPath.Core.Tests
         private static double Dist(Point2 a, Point2 b) => Segment.Dist(a, b);
 
         [Fact]
+        public void TheSmallRigidVehicleIsAsDimensioned()
+        {
+            // AS 2890.2: 6.4 m long, 2.33 m wide, 7.1 m design turning radius kerb to kerb.
+            TurnPathConventions c = Conventions();
+            DesignVehicle srv = c.Vehicle("SRV");
+            Assert.Equal(6.4, srv.Length);
+            Assert.Equal(2.33, srv.Width);
+            Assert.Equal(6.4, srv.RearOverhang + srv.Wheelbase + srv.FrontOverhang, 9);
+            Assert.Equal(7.1, srv.MinTurnRadius);
+            Assert.Equal(1, srv.RearAxles);
+            Assert.False(srv.IsArticulated);
+            Assert.Empty(srv.Validate());
+            Assert.Equal(0.5, srv.ClearanceInside);
+            Assert.Equal(0.5, srv.ClearanceOutside);
+
+            // The tyres sit flush with the body, and the body is square.
+            Assert.Equal(srv.Width, srv.Track + srv.WheelWidth, 9);
+            Assert.Equal(0, srv.CornerInset, 9);
+
+            // At the design radius the lock is one a small truck has, and it sits between the car and the 8.8 m vehicle.
+            double rho = srv.RearAxleRadius(7.1);
+            Assert.Equal(7.1, Math.Sqrt(Math.Pow(rho + srv.Track / 2, 2) + srv.Wheelbase * srv.Wheelbase), 9);
+            Assert.InRange(Math.Atan(srv.Wheelbase / rho) * 180 / Math.PI, 30, 42);
+
+            TurnPathResult turn = Turn(srv, 7.1, 90);
+            Assert.True(turn.WithinMinimumRadius);
+            Assert.Empty(turn.Warnings);
+            double width = SweptWidth(turn);
+            Assert.True(width > SweptWidth(Turn(c.Vehicle("B99"), 7.1, 90)) + 0.5);
+            Assert.True(width < SweptWidth(Turn(c.Vehicle("Service 8.8 m"), 9, 90)) - 0.5);
+            // A long turn any tighter needs more lock than that.
+            Assert.False(Turn(srv, 6.5, 180).WithinMinimumRadius);
+
+            // Two axles, four wheels drawn.
+            Assert.Equal(4, TurnPathDrafter.VehicleOutline(srv, new VehiclePose(new Point2(0, 0), 0), "V", wheels: true)
+                .Count(e => e is PolylineSpec p && p.Closed && p.Points.Count == 4));
+        }
+
+        [Fact]
         public void TheRigidTrucksAreAsDimensioned()
         {
             TurnPathConventions c = Conventions();
@@ -243,8 +282,8 @@ namespace PointerPath.Core.Tests
             Assert.Equal(2, saved.Vehicles.Count);
 
             List<string> added = saved.AddMissingVehicles(Conventions());
-            Assert.Equal(new[] { "Service 8.8 m", "Truck 12.5 m", "Semi 19 m", "B-double 25 m", "B-double 26 m" }, added);
-            Assert.Equal(7, saved.Vehicles.Count);
+            Assert.Equal(new[] { "SRV", "Service 8.8 m", "Truck 12.5 m", "Semi 19 m", "B-double 25 m", "B-double 26 m" }, added);
+            Assert.Equal(8, saved.Vehicles.Count);
             Assert.Equal(0.45, saved.Vehicles["B99"].ClearanceOutside);      // their own edits stay
             Assert.Equal(19.0, saved.Vehicle("semi 19 m").OverallLength, 9);
 

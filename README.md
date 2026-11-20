@@ -37,12 +37,13 @@ This is a first cut as a separate add-in, not a finished product.
 
 | Part | State |
 |---|---|
-| Core (vehicles, simulation, swept path, solver, conflicts, ground clearance, licence check) | Built and unit-tested: 123 tests |
+| Core (vehicles, simulation, swept path, solver, conflicts, ground clearance, licence check) | Built and unit-tested: 124 tests |
 | BricsCAD add-in | Built against BricsCAD V26 (the .NET 8 build) and run in it: installed by the installer, it loaded, signed in, and the drawing commands ran. **The .NET Framework build, for V24 and V25, has not been run. Not yet worked through "First things to test"** |
 | AutoCAD add-in | The same source, compiled against Autodesk's AutoCAD 2021 and AutoCAD 2025 APIs: it builds clean for both. **Not yet run in AutoCAD.** Reading Civil 3D surfaces is written from the API reference and untried |
 | Installer | Built on Windows and used to install into a real BricsCAD V26, which then loaded the add-in. Under Wine, against stand-in registry keys: install for all users and for one user, upgrade, uninstall, and the BricsCAD registry entries. **On Windows, upgrading and uninstalling have not been tried, nor has BricsCAD V24 or V25, or AutoCAD.** Not code-signed |
 | Licence check | Unit-tested, and used for real once: a licensed build signed in from BricsCAD against the live website, and the commands then ran. **Not yet seen inside the CAD program: the daily refresh, signing out, the computer limit and a licence running out. Nothing has been run in AutoCAD.** Only the installer's build asks for a licence; a build from source doesn't: see [docs/licensing.md](docs/licensing.md) |
 | Cars (B85, B99) | Front and rear overhangs corrected to AS/NZS 2890.1: they were first shipped back to front. The B85's (920 front, 1190 rear) are confirmed against a published copy of the template; the B99's (950 front, 1200 rear) and both cars' effective overhangs follow the same correction and **should be checked against Figures B1 and B2** |
+| SRV (AS 2890.2) | Added: 6.4 x 2.33 m, 7.1 m design turning radius. The 3.8 wheelbase and 1.05 front, 1.55 rear overhangs **should be checked against the standard's figure** |
 | Austroads vehicles | Entered from the dimension drawings in AP-G34-23. **Not yet compared against the published turning templates.** Vehicles with trailers are switched off for now |
 
 See [docs/architecture.md](docs/architecture.md) for the design, and "First things to test" there.
@@ -276,6 +277,22 @@ when a layer doesn't exist yet. The dialog can change all of it per run; **Save 
 `%APPDATA%\PointerPath\turn-paths.json`, which is then used instead of the shipped file (or point
 `turn_paths_file` in `%APPDATA%\PointerPath\settings.json` at a shared copy). Vehicles that a saved or shared copy doesn't
 have are still taken from the shipped file, so new vehicles appear after an update.
+
+### Small rigid vehicle (AS 2890.2)
+
+The **SRV** is the small rigid vehicle of AS 2890.2 (off-street commercial vehicle facilities): the van or
+small truck that loading bays and service areas of smaller developments are designed for.
+
+| Vehicle | Body (m) | Wheelbase and overhangs (m) | Design turning radius |
+|---|---|---|---|
+| **SRV** | 6.4 long, 2.33 wide | 3.8 wheelbase, 1.05 front overhang, 1.55 rear overhang | 7.1 m, kerb to kerb (at the outer front wheel) |
+
+The length, width and radius are the standard's. **The wheelbase and the two overhangs have not been checked
+against the standard's figure**: they add up to the 6.4 m length, but confirm them before relying on an SRV
+swept path. It defaults to 0.5 m clearance on both sides; for low speed manoeuvres into and out of a service
+bay or loading dock the standard allows 0.3 m, which the dialog can set. The standard's other vehicles are not
+included under their own names: its MRV and HRV are the 8.8 m and 12.5 m vehicles below, at a 10 m and a
+12.5 m design radius, and its articulated vehicle waits for trailers to be switched back on.
 
 ### Trucks
 

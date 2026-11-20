@@ -16,6 +16,16 @@
 //   approach/departure_angle  B5: the underside rises at 10 degrees over the overhangs
 // Add your own vehicles (a service vehicle, say) as more entries with the same fields.
 //
+// SRV (AS 2890.2, Parking facilities: Off-street commercial vehicle facilities): the small rigid
+// vehicle, 6.4 m long and 2.33 m wide, with a 7.1 m design turning radius (kerb to kerb, so at the
+// outer front wheel). The body is square, so effective_* is left out.
+//   wheelbase 3.8, front_overhang 1.05, rear_overhang 1.55
+//                             NOT YET CHECKED against the standard's figure: they add up to the
+//                             6.4 m length, but confirm all three before relying on a swept path
+//   track 2.1                 not dimensioned: tyres 230 mm wide, flush with the body
+//   clearance_inside/outside  0.5 m; the standard allows 0.3 m for low speed manoeuvres into and
+//                             out of a service bay or loading dock, which can be set in the dialog
+//
 // Trucks (Austroads AP-G34-23, Design Vehicles and Turning Path Templates Guide, Edition 4.0,
 // Figures 2.3 and 2.4): the body is square, so effective_* is left out. With a
 // group of rear axles, wheelbase and overhangs are measured from the centre of the group.
@@ -76,6 +86,20 @@
       "departure_angle_deg": 10,
       "wheel_length": 0.65,
       "wheel_width": 0.22
+    },
+    "SRV": {
+      "description": "AS 2890.2 small rigid vehicle (6.4 x 2.33 m), 7.1 m design turning radius. Loading bays and service areas for small trucks and vans.",
+      "length": 6.4,
+      "width": 2.33,
+      "wheelbase": 3.8,
+      "front_overhang": 1.05,
+      "rear_overhang": 1.55,
+      "track": 2.1,
+      "min_turn_radius": 7.1,
+      "clearance_inside": 0.5,
+      "clearance_outside": 0.5,
+      "wheel_length": 0.8,
+      "wheel_width": 0.23
     },
     "Service 8.8 m": {
       "description": "Austroads AP-G34-23 Figure 2.3, service vehicle (8.8 m). Templates at 9, 12.5, 15, 20 and 30 m radius.",
