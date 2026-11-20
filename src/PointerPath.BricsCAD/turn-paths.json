@@ -16,6 +16,24 @@
 //   approach/departure_angle  B5: the underside rises at 10 degrees over the overhangs
 // Add your own vehicles (a service vehicle, say) as more entries with the same fields.
 //
+// SRV, MRV and HRV (AS 2890.2-2002, Parking facilities: Off-street commercial vehicle facilities;
+// Table 2.1 and Figure 2.1): the small, medium and heavy rigid vehicles. Bodies are square, so
+// effective_* is left out. The HRV's wheelbase and rear overhang are to the centre of its rear pair.
+//   min_turn_radius           the design turning radius: 7.1, 10.0 and 12.5 m
+//   radius_to_tyre_edge       the standard measures that radius to the outside edge of the outer
+//                             front tyre (Clause 1.4.22), not to the wheel's centre
+//   clearance_inside/outside  Clause 5.4: 300 mm both sides for low speed manoeuvres, as the
+//                             templates' broken lines. On access driveways and circulation
+//                             roadways add 300 mm on the outside of the curve (set 0.6 in the dialog)
+//   ground_clearance, departure_angle, departure_flat
+//                             Figure A1: 150 mm under the body, level for 1.0 m behind the rear
+//                             axle and then rising at 10 degrees. The figure gives no approach
+//                             angle, so the front overhang is taken as level (0). The extra height
+//                             it shows mid-wheelbase (20, 50 and 90 mm) is left out, which is the safe side
+// Not dimensioned in the figures (they don't move the swept path): tyres drawn flush with the body,
+// so track = width less one tyre width; rear_track and the tyre sizes are as the Austroads trucks.
+// The standard's articulated vehicle (AV) waits for trailers to be switched back on.
+//
 // Trucks (Austroads AP-G34-23, Design Vehicles and Turning Path Templates Guide, Edition 4.0,
 // Figures 2.3 and 2.4): the body is square, so effective_* is left out. With a
 // group of rear axles, wheelbase and overhangs are measured from the centre of the group.
@@ -76,6 +94,66 @@
       "departure_angle_deg": 10,
       "wheel_length": 0.65,
       "wheel_width": 0.22
+    },
+    "SRV": {
+      "description": "AS 2890.2-2002 Figure 2.1(a), small rigid vehicle (6.4 x 2.3 m). Light trucks to 4 t; service areas used by small commercial vehicles only.",
+      "length": 6.4,
+      "width": 2.3,
+      "wheelbase": 3.8,
+      "front_overhang": 1.05,
+      "rear_overhang": 1.55,
+      "track": 2.1,
+      "min_turn_radius": 7.1,
+      "radius_to_tyre_edge": true,
+      "clearance_inside": 0.3,
+      "clearance_outside": 0.3,
+      "ground_clearance": 0.15,
+      "approach_angle_deg": 0,
+      "departure_angle_deg": 10,
+      "departure_flat": 1.0,
+      "wheel_length": 0.8,
+      "wheel_width": 0.2
+    },
+    "MRV": {
+      "description": "AS 2890.2-2002 Figure 2.1(b), medium rigid vehicle (8.8 x 2.5 m). The common 8 t service truck; significant movement of goods.",
+      "length": 8.8,
+      "width": 2.5,
+      "wheelbase": 5.0,
+      "front_overhang": 1.5,
+      "rear_overhang": 2.3,
+      "track": 2.25,
+      "min_turn_radius": 10,
+      "radius_to_tyre_edge": true,
+      "clearance_inside": 0.3,
+      "clearance_outside": 0.3,
+      "ground_clearance": 0.15,
+      "approach_angle_deg": 0,
+      "departure_angle_deg": 10,
+      "departure_flat": 1.0,
+      "wheel_length": 1.05,
+      "wheel_width": 0.25
+    },
+    "HRV": {
+      "description": "AS 2890.2-2002 Figure 2.1(c), heavy rigid vehicle (12.5 x 2.5 m). The largest single unit truck; major suburban delivery areas.",
+      "length": 12.5,
+      "width": 2.5,
+      "wheelbase": 6.6,
+      "front_overhang": 2.4,
+      "rear_overhang": 3.5,
+      "track": 2.25,
+      "rear_track": 1.98,
+      "rear_axles": 2,
+      "axle_spacing": 1.4,
+      "min_turn_radius": 12.5,
+      "radius_to_tyre_edge": true,
+      "clearance_inside": 0.3,
+      "clearance_outside": 0.3,
+      "ground_clearance": 0.15,
+      "approach_angle_deg": 0,
+      "departure_angle_deg": 10,
+      "departure_flat": 1.0,
+      "wheel_length": 1.05,
+      "wheel_width": 0.25
     },
     "Service 8.8 m": {
       "description": "Austroads AP-G34-23 Figure 2.3, service vehicle (8.8 m). Templates at 9, 12.5, 15, 20 and 30 m radius.",

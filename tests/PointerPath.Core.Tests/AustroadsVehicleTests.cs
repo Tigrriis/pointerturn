@@ -27,6 +27,92 @@ namespace PointerPath.Core.Tests
 
         private static double Dist(Point2 a, Point2 b) => Segment.Dist(a, b);
 
+        [Theory]
+        // AS 2890.2-2002 Figure 2.1 and Table 2.1: length, width, front overhang, wheelbase, rear overhang,
+        // design turning radius, swept circle, rear axles.
+        [InlineData("SRV", 6.4, 2.3, 1.05, 3.8, 1.55, 7.1, 15.3, 1)]
+        [InlineData("MRV", 8.8, 2.5, 1.5, 5.0, 2.3, 10.0, 21.6, 1)]
+        [InlineData("HRV", 12.5, 2.5, 2.4, 6.6, 3.5, 12.5, 27.8, 2)]
+        public void TheCommercialVehiclesAreAsTheStandardDimensionsThem(string name, double length, double width, double front, double wheelbase, double rear, double radius, double sweptCircle, int rearAxles)
+        {
+            TurnPathConventions c = Conventions();
+            DesignVehicle v = c.Vehicle(name);
+            Assert.Equal(length, v.Length);
+            Assert.Equal(width, v.Width);
+            Assert.Equal(front, v.FrontOverhang);
+            Assert.Equal(wheelbase, v.Wheelbase);
+            Assert.Equal(rear, v.RearOverhang);
+            Assert.Equal(length, front + wheelbase + rear, 9);
+            Assert.Equal(radius, v.MinTurnRadius);
+            Assert.Equal(rearAxles, v.RearAxles);
+            Assert.False(v.IsArticulated);
+            Assert.Empty(v.Validate());
+
+            // Clause 5.4: 300 mm both sides, as the templates' broken lines.
+            Assert.Equal(0.3, v.ClearanceInside);
+            Assert.Equal(0.3, v.ClearanceOutside);
+
+            // The tyres are drawn flush with a square body, and the design turning radius is to the
+            // outside edge of the outer front tyre (Clause 1.4.22): the side of the body.
+            Assert.Equal(v.Width, v.Track + v.WheelWidth, 9);
+            Assert.Equal(0, v.CornerInset, 9);
+            Assert.True(v.RadiusToTyreEdge);
+            Assert.Equal(v.Width / 2, v.OuterWheelOffset, 9);
+            Assert.Equal(v.Width / 2, Math.Abs(v.OuterFrontWheel(left: true).Y), 9);
+            double rho = v.RearAxleRadius(radius);
+            Assert.Equal(radius, Math.Sqrt(Math.Pow(rho + v.Width / 2, 2) + wheelbase * wheelbase), 9);
+            Assert.Equal(radius, v.OuterWheelRadius(rho), 9);
+
+            // Table 2.1's swept circle is the circle the outermost corner of the body traces on full
+            // lock. It comes out of the other dimensions: within 70 mm of the diameter for the MRV
+            // and HRV, and 130 mm over for the SRV (15.43 against the table's 15.3).
+            double corner = 2 * Math.Sqrt(Math.Pow(rho + v.Width / 2, 2) + Math.Pow(wheelbase + front, 2));
+            Assert.InRange(corner - sweptCircle, 0, name == "SRV" ? 0.14 : 0.07);
+
+            // Driven round a half turn at the design radius it comes up to full lock, and no further.
+            TurnPathResult half = Turn(v, radius, 180);
+            Assert.True(half.WithinMinimumRadius);
+            Assert.Empty(half.Warnings);
+            Assert.InRange(half.TightestRadius, radius, radius + 0.1);
+            Assert.False(Turn(v, radius - 0.6, 180).WithinMinimumRadius);
+
+            // Figure A1: 150 mm under the body, level for a metre behind the rear axle, then up at 10 degrees.
+            (double X, double Z)[] under = v.UndersideTemplate();
+            Assert.Equal(5, under.Length);
+            Assert.Equal((-1.0, 0.15), under[1]);
+            Assert.Equal((0.0, 0.15), under[2]);
+            Assert.Equal(-rear, under[0].X, 9);
+            Assert.Equal(0.15 + (rear - 1) * Math.Tan(10 * Math.PI / 180), under[0].Z, 9);
+            Assert.Equal((wheelbase + front, 0.15), (under[4].X, Math.Round(under[4].Z, 9)));
+        }
+
+        [Fact]
+        public void TheCommercialVehiclesSweepWiderTheLongerTheyAre()
+        {
+            TurnPathConventions c = Conventions();
+            double Width(string name) => SweptWidth(Turn(c.Vehicle(name), c.Vehicle(name).MinTurnRadius, 90));
+            Assert.True(Width("SRV") > SweptWidth(Turn(c.Vehicle("B99"), 7.1, 90)) + 0.5);
+            Assert.True(Width("MRV") > Width("SRV") + 0.3);
+            Assert.True(Width("HRV") > Width("MRV") + 0.5);
+
+            // The HRV has a rear pair 1.4 m apart (Figure A1), the others one rear axle.
+            int Wheels(string name) => TurnPathDrafter.VehicleOutline(c.Vehicle(name), new VehiclePose(new Point2(0, 0), 0), "V", wheels: true)
+                .Count(e => e is PolylineSpec p && p.Closed && p.Points.Count == 4);
+            Assert.Equal(4, Wheels("SRV"));
+            Assert.Equal(4, Wheels("MRV"));
+            Assert.Equal(6, Wheels("HRV"));
+            Assert.Equal(1.4, c.Vehicle("HRV").AxleSpacing);
+
+            // Measuring the radius to the wheel's centre instead would turn the same vehicle wider.
+            DesignVehicle centre = c.Vehicle("MRV").Clone();
+            centre.RadiusToTyreEdge = false;
+            Assert.Equal(c.Vehicle("MRV").RearAxleRadius(10) + 0.125, centre.RearAxleRadius(10), 9);
+
+            // The cars and the Austroads trucks are measured as before, and a car's underside still rises from the axle.
+            Assert.All(new[] { "B99", "B85", "Service 8.8 m", "Truck 12.5 m" }, n => Assert.False(c.Vehicle(n).RadiusToTyreEdge));
+            Assert.Equal(4, c.Vehicle("B85").UndersideTemplate().Length);
+        }
+
         [Fact]
         public void TheRigidTrucksAreAsDimensioned()
         {
@@ -243,8 +329,8 @@ namespace PointerPath.Core.Tests
             Assert.Equal(2, saved.Vehicles.Count);
 
             List<string> added = saved.AddMissingVehicles(Conventions());
-            Assert.Equal(new[] { "Service 8.8 m", "Truck 12.5 m", "Semi 19 m", "B-double 25 m", "B-double 26 m" }, added);
-            Assert.Equal(7, saved.Vehicles.Count);
+            Assert.Equal(new[] { "SRV", "MRV", "HRV", "Service 8.8 m", "Truck 12.5 m", "Semi 19 m", "B-double 25 m", "B-double 26 m" }, added);
+            Assert.Equal(10, saved.Vehicles.Count);
             Assert.Equal(0.45, saved.Vehicles["B99"].ClearanceOutside);      // their own edits stay
             Assert.Equal(19.0, saved.Vehicle("semi 19 m").OverallLength, 9);
 
