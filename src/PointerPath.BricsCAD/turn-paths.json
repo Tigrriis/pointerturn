@@ -198,9 +198,13 @@
   "step": 0.02,
   "tolerance": 0.001,
 
-  // Template turns: straight travel before and after the arc (m).
+  // Template turns: straight travel before and after the arc (m), the turn angle or angles in
+  // degrees (one swept path for each: [90], or [30, 60, 90, 120, 150, 180] for a fan), and whether
+  // the turn is to the left (false = to the right).
   "lead_in": 0,
   "lead_out": 6,
+  "template_angles": [90],
+  "template_left": true,
 
   // Drive mode: "arc" = one arc to each destination when its radius allows (otherwise a turn at the
   // radius then straight); "corner" = always a turn at the radius then straight.

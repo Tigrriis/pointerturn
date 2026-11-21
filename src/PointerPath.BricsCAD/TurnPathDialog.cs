@@ -612,6 +612,9 @@ namespace PointerPath.BricsCAD
             _units.SelectedIndex = UnitsIndex(c.DrawingUnits);
             _leadIn.Text = Num(c.LeadIn);
             _leadOut.Text = Num(c.LeadOut);
+            _angles.Text = string.Join(",", c.TemplateAngles.Select(Num));
+            _left.Checked = c.TemplateLeft;
+            _right.Checked = !c.TemplateLeft;
             _turns.SelectedIndex = c.DriveTurnsMode == TurnPathBuilder.DriveTurns.Corner ? 1 : 0;
             _arrival.Checked = c.DriveArrivalHeading;
             _stationary.Checked = c.DriveTurnWheelsWhenStationary;
@@ -902,6 +905,12 @@ namespace PointerPath.BricsCAD
                 c.DrawingUnits = choice.UnitsSetting;
                 c.LeadIn = choice.LeadIn;
                 c.LeadOut = choice.LeadOut;
+                if (choice.Mode == TurnPathChoice.ManoeuvreMode.Template)
+                {
+                    c.TemplateAngles = choice.TurnAngles.ToList();
+                    c.TemplateLeft = choice.Left;
+                }
+
                 c.DriveTurns = choice.Turns == TurnPathBuilder.DriveTurns.Corner ? "corner" : "arc";
                 c.DriveArrivalHeading = choice.ArrivalHeading;
                 c.DriveTurnWheelsWhenStationary = choice.TurnWheelsWhenStationary;

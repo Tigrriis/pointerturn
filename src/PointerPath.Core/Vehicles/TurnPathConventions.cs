@@ -33,6 +33,12 @@ namespace PointerPath.Core.Vehicles
         /// <summary>Straight travel after a template turn (m).</summary>
         public double LeadOut { get; set; } = 6;
 
+        /// <summary>The angle or angles of a template turn, in degrees: one swept path for each.</summary>
+        public List<double> TemplateAngles { get; set; } = new List<double> { 90 };
+
+        /// <summary>A template turn is to the left (otherwise to the right).</summary>
+        public bool TemplateLeft { get; set; } = true;
+
         /// <summary>Drive mode turns: "arc" (one arc to the destination where its radius allows) or "corner" (turn at the radius, then straight).</summary>
         public string DriveTurns { get; set; } = "arc";
 

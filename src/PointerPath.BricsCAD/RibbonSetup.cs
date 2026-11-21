@@ -110,7 +110,7 @@ namespace PointerPath.BricsCAD
                 var vehicles = new RibbonPanelSource { Id = "POINTERPATH_VEHICLES", Name = "Vehicles", Title = "Vehicles" };
                 vehicles.Items.Add(Button("Drive", "PTDRIVE", "Drive a design vehicle click by click (AS/NZS 2890.1 B85 and B99 cars, AS 2890.2 SRV, MRV and HRV trucks): choose the vehicle, then click where it goes next; a click behind it reverses", "drive", large: true));
                 vehicles.Items.Add(Button("Quick drive", "PTQDRIVE", "Drive straight away, with the vehicle and settings Drive was last left with", "quickdrive", large: true));
-                vehicles.Items.Add(Button("Template", "PTTEMPLATE", "Draw a design vehicle's turning template: a single turn at a set radius and angle from a start point", "turnpath", large: true));
+                vehicles.Items.Add(Button("Template", "PTTEMPLATE", "Draw a design vehicle's turning template: choose the vehicle, the turn angle and left or right, then pick the start point and direction", "turnpath", large: true));
                 if (ShowLaterCommands)
                 {
                     vehicles.Items.Add(Button("Solve turn", "PTSOLVE", "Work out a multi-point turn (2 points): pick where a car or rigid truck starts and where it ends up, and the movements between the kerbs, walls and columns on the solve boundary layers are found and drawn", "turnsolve", large: true));
