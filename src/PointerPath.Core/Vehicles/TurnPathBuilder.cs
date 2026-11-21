@@ -194,20 +194,135 @@ namespace PointerPath.Core.Vehicles
             return leg;
         }
 
-        private static DriveLeg? DriveRigid(DesignVehicle v, VehiclePose start, Point2 target, double radius, bool? reverse, DriveTurns turns, double? wheels, bool turnWheelsWhenStationary)
+        /// <summary>
+        /// As <see cref="DriveTo"/>, but a destination the vehicle can't drive to because it is
+        /// inside one of its turning circles (tighter than it can steer) is moved straight out to
+        /// the edge of that circle: the nearest point it can reach. <paramref name="reached"/> is
+        /// where the leg goes: the destination itself when it can be driven to, the point on the
+        /// circle otherwise. That point is an ordinary destination, so a leg to it can be planned
+        /// again later with <see cref="DriveTo"/>.
+        ///
+        /// Still null when there is nowhere near to go: the point on the circle would take a loop
+        /// to get to (it is beside or behind where the vehicle sets off from), the destination is
+        /// too close to move to, or it is a trailer being reversed that can't line up on it.
+        /// </summary>
+        public static DriveLeg? DriveToNearest(DesignVehicle v, VehiclePose start, Point2 target, out Point2 reached, double? outerWheelRadius = null, bool? reverse = null,
+            DriveTurns turns = DriveTurns.Arc, IReadOnlyList<double>? trailerHeadings = null, double? wheels = null, bool turnWheelsWhenStationary = false)
+        {
+            reached = target;
+            DriveLeg? leg = DriveTo(v, start, target, outerWheelRadius, reverse, turns, trailerHeadings, wheels, turnWheelsWhenStationary);
+            if (leg != null)
+            {
+                return leg;
+            }
+
+            double radius = outerWheelRadius ?? v.MinTurnRadius;
+            bool forward = reverse == false;
+            if (v.IsArticulated)
+            {
+                // Reversing trailers have no turning circle to move out to; driving forwards is as for a rigid vehicle.
+                VehiclePose tail = v.TrailerPoses(start, trailerHeadings)[v.Trailers.Count - 1];
+                bool behind = (target.X - tail.RearAxle.X) * Math.Cos(tail.Heading) + (target.Y - tail.RearAxle.Y) * Math.Sin(tail.Heading) < 0;
+                if (reverse ?? behind)
+                {
+                    return null;
+                }
+
+                forward = true;
+            }
+
+            // Nearest first, of the circles the destination is inside.
+            foreach (Point2 edge in TurningCircles(v, start, target, radius, forward ? false : reverse, wheels, turnWheelsWhenStationary)
+                .Select(circle => (Circle: circle, Distance: Segment.Dist(circle.Centre, target)))
+                .Where(x => x.Distance < x.Circle.Radius && x.Distance > 1e-9)
+                .OrderBy(x => x.Circle.Radius - x.Distance)
+                .Select(x => new Point2(
+                    x.Circle.Centre.X + (target.X - x.Circle.Centre.X) * (x.Circle.Radius + OutsideTheCircle) / x.Distance,
+                    x.Circle.Centre.Y + (target.Y - x.Circle.Centre.Y) * (x.Circle.Radius + OutsideTheCircle) / x.Distance)))
+            {
+                leg = DriveTo(v, start, edge, outerWheelRadius, reverse, turns, trailerHeadings, wheels, turnWheelsWhenStationary);
+                if (leg != null)
+                {
+                    reached = edge;
+                    return leg;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// How far outside its turning circle a destination moved out of it is put (m): enough that
+        /// rounding, in a drawing a long way from the origin, can't put it back inside when the leg
+        /// is planned again.
+        /// </summary>
+        private const double OutsideTheCircle = 1e-4;
+
+        /// <summary>
+        /// The circles the point that drives a leg (the front axle centre forwards, the rear axle
+        /// centre in reverse) runs round at the turn radius, one to each side: a destination inside
+        /// one would take a tighter turn than the vehicle has.
+        /// </summary>
+        private static (Point2 Centre, double Radius)[] TurningCircles(DesignVehicle v, VehiclePose start, Point2 target, double radius, bool? reverse, double? wheels, bool turnWheelsWhenStationary)
+        {
+            DriveSetOff from = SetOff(v, start, target, radius, reverse, wheels);
+            if (!from.Back && turnWheelsWhenStationary)
+            {
+                // Wheels set before moving off: the vehicle turns about a centre on the line of its rear axle.
+                double rho = v.RearAxleRadius(radius);
+                double front = Math.Sqrt(rho * rho + v.Wheelbase * v.Wheelbase);
+                double c = Math.Cos(start.Heading), s = Math.Sin(start.Heading);
+                return new[]
+                {
+                    (new Point2(start.RearAxle.X - s * rho, start.RearAxle.Y + c * rho), front),
+                    (new Point2(start.RearAxle.X + s * rho, start.RearAxle.Y - c * rho), front),
+                };
+            }
+
+            double nx = -Math.Sin(from.Travel), ny = Math.Cos(from.Travel);
+            return new[]
+            {
+                (new Point2(from.P0.X + nx * from.Radius, from.P0.Y + ny * from.Radius), from.Radius),
+                (new Point2(from.P0.X - nx * from.Radius, from.P0.Y - ny * from.Radius), from.Radius),
+            };
+        }
+
+        /// <summary>How a leg sets off: which point drives it, from where, which way, and how tightly it can turn.</summary>
+        private readonly struct DriveSetOff
+        {
+            public DriveSetOff(bool back, VehiclePoint reference, Point2 p0, double travel, double radius)
+            {
+                Back = back;
+                Reference = reference;
+                P0 = p0;
+                Travel = travel;
+                Radius = radius;
+            }
+
+            /// <summary>In reverse.</summary>
+            public bool Back { get; }
+
+            /// <summary>The point that drives to the destination.</summary>
+            public VehiclePoint Reference { get; }
+
+            /// <summary>Where that point starts.</summary>
+            public Point2 P0 { get; }
+
+            /// <summary>The direction it sets off in (radians).</summary>
+            public double Travel { get; }
+
+            /// <summary>The radius it turns at, at the turn radius.</summary>
+            public double Radius { get; }
+        }
+
+        private static DriveSetOff SetOff(DesignVehicle v, VehiclePose start, Point2 target, double radius, bool? reverse, double? wheels)
         {
             double c = Math.Cos(start.Heading), s = Math.Sin(start.Heading);
             double ahead = (target.X - start.RearAxle.X) * c + (target.Y - start.RearAxle.Y) * s;
             bool back = reverse ?? ahead < v.Wheelbase / 2;
-            if (!back && turnWheelsWhenStationary)
-            {
-                return DriveFromSetWheels(v, start, target, radius, turns);
-            }
 
             // The point that drives to the destination, its turning radius, and the direction of travel.
             VehiclePoint reference = back ? v.RearAxleCentre : v.FrontAxleCentre;
-            double refRadius = v.RadiusOfPoint(radius, reference, left: true);
-            Point2 p0 = start.ToWorld(reference);
             double travel = start.Heading + Math.PI;
             if (!back)
             {
@@ -218,6 +333,22 @@ namespace PointerPath.Core.Vehicles
                 travel = start.Heading + Math.Max(-fullLock, Math.Min(fullLock, steer));
             }
 
+            return new DriveSetOff(back, reference, start.ToWorld(reference), travel, v.RadiusOfPoint(radius, reference, left: true));
+        }
+
+        private static DriveLeg? DriveRigid(DesignVehicle v, VehiclePose start, Point2 target, double radius, bool? reverse, DriveTurns turns, double? wheels, bool turnWheelsWhenStationary)
+        {
+            DriveSetOff from = SetOff(v, start, target, radius, reverse, wheels);
+            bool back = from.Back;
+            if (!back && turnWheelsWhenStationary)
+            {
+                return DriveFromSetWheels(v, start, target, radius, turns);
+            }
+
+            VehiclePoint reference = from.Reference;
+            double refRadius = from.Radius;
+            Point2 p0 = from.P0;
+            double travel = from.Travel;
             double ux = Math.Cos(travel), uy = Math.Sin(travel);
             double nx = -uy, ny = ux;
             double dxT = target.X - p0.X, dyT = target.Y - p0.Y;

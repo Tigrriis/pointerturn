@@ -551,7 +551,8 @@ namespace PointerPath.BricsCAD
         }
 
         /// <summary>
-        /// Drive mode: each click is where the vehicle goes next, forwards when the destination is
+        /// Drive mode: each click is where the vehicle goes next (or, for a click inside its turning
+        /// circle, the nearest place it can get to), forwards when the destination is
         /// ahead and in reverse when it is behind (with trailers: behind the last trailer, which is
         /// then what goes to the destination). With the arrival direction on, a second pick
         /// says which way the vehicle faces there (turn, straight, turn). Every leg keeps its own
@@ -614,7 +615,8 @@ namespace PointerPath.BricsCAD
                 var jig = new TurnPathJig(units, prompt, new Point3d(fromInDrawing.X, fromInDrawing.Y, 0), canUndo ? new[] { "Undo", "Direction" } : new[] { "Direction" },
                     cursor =>
                     {
-                        TurnPathBuilder.DriveLeg? leg = TurnPathBuilder.DriveTo(v, from, cursor, r.Radius, null, r.TurnsKind, towed, wheels, r.TurnWheelsWhenStationary);
+                        // A cursor inside the turning circle shows the nearest place the vehicle can get to.
+                        TurnPathBuilder.DriveLeg? leg = TurnPathBuilder.DriveToNearest(v, from, cursor, out _, r.Radius, null, r.TurnsKind, towed, wheels, r.TurnWheelsWhenStationary);
                         if (leg == null)
                         {
                             return null;
@@ -651,7 +653,15 @@ namespace PointerPath.BricsCAD
                     return false;
                 }
 
-                Point2 target = jig.Point2;
+                // A click inside the turning circle is a click on the nearest place the vehicle can get to, as previewed.
+                Point2 clicked = jig.Point2, target = clicked;
+                bool movedOut = TurnPathBuilder.DriveToNearest(v, from, clicked, out Point2 reached, r.Radius, null, r.TurnsKind, towed, wheels, r.TurnWheelsWhenStationary) != null
+                                && Distance(reached, clicked) > 1e-9;
+                if (movedOut)
+                {
+                    target = reached;
+                }
+
                 var stop = new DriveStop { Point = new[] { target.X, target.Y } };
                 if (askHeading)
                 {
@@ -690,7 +700,7 @@ namespace PointerPath.BricsCAD
                         ? "\nThe vehicle can't arrive there facing that way in one leg (it would need a loop, or the turns overlap). Pick another direction, or get closer in an earlier leg."
                         : v.IsArticulated
                             ? "\nThe vehicle can't get there in one leg: the point is too close, inside its turning circle, or more than a half turn away. Reversing, the last trailer goes to the point and has to line up on it from where the trailers are now: click further away, or drive forward to straighten up first."
-                            : "\nThe vehicle can't get there in one leg: the point is too close, inside its turning circle, or more than a half turn away. Click further away, or drive past and reverse.");
+                            : "\nThe vehicle can't get there in one leg: the point is too close, or more than a half turn away. Click further away, or drive past and reverse.");
                     continue;
                 }
 
@@ -702,6 +712,11 @@ namespace PointerPath.BricsCAD
                 req.ClearanceOutside = r.ClearanceOutside;
                 TurnPathResult result = TurnPathSimulator.Simulate(req);
                 ed.WriteMessage($"\n  Leg {legs.Count + 1}: {ManoeuvrePlanner.Describe(chosen)}.");
+                if (movedOut && stop.HeadingDeg == null)
+                {
+                    ed.WriteMessage($"\n    The point clicked is tighter than the {v.Name} can turn: it went to the nearest it can reach, {Distance(target, clicked):0.00} m away.");
+                }
+
                 foreach (string warning in result.Warnings)
                 {
                     ed.WriteMessage($"\n    {warning}");
