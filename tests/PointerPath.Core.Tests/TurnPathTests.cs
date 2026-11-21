@@ -691,6 +691,94 @@ namespace PointerPath.Core.Tests
         }
 
         [Fact]
+        public void ADestinationInsideTheTurningCircleMovesOutToItsEdge()
+        {
+            DesignVehicle v = DesignVehicle.B99;
+            var start = new VehiclePose(new Point2(0, 0), 0); // facing east, rear axle at the origin
+            double w = v.Wheelbase;
+            double rf = v.RadiusOfPoint(v.MinTurnRadius, v.FrontAxleCentre, true);
+            var left = new Point2(w, rf); // the centre of the front axle's turning circle, to the left
+
+            // On the edge of a circle: its radius from the centre, and a hair more.
+            void OnEdge(double distance, double radius) => Assert.InRange(distance, radius, radius + 0.001);
+
+            // A destination the car can drive to is left where it is.
+            TurnPathBuilder.DriveLeg plain = TurnPathBuilder.DriveToNearest(v, start, new Point2(20, 12), out Point2 same)!;
+            Assert.Equal(new Point2(20, 12), same);
+            Assert.Equal(TurnPathBuilder.DriveTo(v, start, new Point2(20, 12))!.Length, plain.Length, 12);
+
+            // One inside the left turning circle (tighter than the car steers) has no leg of its own...
+            var inside = new Point2(w + 4, 6);
+            Assert.True(Dist(inside, left) < rf);
+            Assert.Null(TurnPathBuilder.DriveTo(v, start, inside));
+
+            // ...so the leg goes to the nearest point the car can reach: straight out, on the edge of the circle.
+            TurnPathBuilder.DriveLeg leg = TurnPathBuilder.DriveToNearest(v, start, inside, out Point2 reached)!;
+            OnEdge(Dist(reached, left), rf);
+            OnEdge(Dist(reached, inside), rf - Dist(inside, left));
+            Assert.Equal(Math.Atan2(inside.Y - left.Y, inside.X - left.X), Math.Atan2(reached.Y - left.Y, reached.X - left.X), 9);
+            Assert.False(leg.Reverse);
+            Assert.True(leg.Left);
+            Assert.Equal(0, Dist(leg.Request.Path.End, reached), 1e-9);
+            var arc = Assert.IsType<ArcSegment>(Assert.Single(leg.Request.Path.Segments));
+            Assert.InRange(arc.Radius, rf, rf + 0.001); // the circle itself, a hair wider
+
+            // Driving it, the car gets there without steering past full lock.
+            TurnPathResult r = TurnPathSimulator.Simulate(leg.Request);
+            Assert.True(r.WithinMinimumRadius);
+            Assert.Equal(0, Dist(r.Poses[r.Poses.Count - 1].ToWorld(v.FrontAxleCentre), reached), 0.03);
+
+            // The point it moved to is an ordinary destination: the same leg is planned to it again,
+            // whichever way the legs turn, and from a drawing a long way from the origin.
+            Assert.Equal(leg.Length, TurnPathBuilder.DriveTo(v, start, reached)!.Length, 12);
+            TurnPathBuilder.DriveLeg corner = TurnPathBuilder.DriveToNearest(v, start, inside, out Point2 cornered, turns: TurnPathBuilder.DriveTurns.Corner)!;
+            Assert.Equal(reached, cornered);
+            Assert.NotNull(TurnPathBuilder.DriveTo(v, start, cornered, turns: TurnPathBuilder.DriveTurns.Corner));
+            Assert.InRange(corner.StraightLength, 0, 0.05);
+            var far = new VehiclePose(new Point2(525000, 5250000), 0.7);
+            Point2 farInside = far.ToWorld(w + 4, 6);
+            Assert.Null(TurnPathBuilder.DriveTo(v, far, farInside));
+            Assert.NotNull(TurnPathBuilder.DriveToNearest(v, far, farInside, out Point2 farReached));
+            Assert.NotNull(TurnPathBuilder.DriveTo(v, far, farReached));
+            Assert.NotNull(TurnPathBuilder.DriveTo(v, far, farReached, turns: TurnPathBuilder.DriveTurns.Corner));
+
+            // To the right it is the right circle, and behind the car the rear axle's circles, in reverse.
+            TurnPathBuilder.DriveLeg right = TurnPathBuilder.DriveToNearest(v, start, new Point2(w + 4, -6), out Point2 mirrored)!;
+            Assert.False(right.Left);
+            Assert.Equal(reached.X, mirrored.X, 9);
+            Assert.Equal(-reached.Y, mirrored.Y, 9);
+            double rho = v.RearAxleRadius(v.MinTurnRadius);
+            var behind = new Point2(-3, 2);
+            Assert.Null(TurnPathBuilder.DriveTo(v, start, behind));
+            TurnPathBuilder.DriveLeg back = TurnPathBuilder.DriveToNearest(v, start, behind, out Point2 backTo)!;
+            Assert.True(back.Reverse);
+            OnEdge(Dist(backTo, new Point2(0, rho)), rho);
+            Assert.True(TurnPathSimulator.Simulate(back.Request).WithinMinimumRadius);
+
+            // Coming out of a turn the wheels are still over, and the circles lie along the way they point.
+            double fullLock = Math.Atan(w / rho);
+            TurnPathBuilder.DriveLeg turning = TurnPathBuilder.DriveToNearest(v, start, new Point2(w + 2, 4.5), out Point2 onTurned, wheels: fullLock)!;
+            double nx = -Math.Sin(fullLock), ny = Math.Cos(fullLock);
+            OnEdge(Dist(onTurned, new Point2(w + nx * rf, ny * rf)), rf);
+            Assert.True(TurnPathSimulator.Simulate(turning.Request).WithinMinimumRadius);
+
+            // With the wheels set before moving off, the car turns about a centre on the line of its rear axle.
+            var beside = new Point2(w + 2, 3);
+            Assert.Null(TurnPathBuilder.DriveTo(v, start, beside, turnWheelsWhenStationary: true));
+            TurnPathBuilder.DriveLeg set = TurnPathBuilder.DriveToNearest(v, start, beside, out Point2 setTo, turnWheelsWhenStationary: true)!;
+            OnEdge(Dist(setTo, new Point2(0, rho)), Math.Sqrt(rho * rho + w * w));
+            Assert.NotNull(TurnPathBuilder.DriveTo(v, start, setTo, turnWheelsWhenStationary: true));
+            TurnPathResult rs = TurnPathSimulator.Simulate(set.Request);
+            Assert.True(rs.WithinMinimumRadius);
+            Assert.Equal(0, Dist(rs.Poses[rs.Poses.Count - 1].ToWorld(v.FrontAxleCentre), setTo), 0.03);
+
+            // Nowhere near to go: the edge of the circle beside the front of the car would take a loop
+            // to get to, and a point on top of the front axle is too close to move to.
+            Assert.Null(TurnPathBuilder.DriveToNearest(v, start, new Point2(w - 1, 1.5), out _, reverse: false));
+            Assert.Null(TurnPathBuilder.DriveToNearest(v, start, new Point2(w, 0), out _));
+        }
+
+        [Fact]
         public void ThreePointTurnLegsChainFromEachOthersEndPose()
         {
             DesignVehicle v = DesignVehicle.B99;
