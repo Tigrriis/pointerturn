@@ -1,16 +1,16 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 152 52" width="152" height="52">
-  <title>B85 car</title>
+  <title>B85 car: the size of a Ford Falcon sedan</title>
   <defs>
     <mask id="vehicle-b85" maskUnits="userSpaceOnUse" x="0" y="0" width="152" height="52">
-      <polygon fill="#fff" points="39,44 39,31 44,28 54,27 63,16 86,16 98,28 110,31 113,35 113,44"/>
-      <polygon fill="#000" points="65,19.5 73,19.5 73,27 59,27"/>
-      <polygon fill="#000" points="76,19.5 84.5,19.5 92,27 76,27"/>
-      <circle fill="#000" cx="54" cy="43" r="9.5"/>
-      <circle fill="#fff" cx="54" cy="43" r="7"/>
-      <circle fill="#000" cx="54" cy="43" r="2.66"/>
-      <circle fill="#000" cx="98" cy="43" r="9.5"/>
-      <circle fill="#fff" cx="98" cy="43" r="7"/>
-      <circle fill="#000" cx="98" cy="43" r="2.66"/>
+      <polygon fill="#fff" points="31.75,46 31.75,36.5 33.75,32.5 48.75,32 63.75,24.3 84.75,24 99.75,32.6 115.75,35.5 120.25,38.5 120.25,46"/>
+      <polygon fill="#000" points="54.25,31.6 63.25,26 73.25,26 73.25,31.6"/>
+      <polygon fill="#000" points="75.75,26 85.75,26 95.25,31.6 75.75,31.6"/>
+      <circle fill="#000" cx="52.55" cy="43.5" r="9"/>
+      <circle fill="#fff" cx="52.55" cy="43.5" r="6.5"/>
+      <circle fill="#000" cx="52.55" cy="43.5" r="2.47"/>
+      <circle fill="#000" cx="103.45" cy="43.5" r="9"/>
+      <circle fill="#fff" cx="103.45" cy="43.5" r="6.5"/>
+      <circle fill="#000" cx="103.45" cy="43.5" r="2.47"/>
     </mask>
   </defs>
   <rect width="152" height="52" fill="#111A22" mask="url(#vehicle-b85)"/>

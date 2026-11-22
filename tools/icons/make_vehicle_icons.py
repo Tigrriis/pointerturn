@@ -8,9 +8,12 @@ Each vehicle is a simple side view, facing right, drawn from one list of shapes:
     draw an SVG), four times the size it is shown at, so it stays sharp on a scaled display.
 
 The icons are one colour, the brand ink, with the windows and the gaps round the wheels cut
-out, so they read on a button whether it is white or the accent colour. Lengths are in
-proportion to the vehicles, though the cars are drawn a little larger than true so they are
-not lost beside the trucks: B85 4.91 m, B99 5.2 m, SRV 6.4 m, MRV 8.8 m, HRV 12.5 m.
+out, so they read on a button whether it is white or the accent colour.
+
+The two cars are drawn from real vehicles of the design vehicles' sizes, to one scale, so the
+B99 stands taller and a little longer than the B85. The trucks are AS 2890.2's rigid vehicles
+(6.4, 8.8 and 12.5 m). Each step up is longer than the last, but not to one scale across the
+set: the cars are drawn larger than true beside the trucks, so they are not lost.
 """
 
 from pathlib import Path
@@ -115,18 +118,24 @@ def truck(length, box_top, cab_from, cab_top, wheels, r=8):
 
 
 ICONS = {
-    # AS/NZS 2890.1 B85, the 85th percentile car: a small hatchback.
-    "b85": ("B85 car", car(
-        74,
-        [(0, 44), (0, 31), (5, 28), (15, 27), (24, 16), (47, 16), (59, 28), (71, 31), (74, 35), (74, 44)],
-        [[(26, 19.5), (34, 19.5), (34, 27), (20, 27)], [(37, 19.5), (45.5, 19.5), (53, 27), (37, 27)]],
-        wheels=(15, 59), r=7)),
-    # AS/NZS 2890.1 B99, the 99.8th percentile car: a large wagon.
-    "b99": ("B99 car", car(
-        86,
-        [(0, 44), (0, 24), (4, 13), (56, 13), (68, 26), (82, 29), (86, 34), (86, 44)],
-        [[(8, 16.5), (24, 16.5), (24, 25), (6, 25)], [(27, 16.5), (42, 16.5), (42, 25), (27, 25)], [(45, 16.5), (54, 16.5), (62, 25), (45, 25)]],
-        wheels=(17, 68), r=7.5)),
+    # AS/NZS 2890.1 B85, the 85th percentile car: 4.91 x 1.87 m, wheelbase 2.8 m. Drawn from a
+    # large sedan of that size, the Ford Falcon (BA): 4.916 x 1.864 m, 1.444 m high, wheelbase
+    # 2.829 m. 18 units to the metre: boot, cabin and bonnet, the roof 26 units off the ground.
+    "b85": ("B85 car: the size of a Ford Falcon sedan", car(
+        88.5,
+        [(0, 46), (0, 36.5), (2, 32.5), (17, 32), (32, 24.3), (53, 24), (68, 32.6), (84, 35.5), (88.5, 38.5), (88.5, 46)],
+        [[(22.5, 31.6), (31.5, 26), (41.5, 26), (41.5, 31.6)], [(44, 26), (54, 26), (63.5, 31.6), (44, 31.6)]],
+        wheels=(20.8, 71.7), r=6.5)),
+    # AS/NZS 2890.1 B99, the 99.8th percentile car: 5.2 x 1.94 m, wheelbase 3.05 m. Drawn from a
+    # large four-wheel-drive wagon of that size, the Nissan Patrol (Y62): 5.14 to 5.175 x 1.995 m,
+    # 1.94 m high, wheelbase 3.075 m. The same 18 units to the metre, so it stands taller and a
+    # little longer than the B85. (A long sedan fits as well in plan, the Holden Statesman (WM) at
+    # 5.16 x 1.9 m on a 3.009 m wheelbase, but would be hard to tell from the B85 at this size.)
+    "b99": ("B99 car: the size of a Nissan Patrol wagon", car(
+        93,
+        [(0, 45), (0, 31), (2.5, 17), (5, 15), (55, 15), (67, 27.5), (89, 29.5), (93, 32.5), (93, 45)],
+        [[(6.5, 17.5), (18, 17.5), (18, 26.5), (5, 26.5)], [(20.5, 17.5), (36, 17.5), (36, 26.5), (20.5, 26.5)], [(38.5, 17.5), (54.4, 17.5), (63, 26.5), (38.5, 26.5)]],
+        wheels=(20.9, 76.3), r=7.5)),
     # AS 2890.2 small, medium and heavy rigid vehicles: 6.4, 8.8 and 12.5 m, the heavy one with a pair of rear axles.
     "srv": ("SRV small rigid vehicle", truck(100, box_top=9, cab_from=69, cab_top=15, wheels=(19, 84), r=7.5)),
     "mrv": ("MRV medium rigid vehicle", truck(122, box_top=5, cab_from=91, cab_top=11, wheels=(26, 106))),
