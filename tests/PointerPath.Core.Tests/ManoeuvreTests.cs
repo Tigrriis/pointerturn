@@ -98,6 +98,18 @@ namespace PointerPath.Core.Tests
         [Fact]
         public void LayerPatternsMatchWildcardsAndXrefLayers()
         {
+            // The conflict layers to start from: a word in the layer's name, whatever the office's prefix.
+            TurnPathConventions fresh = TurnPathConventions.Default();
+            Assert.Empty(fresh.ObstructionLayers);
+            Assert.Equal(TurnPathConventions.DefaultConflictLayers, fresh.ConflictLayers);
+            Assert.True(LayerPattern.MatchesAny(fresh.ConflictLayers, "AE CIV PLN - KERB NEW"));
+            Assert.True(LayerPattern.MatchesAny(fresh.ConflictLayers, "arch|A-Wall-Ext"));
+            Assert.True(LayerPattern.MatchesAny(fresh.ConflictLayers, "S-COLUMNS"));
+            Assert.False(LayerPattern.MatchesAny(fresh.ConflictLayers, "AE CIV PLN - VEHICLE SWEPT PATH"));
+            Assert.False(LayerPattern.MatchesAny(fresh.ConflictLayers, "C-BOUNDARY"));
+            fresh.ObstructionLayers = new List<string> { "MY-KERBS" };
+            Assert.Equal(new[] { "MY-KERBS" }, fresh.ConflictLayers);
+
             Assert.True(LayerPattern.Matches("KERB", "kerb"));
             Assert.True(LayerPattern.Matches("AE CIV PLN - KERB*", "AE CIV PLN - KERB NEW"));
             Assert.False(LayerPattern.Matches("KERB", "KERB NEW"));

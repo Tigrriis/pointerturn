@@ -218,7 +218,9 @@
 
   // Conflict check: flag where the swept path (a hit) or its clearance (an encroachment) meets
   // linework on these layers. * and ? are wildcards; "A-WALL*" also matches xref layers such as
-  // "arch|A-WALL-EXT". Blank with check_conflicts on = pick objects on the layers when prompted.
+  // "arch|A-WALL-EXT". Blank: Drive starts from its default list (any layer with KERB, WALL, COLUMN,
+  // BUILDING, BLDG, FENCE or BOLLARD in its name; change it with Conflict settings in the Drive
+  // dialog), and the earlier dialog asks you to pick objects on the layers.
   "check_conflicts": false,
   "obstruction_layers": [],
 

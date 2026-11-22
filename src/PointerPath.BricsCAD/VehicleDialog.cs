@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Drawing.Drawing2D;
+using System.IO;
 using System.Linq;
 using System.Windows.Forms;
 using PointerPath.Core.Vehicles;
@@ -9,7 +11,7 @@ namespace PointerPath.BricsCAD
 {
     /// <summary>
     /// What the simplified dialogs that start from a vehicle have in common (Drive, Turning
-    /// template): a button for each vehicle along the top, the dialog's own options in the
+    /// template): a button for each vehicle along the top, with its picture, the dialog's own options in the
     /// middle, and Draw settings, Units and GO along the bottom. Every choice is kept as it is
     /// made, so a dialog opens as it was left.
     ///
@@ -298,7 +300,8 @@ namespace PointerPath.BricsCAD
             }
         }
 
-        private void Kept(Action save)
+        /// <summary>Runs a save of something chosen here, and says so in the dialog if it fails.</summary>
+        protected void Kept(Action save)
         {
             try
             {
@@ -322,20 +325,78 @@ namespace PointerPath.BricsCAD
             _note.Visible = !string.IsNullOrEmpty(warning);
         }
 
-        /// <summary>A vehicle's button: a radio button that looks like a push button and stays down.</summary>
-        private RadioButton VehicleButton(string caption, string vehicle) => new RadioButton
+        /// <summary>
+        /// A vehicle's button: a radio button that looks like a push button and stays down, with a
+        /// picture of the vehicle over its name.
+        /// </summary>
+        private RadioButton VehicleButton(string caption, string vehicle)
         {
-            Text = caption,
-            Tag = vehicle,
-            Appearance = Appearance.Button,
-            FlatStyle = FlatStyle.Flat,
-            TextAlign = ContentAlignment.MiddleCenter,
-            Size = new Size(88, 50),
-            Margin = new Padding(3, 0, 5, 6),
-            Font = new Font(Font, FontStyle.Bold),
-            BackColor = SystemColors.Window,
-            ForeColor = DialogKit.Ink,
-        };
+            var button = new RadioButton
+            {
+                Text = caption,
+                Tag = vehicle,
+                Appearance = Appearance.Button,
+                FlatStyle = FlatStyle.Flat,
+                TextAlign = ContentAlignment.MiddleCenter,
+                Size = new Size(88, 50),
+                Margin = new Padding(3, 0, 5, 6),
+                Font = new Font(Font, FontStyle.Bold),
+                BackColor = SystemColors.Window,
+                ForeColor = DialogKit.Ink,
+            };
+
+            Image? icon = VehicleIcon(vehicle);
+            if (icon != null)
+            {
+                // The picture against the top and the name against the bottom, with room round both.
+                button.Image = icon;
+                button.ImageAlign = ContentAlignment.TopCenter;
+                button.TextAlign = ContentAlignment.BottomCenter;
+                button.Padding = new Padding(0, 8, 0, 6);
+                button.Height = 72;
+            }
+
+            return button;
+        }
+
+        /// <summary>The icon's size at 100% display scaling; the PNGs are four times this.</summary>
+        private static readonly Size IconSize = new Size(76, 26);
+
+        /// <summary>
+        /// The vehicle's side view (tools/icons/make_vehicle_icons.py draws them), at the size for
+        /// this display. Null for a vehicle without one: its button is just its name.
+        /// </summary>
+        private Image? VehicleIcon(string vehicle)
+        {
+            try
+            {
+                Stream? stream = typeof(VehicleDialog).Assembly.GetManifestResourceStream($"PointerPath.BricsCAD.Resources.vehicle_{vehicle.ToLowerInvariant()}.png");
+                if (stream == null)
+                {
+                    return null;
+                }
+
+                using (stream)
+                using (Image full = Image.FromStream(stream))
+                {
+                    // The same factor the dialog's controls are scaled by: the font's size against the design's.
+                    float scale = Math.Max(1f, CurrentAutoScaleDimensions.Height / 15f);
+                    var icon = new Bitmap((int)Math.Round(IconSize.Width * scale), (int)Math.Round(IconSize.Height * scale));
+                    using (Graphics g = Graphics.FromImage(icon))
+                    {
+                        g.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                        g.PixelOffsetMode = PixelOffsetMode.HighQuality;
+                        g.DrawImage(full, new Rectangle(0, 0, icon.Width, icon.Height));
+                    }
+
+                    return icon;
+                }
+            }
+            catch (Exception)
+            {
+                return null; // the name alone
+            }
+        }
 
         /// <summary>The vehicle chosen is the one in the accent colour, with the heavier border.</summary>
         private static void ShowSelected(RadioButton button)

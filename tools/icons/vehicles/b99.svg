@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 152 52" width="152" height="52">
+  <title>B99 car</title>
+  <defs>
+    <mask id="vehicle-b99" maskUnits="userSpaceOnUse" x="0" y="0" width="152" height="52">
+      <polygon fill="#fff" points="33,44 33,24 37,13 89,13 101,26 115,29 119,34 119,44"/>
+      <polygon fill="#000" points="41,16.5 57,16.5 57,25 39,25"/>
+      <polygon fill="#000" points="60,16.5 75,16.5 75,25 60,25"/>
+      <polygon fill="#000" points="78,16.5 87,16.5 95,25 78,25"/>
+      <circle fill="#000" cx="50" cy="42.5" r="10"/>
+      <circle fill="#fff" cx="50" cy="42.5" r="7.5"/>
+      <circle fill="#000" cx="50" cy="42.5" r="2.85"/>
+      <circle fill="#000" cx="101" cy="42.5" r="10"/>
+      <circle fill="#fff" cx="101" cy="42.5" r="7.5"/>
+      <circle fill="#000" cx="101" cy="42.5" r="2.85"/>
+    </mask>
+  </defs>
+  <rect width="152" height="52" fill="#111A22" mask="url(#vehicle-b99)"/>
+</svg>

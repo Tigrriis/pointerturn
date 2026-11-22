@@ -55,6 +55,16 @@ namespace PointerPath.Core.Vehicles
         public List<string> ObstructionLayers { get; set; } = new List<string>();
 
         /// <summary>
+        /// The conflict layers to start from when none have been set: any layer with one of these
+        /// words in its name. Not boundaries: a vehicle driving in or out of a site crosses one.
+        /// </summary>
+        public static IReadOnlyList<string> DefaultConflictLayers { get; } = new[] { "*KERB*", "*WALL*", "*COLUMN*", "*BUILDING*", "*BLDG*", "*FENCE*", "*BOLLARD*" };
+
+        /// <summary>The layers a conflict check looks on: the obstruction layers, or the default list when none are set.</summary>
+        [System.Text.Json.Serialization.JsonIgnore]
+        public List<string> ConflictLayers => ObstructionLayers.Count > 0 ? ObstructionLayers.ToList() : DefaultConflictLayers.ToList();
+
+        /// <summary>
         /// The units drawings are in: "auto" (what the drawing's INSUNITS says, metres when it doesn't
         /// say), "m", "mm", "in" or "ft". Vehicle sizes, radii, clearances and text heights stay in metres.
         /// </summary>
