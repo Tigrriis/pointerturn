@@ -59,7 +59,7 @@ src/PointerPath.BricsCAD/    The add-in: commands, dialogs, ribbon, drawing in t
   turn-paths.json            The vehicles and the defaults, shipped next to the add-in
 src/PointerPath.AutoCAD/     A project file only: builds the same source for AutoCAD
 tests/PointerPath.Core.Tests Unit tests (no CAD program needed)
-tools/icons/                 Generates the ribbon icons (Python + Pillow)
+tools/icons/                 Generates the ribbon icons and the vehicle icons on the dialogs (Python + Pillow)
 installer/                   The installer: Inno Setup script, AutoCAD bundle manifest, build script
 install/                     For developers: update from source (pull, build, copy) and autoload
 docs/architecture.md         Design notes, what is kept in the drawing, first things to test
@@ -226,12 +226,17 @@ Two things carry over:
 
 `PTDRIVE` (ribbon: **Vehicles > Drive**) opens the Drive dialog:
 
-- **Vehicle**: a button each for the B85, B99, SRV, MRV (8.8 m) and HRV (12.5 m). Hover over one
-  for its size and turn radius. The vehicle turns at its minimum radius and keeps its own
+- **Vehicle**: a button each for the B85, B99, SRV, MRV (8.8 m) and HRV (12.5 m), with a picture
+  of the vehicle. Hover over one for its size and turn radius. The vehicle turns at its minimum radius and keeps its own
   clearances, as `turn-paths.json` has them.
 - **Detect conflicts**: flags where the swept path or its clearance meets kerbs, walls and columns
-  (see [Conflicts with kerbs, walls and columns](#conflicts-with-kerbs-walls-and-columns)). With no `obstruction_layers` in
-  `turn-paths.json`, you pick objects on those layers once the vehicle has been driven.
+  (see [Conflicts with kerbs, walls and columns](#conflicts-with-kerbs-walls-and-columns)), on the layers in
+  **Conflict settings...**.
+- **Conflict settings...**: the layers the swept path is checked against, one to a line, with `*`
+  and `?` as wildcards. It starts from a default list (any layer with `KERB`, `WALL`, `COLUMN`,
+  `BUILDING`, `BLDG`, `FENCE` or `BOLLARD` in its name); change it to your own layers and it is kept.
+  **Defaults** puts the list back. Nothing is picked in the drawing: if nothing on those layers is
+  near the path, the command line says which layers it looked on.
 - **Allow turn wheels while stopped**: the wheels are set before each forward move, so every leg is
   on its turning circle from the first metre. It shows red while it is on: it is steering on the
   spot.
@@ -341,7 +346,7 @@ when a layer doesn't exist yet. The dialog can change all of it per run; **Save 
 `%APPDATA%\PointerPath\turn-paths.json`, which is then used instead of the shipped file (or point
 `turn_paths_file` in `%APPDATA%\PointerPath\settings.json` at a shared copy). Vehicles that a saved or shared copy doesn't
 have are still taken from the shipped file, so new vehicles appear after an update.
-What the Drive, Turning template and Draw settings dialogs were last left with is kept apart from all that, under
+What the Drive, Turning template, Draw settings and Conflict settings dialogs were last left with is kept apart from all that, under
 `last_used` in `settings.json`, and laid over the file each time it is read: `turn-paths.json` is
 never written by them. **Save as defaults** in an earlier dialog clears `last_used`, so what it
 saved is what every dialog then starts from.
@@ -410,7 +415,9 @@ drawn with one can't be edited until then.
 Tick **Check against kerbs, walls and columns** in the dialog and name the layers they are on (commas between,
 `*` as a wildcard; `A-WALL*` also finds xref layers such as `arch|A-WALL-EXT`). Leave the box blank to pick
 objects on those layers after OK. Lines, arcs, circles and polylines on those layers are checked, in the drawing
-and inside blocks and xrefs; frozen and off layers are ignored. After drawing, the command reports:
+and inside blocks and xrefs; frozen and off layers are ignored. (That is the earlier dialog, `PTPATH`. In Drive,
+tick **Detect conflicts**; the layers are in **Conflict settings...** and nothing is picked.) After drawing, the
+command reports:
 
 - a **hit** where linework is inside the swept path, with how far inside;
 - an **encroachment** where linework is between the swept path and the clearance line, with the gap left and the

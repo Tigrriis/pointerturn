@@ -120,7 +120,8 @@ namespace PointerPath.BricsCAD
         /// <summary>
         /// A drive as the conventions have it: the default vehicle (the last one chosen) at its
         /// minimum turn radius and with its own clearances, and the drive settings, what to draw
-        /// and the layers as they stand.
+        /// and the layers as they stand. Conflicts, when they are checked, are checked against the
+        /// layers in Conflict settings.
         /// </summary>
         private static TurnPathChoice DriveChoice(TurnPathConventions c, string? insunits)
         {
@@ -128,6 +129,10 @@ namespace PointerPath.BricsCAD
             choice.Mode = TurnPathChoice.ManoeuvreMode.Drive;
             choice.Reference = ReferencePoint.FrontAxle;
             choice.CheckConflicts = c.CheckConflicts;
+
+            // The layers in Conflict settings (the default list until they are changed), so nothing is picked in the drawing.
+            choice.ConflictLayers = c.ConflictLayers;
+            choice.ObstructionLayers = c.ConflictLayers;
             return choice;
         }
 
@@ -967,6 +972,11 @@ namespace PointerPath.BricsCAD
             if (conflicts != null)
             {
                 ed.WriteMessage("\n  " + conflicts.Summary());
+                if (conflicts.ObstructionsChecked == 0)
+                {
+                    ed.WriteMessage($"\n    Looked on: {string.Join(", ", r.ObstructionLayers)}. If the kerbs and walls are on other layers, name them in the dialog (Conflict settings in PTDRIVE).");
+                }
+
                 foreach (Conflict k in conflicts.Conflicts.OrderByDescending(k => k.Shortfall).Take(10))
                 {
                     // Where it is in the drawing: to the centimetre in metres, to the unit otherwise.

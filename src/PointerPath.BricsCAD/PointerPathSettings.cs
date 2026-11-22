@@ -97,6 +97,15 @@ namespace PointerPath.BricsCAD
             settings.Save();
         }
 
+        /// <summary>Keeps the layers the Conflict settings dialog was OK'd with.</summary>
+        public static void RememberConflictLayers(IEnumerable<string> layers)
+        {
+            PointerPathSettings settings = Load();
+            LastUsed last = settings.LastUsed ?? (settings.LastUsed = new LastUsed());
+            last.ConflictLayers = layers.ToList();
+            settings.Save();
+        }
+
         /// <summary>
         /// Keeps what the Draw settings dialog was OK'd with: what to draw, and the layers that were
         /// changed there (the rest still follow turn-paths.json).
@@ -237,8 +246,8 @@ namespace PointerPath.BricsCAD
     }
 
     /// <summary>
-    /// The choices the Drive, Turning template and Draw settings dialogs remember from one run
-    /// to the next, so a dialog opens as it was left and Quick drive can go without one.
+    /// The choices the Drive, Turning template, Draw settings and Conflict settings dialogs
+    /// remember from one run to the next, so a dialog opens as it was left and Quick drive can go without one.
     /// Anything not set here comes from the conventions; see
     /// <see cref="PointerPathSettings.RememberDrive"/>, <see cref="PointerPathSettings.RememberTemplate"/>
     /// and <see cref="PointerPathSettings.RememberDrawSettings"/>.
@@ -250,6 +259,9 @@ namespace PointerPath.BricsCAD
         public bool? DetectConflicts { get; set; }
 
         public bool? TurnWheelsWhenStationary { get; set; }
+
+        /// <summary>The layers a drive is checked against, as set in Conflict settings.</summary>
+        public List<string>? ConflictLayers { get; set; }
 
         /// <summary>"auto", "m", "mm", "in" or "ft".</summary>
         public string? DrawingUnits { get; set; }
@@ -281,6 +293,11 @@ namespace PointerPath.BricsCAD
 
             c.CheckConflicts = DetectConflicts ?? c.CheckConflicts;
             c.DriveTurnWheelsWhenStationary = TurnWheelsWhenStationary ?? c.DriveTurnWheelsWhenStationary;
+            if (ConflictLayers != null && ConflictLayers.Count > 0)
+            {
+                c.ObstructionLayers = ConflictLayers.ToList();
+            }
+
             if (!string.IsNullOrWhiteSpace(DrawingUnits))
             {
                 c.DrawingUnits = DrawingUnits!;

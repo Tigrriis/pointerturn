@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 152 52" width="152" height="52">
+  <title>HRV heavy rigid vehicle</title>
+  <defs>
+    <mask id="vehicle-hrv" maskUnits="userSpaceOnUse" x="0" y="0" width="152" height="52">
+      <polygon fill="#fff" points="2,2 116,2 116,38 2,38"/>
+      <polygon fill="#fff" points="2,37 150,37 150,42 2,42"/>
+      <polygon fill="#fff" points="119,42 119,9 140,9 147,20 150,22 150,42"/>
+      <polygon fill="#000" points="128,12 139,12 145,21 128,21"/>
+      <circle fill="#000" cx="24" cy="42" r="10.5"/>
+      <circle fill="#fff" cx="24" cy="42" r="8"/>
+      <circle fill="#000" cx="24" cy="42" r="3.04"/>
+      <circle fill="#000" cx="44" cy="42" r="10.5"/>
+      <circle fill="#fff" cx="44" cy="42" r="8"/>
+      <circle fill="#000" cx="44" cy="42" r="3.04"/>
+      <circle fill="#000" cx="134" cy="42" r="10.5"/>
+      <circle fill="#fff" cx="134" cy="42" r="8"/>
+      <circle fill="#000" cx="134" cy="42" r="3.04"/>
+    </mask>
+  </defs>
+  <rect width="152" height="52" fill="#111A22" mask="url(#vehicle-hrv)"/>
+</svg>

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 152 52" width="152" height="52">
+  <title>MRV medium rigid vehicle</title>
+  <defs>
+    <mask id="vehicle-mrv" maskUnits="userSpaceOnUse" x="0" y="0" width="152" height="52">
+      <polygon fill="#fff" points="15,5 103,5 103,38 15,38"/>
+      <polygon fill="#fff" points="15,37 137,37 137,42 15,42"/>
+      <polygon fill="#fff" points="106,42 106,11 127,11 134,22 137,24 137,42"/>
+      <polygon fill="#000" points="115,14 126,14 132,23 115,23"/>
+      <circle fill="#000" cx="41" cy="42" r="10.5"/>
+      <circle fill="#fff" cx="41" cy="42" r="8"/>
+      <circle fill="#000" cx="41" cy="42" r="3.04"/>
+      <circle fill="#000" cx="121" cy="42" r="10.5"/>
+      <circle fill="#fff" cx="121" cy="42" r="8"/>
+      <circle fill="#000" cx="121" cy="42" r="3.04"/>
+    </mask>
+  </defs>
+  <rect width="152" height="52" fill="#111A22" mask="url(#vehicle-mrv)"/>
+</svg>

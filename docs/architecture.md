@@ -98,7 +98,7 @@ A command runs like this, all on BricsCAD's main thread and as one UNDO step:
 1. The dialog collects the vehicle, radius, clearances, layers and what to draw. The dialogs are
    being simplified one command at a time: `DriveDialog`, `TemplateDialog` (both a
    `VehicleDialog`: vehicle buttons, their own options, then Draw settings, Units and GO) and
-   `DrawSettingsDialog`, built from `DialogKit`, are the new ones, and keep each choice as it is
+   `DrawSettingsDialog` and `ConflictSettingsDialog`, built from `DialogKit`, are the new ones, and keep each choice as it is
    made (`PointerPathSettings.RememberDrive`, `RememberTemplate`); `PTQDRIVE` uses those choices
    without a dialog. `TurnPathDialog` and `GroundClearanceDialog` are the earlier ones, with every
    option, still behind `PTPATH`, `PTSOLVE`, `PTINOUT`, `PTEDIT` and `PTCLEARANCE`.
