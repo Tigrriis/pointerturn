@@ -348,25 +348,51 @@ namespace PointerPath.BricsCAD
             Image? icon = VehicleIcon(vehicle);
             if (icon != null)
             {
-                // The picture against the top and the name against the bottom, with room round both.
-                button.Image = icon;
-                button.ImageAlign = ContentAlignment.TopCenter;
-                button.TextAlign = ContentAlignment.BottomCenter;
-                button.Padding = new Padding(0, 8, 0, 6);
-                button.Height = 72;
+                // The picture and the name are drawn here, to fit the button as it is on this display:
+                // left to the button, the picture's size and the button's can scale differently, and
+                // the name ends up under the picture.
+                button.Text = "";
+                button.AccessibleName = caption;
+                button.Height = 68;
+                button.Paint += (s, e) => PaintVehicle(button, icon, caption, e.Graphics);
             }
 
             return button;
         }
 
-        /// <summary>The icon's size at 100% display scaling; the PNGs are four times this.</summary>
-        private static readonly Size IconSize = new Size(76, 26);
+        /// <summary>
+        /// Draws a vehicle button's face over what the button has drawn of itself: the name along
+        /// the bottom, and the picture as large as fits in the space above it.
+        /// </summary>
+        private static void PaintVehicle(RadioButton button, Image icon, string caption, Graphics g)
+        {
+            Rectangle face = button.ClientRectangle;
+            int pad = Math.Max(4, face.Height / 12);
+            const TextFormatFlags Centred = TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.SingleLine | TextFormatFlags.NoPadding;
+
+            Size text = TextRenderer.MeasureText(g, caption, button.Font, Size.Empty, Centred);
+            var name = new Rectangle(face.Left, face.Bottom - pad - text.Height, face.Width, text.Height);
+            TextRenderer.DrawText(g, caption, button.Font, name, button.ForeColor, Centred);
+
+            Rectangle room = Rectangle.FromLTRB(face.Left + pad, face.Top + pad, face.Right - pad, name.Top - pad / 2);
+            if (room.Width <= 0 || room.Height <= 0)
+            {
+                return;
+            }
+
+            float scale = Math.Min((float)room.Width / icon.Width, (float)room.Height / icon.Height);
+            float width = icon.Width * scale, height = icon.Height * scale;
+            g.InterpolationMode = InterpolationMode.HighQualityBicubic;
+            g.PixelOffsetMode = PixelOffsetMode.HighQuality;
+            g.DrawImage(icon, room.Left + (room.Width - width) / 2, room.Top + (room.Height - height) / 2, width, height);
+        }
 
         /// <summary>
-        /// The vehicle's side view (tools/icons/make_vehicle_icons.py draws them), at the size for
-        /// this display. Null for a vehicle without one: its button is just its name.
+        /// The vehicle's side view (tools/icons/make_vehicle_icons.py draws them), at the size it
+        /// was drawn: several times the size it is shown at. Null for a vehicle without one: its
+        /// button is just its name.
         /// </summary>
-        private Image? VehicleIcon(string vehicle)
+        private static Image? VehicleIcon(string vehicle)
         {
             try
             {
@@ -379,17 +405,7 @@ namespace PointerPath.BricsCAD
                 using (stream)
                 using (Image full = Image.FromStream(stream))
                 {
-                    // The same factor the dialog's controls are scaled by: the font's size against the design's.
-                    float scale = Math.Max(1f, CurrentAutoScaleDimensions.Height / 15f);
-                    var icon = new Bitmap((int)Math.Round(IconSize.Width * scale), (int)Math.Round(IconSize.Height * scale));
-                    using (Graphics g = Graphics.FromImage(icon))
-                    {
-                        g.InterpolationMode = InterpolationMode.HighQualityBicubic;
-                        g.PixelOffsetMode = PixelOffsetMode.HighQuality;
-                        g.DrawImage(full, new Rectangle(0, 0, icon.Width, icon.Height));
-                    }
-
-                    return icon;
+                    return new Bitmap(full); // a copy that doesn't need the stream kept open
                 }
             }
             catch (Exception)
