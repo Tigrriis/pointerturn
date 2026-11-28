@@ -21,8 +21,8 @@ Reddit shows above the image; a second one is given for each to try against the 
 
 On the image: "Swept paths for $19 a month."
 
-1. Swept paths inside BricsCAD and AutoCAD for $19 a month. Two seats, AS 2890 design vehicles.
-2. Only need a swept path a few times a month? PointerPath is $19/mo for two seats during the beta.
+1. Swept paths inside BricsCAD and AutoCAD for $19 + GST a month. Two seats, AS 2890 design vehicles.
+2. Only need a swept path now and then? PointerPath is $19/mo + GST for two seats during the beta.
 
 Link: `https://www.pointerpath.app/?utm_source=reddit&utm_medium=paid&utm_campaign=beta-au&utm_content=price`
 
@@ -39,7 +39,7 @@ Link: `https://www.pointerpath.app/?utm_source=reddit&utm_medium=paid&utm_campai
 
 On the image: "The AS 2890 design vehicles, ready to drive."
 
-1. B85, B99, SRV, MRV and HRV swept paths inside BricsCAD and AutoCAD. $19/mo for two seats.
+1. B85, B99, SRV, MRV and HRV swept paths inside BricsCAD and AutoCAD. $19/mo + GST for two seats.
 2. The AS 2890 design vehicles, ready to drive in your own drawing.
 
 Link: `https://www.pointerpath.app/?utm_source=reddit&utm_medium=paid&utm_campaign=beta-au&utm_content=vehicles`
@@ -48,7 +48,7 @@ Link: `https://www.pointerpath.app/?utm_source=reddit&utm_medium=paid&utm_campai
 
 On the image: "Check the turn without leaving your drawing."
 
-1. Check the turn without leaving your drawing. Swept paths inside BricsCAD and AutoCAD, $19/mo.
+1. Check the turn without leaving your drawing. Swept paths inside BricsCAD and AutoCAD, $19/mo + GST.
 2. A swept path add-in that runs entirely inside BricsCAD and AutoCAD. No other add-in needed.
 
 Link: `https://www.pointerpath.app/?utm_source=reddit&utm_medium=paid&utm_campaign=beta-au&utm_content=in-cad`
@@ -58,7 +58,7 @@ Link: `https://www.pointerpath.app/?utm_source=reddit&utm_medium=paid&utm_campai
 Four square cards, in the order of their numbers: what it is, the vehicles, why it is light, the
 price.
 
-Headline: Lightweight swept paths for Australian civil and traffic engineers. $19/mo for two seats.
+Headline: Lightweight swept paths for Australian civil and traffic engineers. $19/mo + GST for two seats.
 
 Link, on every card: `https://www.pointerpath.app/?utm_source=reddit&utm_medium=paid&utm_campaign=beta-au&utm_content=carousel`
 
@@ -84,7 +84,7 @@ where each comes from; if one of these changes, change the ads.
 
 | Claim | From |
 |---|---|
-| $19 per month for two seats | The beta price in Stripe, and `LICENCE_MAX_MACHINES` (2) |
+| $19 + GST per month for two seats | The beta price in Stripe, which is before GST, and `LICENCE_MAX_MACHINES` (2) |
 | Final release price $39 | `PRICE_WAS` in `render.yaml`, worded as the site words it |
 | BricsCAD and AutoCAD | The home page |
 | B85 and B99 cars to AS/NZS 2890.1; SRV, MRV and HRV to AS 2890.2 | The home page's vehicle list |
@@ -137,4 +137,6 @@ node tools/ads/make_reddit_ads.js --only price,vehicles --out /tmp/ads
 It stops with a message if words no longer fit their place on an image (a longer headline, a
 higher price), rather than saving an image with something cut off.
 
-When the beta ends, change `PRICE` and `FINAL` in the script and the headlines above together.
+The price is before GST, so wherever an image or a headline names it, it says "+ GST" (`GST` in
+the script). When the beta ends, change `PRICE` and `FINAL` in the script and the headlines above
+together.
