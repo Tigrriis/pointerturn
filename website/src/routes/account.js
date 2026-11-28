@@ -3,7 +3,7 @@
 const express = require('express');
 const { requireLogin, requireRegion } = require('./site');
 
-module.exports = function account({ config, stripe, licences, billing, log }) {
+module.exports = function account({ config, stripe, licences, billing, downloads, log }) {
   const router = express.Router();
 
   router.get('/account', requireLogin, async (req, res) => {
@@ -16,7 +16,7 @@ module.exports = function account({ config, stripe, licences, billing, log }) {
       machines: usable ? await licences.machines(licence.id) : [],
       price: usable ? null : await billing.getPrice(),
       billingEnabled: billing.enabled,
-      installer: config.installer,
+      installer: { available: downloads.available, version: config.installer.version },
     });
   });
 

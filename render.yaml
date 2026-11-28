@@ -48,6 +48,18 @@ services:
         sync: false
       - key: INSTALLER_VERSION
         sync: false
+      # The installer is kept in a private Cloudflare R2 bucket. The site signs links to it
+      # that work for a few minutes. See "The installer download" in website/README.md.
+      - key: R2_ENDPOINT
+        value: https://29c9b81a9441e865334e34c386c61e0c.r2.cloudflarestorage.com
+      - key: R2_BUCKET
+        value: pointerpath-installer
+      - key: R2_ACCESS_KEY_ID
+        sync: false
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false
+      - key: INSTALLER_FILE
+        sync: false
       # The final release price, named beside the lower beta price that Stripe charges.
       - key: PRICE_WAS
         value: "39"

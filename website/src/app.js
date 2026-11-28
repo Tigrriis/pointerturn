@@ -11,6 +11,7 @@ const { csrf } = require('./security');
 const { createLicences } = require('./licences');
 const { createBilling } = require('./billing');
 const { createGeo } = require('./geo');
+const { createDownloads } = require('./downloads');
 
 function origin(url) {
   try {
@@ -27,7 +28,8 @@ function createApp({ config, db, stripe, mailer, log = console }) {
   const billing = createBilling({ stripe, db, config, mailer, log });
   const geo = createGeo(config, { log });
   geo.warm();
-  const ctx = { config, db, stripe, mailer, licences, billing, geo, log };
+  const downloads = createDownloads(config);
+  const ctx = { config, db, stripe, mailer, licences, billing, geo, downloads, log };
 
   // Added to stylesheet and script addresses. Browsers keep those files for an hour, so
   // without it a new deploy's pages are shown with the previous deploy's styles.

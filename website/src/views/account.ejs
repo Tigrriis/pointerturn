@@ -53,7 +53,7 @@ const statusText = { active: 'Active', past_due: 'Payment overdue', cancelled: '
 <article class="panel">
 <h2>Download</h2>
 <p>The installer sets PointerPath up for BricsCAD and AutoCAD on this PC.</p>
-<% if (installer.url) { %>
+<% if (installer.available) { %>
 <p><a class="button" href="/download" data-event="Download">Download the installer</a></p>
 <% if (installer.version) { %><p class="hint">Version <%= installer.version %>, for Windows.</p><% } %>
 <% } else { %>

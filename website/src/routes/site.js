@@ -20,22 +20,25 @@ function requireRegion(req, res, next) {
   });
 }
 
-module.exports = function site({ config, billing }) {
+module.exports = function site({ billing, downloads }) {
   const router = express.Router();
 
   router.get('/', async (req, res) => {
     res.render('home', { price: await billing.getPrice() });
   });
 
-  // The installer itself is hosted elsewhere (INSTALLER_URL); this hands it to signed-in users.
+  // The installer itself is hosted elsewhere; this hands it to signed-in users. From a
+  // private bucket, each visitor gets a link of their own that works for a few minutes.
   router.get('/download', requireLogin, requireRegion, (req, res) => {
-    if (!config.installer.url) {
+    const link = downloads.link();
+    if (!link) {
       return res.status(503).render('message', {
         title: 'The installer is not available yet',
         body: 'The download has not been published. Check back soon.',
       });
     }
-    res.redirect(302, config.installer.url);
+    res.set('Cache-Control', 'no-store');
+    res.redirect(302, link);
   });
 
   return router;

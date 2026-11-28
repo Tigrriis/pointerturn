@@ -58,8 +58,19 @@ function loadConfig(env = process.env) {
     },
 
     installer: {
-      url: env.INSTALLER_URL || '',
       version: env.INSTALLER_VERSION || '',
+      // Either a public address for the file...
+      url: env.INSTALLER_URL || '',
+      // ...or its name in a private bucket (Cloudflare R2, or anything that speaks S3), from
+      // which the site hands out links that work for a few minutes.
+      file: env.INSTALLER_FILE || '',
+      bucket: {
+        endpoint: (env.R2_ENDPOINT || '').replace(/\/+$/, ''),
+        name: env.R2_BUCKET || '',
+        region: env.R2_REGION || 'auto',
+        accessKeyId: env.R2_ACCESS_KEY_ID || '',
+        secretAccessKey: env.R2_SECRET_ACCESS_KEY || '',
+      },
     },
 
     licence: {

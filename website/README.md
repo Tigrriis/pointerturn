@@ -59,7 +59,7 @@ All settings are environment variables. `.env.example` lists them with comments.
 | `RESEND_API_KEY`, `EMAIL_FROM` | To send email | Resend API key and the From address (on a domain verified in Resend) |
 | `PLAUSIBLE_SCRIPT_URL` or `PLAUSIBLE_DOMAIN` | No | The script address from Plausible's installation page, or (older snippet) the site's domain |
 | `ALLOWED_COUNTRIES` | No | Two-letter country codes PointerPath is offered in, e.g. `AU`. See [Restricting to a country](#restricting-to-a-country) |
-| `INSTALLER_URL`, `INSTALLER_VERSION` | To offer the download | Where the installer is hosted, and the version shown beside the button |
+| `INSTALLER_VERSION`, and `INSTALLER_URL` or the `R2_*` settings with `INSTALLER_FILE` | To offer the download | The version shown beside the button, and where the file is. See [The installer download](#the-installer-download) |
 | `LICENCE_MAX_MACHINES` | No | Computers one licence can be active on at once. Default 2. Applies to licences sold after it is changed |
 | `LICENCE_TOKEN_DAYS` | No | How long a signed licence works before the add-in must reach the server again. Default 14 |
 
@@ -89,8 +89,25 @@ What to set up in the other services:
 3. **Resend.** Verify your sending domain, then set `RESEND_API_KEY` and `EMAIL_FROM`.
 4. **Plausible.** Add the site, set `PLAUSIBLE_SCRIPT_URL`, and add the goals `Signup`,
    `Purchase` and `Download`.
-5. **Installer.** Upload `PointerPath-<version>-setup.exe` somewhere a browser can download it
-   from (a public release, or a storage bucket) and set `INSTALLER_URL`.
+5. **Installer.** See [The installer download](#the-installer-download).
+
+## The installer download
+
+The site doesn't hold the installer. Signed-in visitors (in an allowed country) who press
+Download are sent to wherever it is kept, which is one of:
+
+- **A private bucket** (what `render.yaml` sets up: Cloudflare R2). The site signs a link to the
+  file that works for five minutes and sends the visitor to it, so the file can't be fetched
+  by someone who has only been given an address. Settings: `R2_ENDPOINT` (the account's S3
+  address, `https://<account id>.r2.cloudflarestorage.com`), `R2_BUCKET`, `R2_ACCESS_KEY_ID` and
+  `R2_SECRET_ACCESS_KEY` (an R2 API token with read access to that bucket only), and
+  `INSTALLER_FILE` (the file's name in the bucket).
+- **A public address**: set `INSTALLER_URL` to it. Used when the bucket settings aren't all there.
+
+To release a new version: build it (`installer\Build-Installer.ps1 -Version 1.1.0`), upload the
+new `setup.exe` to the bucket, then set `INSTALLER_FILE` to its name and `INSTALLER_VERSION` to
+its number. The site redeploys and the button serves the new file. Nothing tells existing users
+there is a new version.
 
 ## Restricting to a country
 
