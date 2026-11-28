@@ -29,6 +29,10 @@ function createApp({ config, db, stripe, mailer, log = console }) {
   geo.warm();
   const ctx = { config, db, stripe, mailer, licences, billing, geo, log };
 
+  // Added to stylesheet and script addresses. Browsers keep those files for an hour, so
+  // without it a new deploy's pages are shown with the previous deploy's styles.
+  const assets = `?v=${(process.env.RENDER_GIT_COMMIT || String(Date.now())).slice(0, 10)}`;
+
   const app = express();
   app.set('trust proxy', config.trustProxyHops); // Render terminates TLS in front of the app
   app.set('view engine', 'ejs');
@@ -114,6 +118,7 @@ function createApp({ config, db, stripe, mailer, log = console }) {
       }
       res.locals.user = req.user;
       res.locals.plausible = config.plausible;
+      res.locals.assets = assets;
       res.locals.path = req.path;
       res.locals.pageEvent = null;
       // Where the visitor is, when PointerPath is restricted to some countries.
@@ -144,7 +149,7 @@ function createApp({ config, db, stripe, mailer, log = console }) {
     res.status(500);
     if (!res.locals.csrfToken) {
       // Failed before the page helpers were set up.
-      Object.assign(res.locals, { user: null, plausible: config.plausible, path: req.path, pageEvent: null, flash: null, csrfToken: '' });
+      Object.assign(res.locals, { user: null, plausible: config.plausible, assets, path: req.path, pageEvent: null, flash: null, csrfToken: '' });
       res.locals.region = { restricted: geo.restricted, where: geo.where, blocked: false };
     }
     res.render('message', { title: 'Something went wrong', body: 'That did not work. Try again in a moment.' });

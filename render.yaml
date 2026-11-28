@@ -48,7 +48,7 @@ services:
         sync: false
       - key: INSTALLER_VERSION
         sync: false
-      # The full price, shown struck through beside the beta price that Stripe charges.
+      # The final release price, named beside the lower beta price that Stripe charges.
       - key: PRICE_WAS
         value: "39"
       # Offered in Australia only. See "Restricting to a country" in website/README.md.

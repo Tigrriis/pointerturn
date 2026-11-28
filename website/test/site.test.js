@@ -27,7 +27,7 @@ test('home page renders with the price from Stripe', async () => {
   const res = await t.browser().get('/');
   assert.equal(res.status, 200);
   assert.match(res.text, /swept paths/);
-  assert.doesNotMatch(res.text, /price__was/);
+  assert.doesNotMatch(res.text, /Final release price/);
   assert.match(res.text, /\$495/);
   assert.match(res.text, /plus GST/);
 });

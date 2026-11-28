@@ -81,7 +81,7 @@ a:hover { color: #000; }
 .hero__text { flex: 1 1 520px; min-width: 0; display: flex; flex-direction: column; gap: 28px; }
 .hero__art { flex: 1 1 380px; min-width: 0; display: flex; justify-content: center; }
 .hero h1 { font-size: clamp(36px, 4.5vw, 62px); line-height: 1.12; }
-.mark { background: var(--pt-accent); border-radius: var(--pt-radius-highlight); padding: 0 10px; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+.mark { background: var(--pt-accent); border-radius: var(--pt-radius-highlight); padding: 0 10px; white-space: nowrap; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
 .lead { font-size: 20px; max-width: 540px; }
 .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 16px 28px; }
 
@@ -122,10 +122,9 @@ a:hover { color: #000; }
 .price__amount { font: 600 44px/1 var(--pt-font-display); letter-spacing: -0.03em; }
 .price__unit { font-size: 18px; font-weight: 500; }
 .price__note { font-size: 14px; color: var(--pt-graphite); }
-/* The price before a discount, struck through beside the price charged. */
-.price__was { font: 600 30px/1 var(--pt-font-display); letter-spacing: -0.03em; color: var(--pt-graphite); text-decoration-thickness: 2px; }
-.buy__price .price__was { color: #9AA3AB; }
-.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+/* The price after the beta, named beside the price charged now. */
+.price__full { font-size: 16px; font-weight: 500; color: var(--pt-slate); }
+.buy__price .price__full { color: var(--pt-white); margin-top: 6px; }
 
 /* ---- Forms ---- */
 

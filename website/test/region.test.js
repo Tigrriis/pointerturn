@@ -186,20 +186,20 @@ test('a product ID in place of a price ID still sells the product\'s price', asy
   t = { stop: async () => {} };
 });
 
-test('a full price is shown struck through only while the price charged is lower', async () => {
+test('the final release price is shown only while the price charged is lower', async () => {
   await t.stop();
   t = await start({ PRICE_WAS: '595' });
   let home = (await t.browser().get('/')).text;
-  assert.match(home, /<s class="price__was"><span class="visually-hidden">Was <\/span>\$595<\/s>/);
+  assert.match(home, /Final release price \$595/);
   assert.match(home, /\$495/);
   const { b } = await t.newAccount('price@example.com');
-  assert.match((await b.get('/account')).text, /price__was/);
+  assert.match((await b.get('/account')).text, /Final release price \$595/);
   await t.stop();
 
-  // Once the price charged has caught up with it, there is nothing to strike through.
+  // Once the price charged has caught up with it, there is nothing to say.
   t = await start({ PRICE_WAS: '495' });
   home = (await t.browser().get('/')).text;
-  assert.doesNotMatch(home, /price__was/);
+  assert.doesNotMatch(home, /Final release price/);
   await t.stop();
   t = { stop: async () => {} };
 });

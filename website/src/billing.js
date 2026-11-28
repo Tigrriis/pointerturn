@@ -59,11 +59,11 @@ function createBilling({ stripe, db, config, mailer, log = console }) {
           currency: p.currency.toUpperCase(),
           minimumFractionDigits: cents % 100 === 0 ? 0 : 2,
         }).format(cents / 100);
-      const wasCents = Math.round(config.stripe.priceWas * 100);
+      const fullCents = Math.round(config.stripe.priceFull * 100);
       const price = {
         amount: money(p.unit_amount),
-        // Shown struck through, and only while it really is more than the price charged.
-        was: wasCents > p.unit_amount ? money(wasCents) : null,
+        // The price after the beta, shown beside the one charged, and only while it is more.
+        full: fullCents > p.unit_amount ? money(fullCents) : null,
         currency: p.currency.toUpperCase(),
         recurring: p.type === 'recurring',
         interval: p.recurring ? p.recurring.interval : null,
