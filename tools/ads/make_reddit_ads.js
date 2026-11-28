@@ -24,7 +24,6 @@ const read = (...parts) => fs.readFileSync(path.join(ROOT, ...parts), 'utf8');
 // ---- What the ads say -------------------------------------------------------------------
 
 const PRICE = '$19';                       // the beta price Stripe charges, per month
-const GST = '+ GST';                       // that price is before GST, so every image that names it says so
 const SEATS = 'two seats';                 // LICENCE_MAX_MACHINES, as the site words it
 const FINAL = 'Final release price $39';   // PRICE_WAS, as the site words it
 const URL = 'pointerpath.app';
@@ -73,9 +72,8 @@ const fleet = () => `
 ${VEHICLES.map((v) => `<div class="fleet__row">${vehicleIcon(v.icon)}<span class="fleet__name">${v.name}</span><span class="fleet__std">${v.std}</span></div>`).join('\n')}
 </div>`;
 
-const priceFoot = `<p class="foot__price"><b>${PRICE}</b> ${GST} per month for ${SEATS}</p>`;
-// For the images whose headline is the price: the footer says it again in full, with the GST.
-const betaFoot = `<p class="foot__note">${PRICE}/mo ${GST} in beta. ${FINAL}.</p>`;
+const priceFoot = `<p class="foot__price"><b>${PRICE}</b> per month for ${SEATS}</p>`;
+const finalFoot = `<p class="foot__note">Beta pricing. ${FINAL}.</p>`;
 
 function ad({ theme = 'paper', layout = '', h1 = '', sub = '', facts = [], art = '', foot = priceFoot }) {
   const classes = ['ad', `ad--${theme}`, ...layout.split(' ').filter(Boolean).map((l) => `ad--${l}`)].join(' ');
@@ -100,7 +98,7 @@ const ADS = {
     sub: 'A lightweight add-in for BricsCAD and AutoCAD.',
     facts: [`One licence, ${SEATS}`, 'AS 2890 cars and rigid trucks', 'Metres or millimetres'],
     art: sheet(),
-    foot: betaFoot,
+    foot: finalFoot,
   }],
   'lightweight': [['1x1', '4x5'], {
     theme: 'paper',
@@ -151,7 +149,7 @@ const ADS = {
     theme: 'ink',
     layout: 'price',
     art: `<div class="big"><div class="big__text"><p class="big__amount">${PRICE}<small>/mo</small></p><p class="big__unit">for ${SEATS}.</p><p class="big__sub">Swept paths inside BricsCAD and AutoCAD.</p></div>${logomark}</div>`,
-    foot: betaFoot,
+    foot: finalFoot,
   }],
 };
 
