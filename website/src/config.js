@@ -44,6 +44,12 @@ function loadConfig(env = process.env) {
       domain: env.PLAUSIBLE_DOMAIN || '',
     },
 
+    reddit: {
+      // The pixel ID from Reddit Ads, for measuring what its ads lead to. Not a secret: it
+      // is in every page. Empty: no Reddit code is loaded at all.
+      pixelId: /^[A-Za-z0-9_-]{3,40}$/.test((env.REDDIT_PIXEL_ID || '').trim()) ? env.REDDIT_PIXEL_ID.trim() : '',
+    },
+
     region: {
       // Two-letter country codes PointerPath is offered in, e.g. "AU". Empty: no restriction.
       allowed: (env.ALLOWED_COUNTRIES || '')

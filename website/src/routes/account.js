@@ -9,7 +9,13 @@ module.exports = function account({ config, stripe, licences, billing, downloads
   router.get('/account', requireLogin, async (req, res) => {
     const licence = await licences.latestLicence(req.user.id);
     const usable = Boolean(licence && licences.USABLE.includes(licence.status));
-    if (req.query.purchased === '1' && usable) res.locals.pageEvent = 'Purchase';
+    if (req.query.purchased === '1' && usable) {
+      res.locals.pageEvent = 'Purchase';
+      // What the sale was worth, for the Reddit pixel. The licence's number lets Reddit
+      // count it once if this page is loaded twice.
+      const paid = await billing.getPrice();
+      if (paid) res.locals.pageEventData = { value: paid.value, currency: paid.currency, id: `licence-${licence.id}` };
+    }
     res.render('account', {
       licence,
       usable,

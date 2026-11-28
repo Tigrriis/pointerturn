@@ -44,6 +44,9 @@ services:
         sync: false
       - key: PLAUSIBLE_SCRIPT_URL
         sync: false
+      # The Reddit Ads pixel ID, for conversion tracking. Not a secret; empty switches it off.
+      - key: REDDIT_PIXEL_ID
+        sync: false
       - key: INSTALLER_URL
         sync: false
       - key: INSTALLER_VERSION

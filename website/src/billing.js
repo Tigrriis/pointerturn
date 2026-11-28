@@ -62,6 +62,8 @@ function createBilling({ stripe, db, config, mailer, log = console }) {
       const fullCents = Math.round(config.stripe.priceFull * 100);
       const price = {
         amount: money(p.unit_amount),
+        // The same as a plain number of dollars, for reporting a sale to the ad platform.
+        value: p.unit_amount / 100,
         // The price after the beta, shown beside the one charged, and only while it is more.
         full: fullCents > p.unit_amount ? money(fullCents) : null,
         currency: p.currency.toUpperCase(),

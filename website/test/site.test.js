@@ -158,6 +158,9 @@ test('buying: checkout, webhook, licence, confirmation email', async () => {
   assert.equal(back.location, '/account?purchased=1');
   const account = await b.get(back.location);
   assert.match(account.text, /data-page-event="Purchase"/);
+  // What the sale was worth, for the ad platform's conversion tracking.
+  const sale = JSON.parse(account.text.match(/data-page-event-data="([^"]*)"/)[1].replaceAll('&#34;', '"'));
+  assert.deepEqual(sale, { value: 495, currency: 'AUD', id: `licence-${licence.id}` });
   assert.match(account.text, /does not expire/);
 
   // A second purchase is refused while the first is active.
@@ -341,5 +344,31 @@ test('Plausible is loaded only when configured, and allowed by the security poli
     assert.ok((await res.text()).includes(`src="${src}"`));
     await t.stop();
   }
+  t = { stop: async () => {} };
+});
+
+test('the Reddit pixel is loaded only when configured, and allowed by the security policy', async () => {
+  t = await start({ PLAUSIBLE_SCRIPT_URL: 'https://plausible.io/js/pa-abc123.js' });
+  let res = await fetch(`http://127.0.0.1:${t.port}/`);
+  assert.doesNotMatch(res.headers.get('content-security-policy'), /reddit/);
+  assert.doesNotMatch(await res.text(), /reddit/i);
+  await t.stop();
+
+  // Something that is not a pixel ID is ignored rather than put in the page.
+  t = await start({ REDDIT_PIXEL_ID: '"><script>' });
+  res = await fetch(`http://127.0.0.1:${t.port}/`);
+  assert.doesNotMatch(await res.text(), /reddit/i);
+  await t.stop();
+
+  t = await start({ REDDIT_PIXEL_ID: ' a2_abc123 ', PLAUSIBLE_SCRIPT_URL: 'https://plausible.io/js/pa-abc123.js' });
+  res = await fetch(`http://127.0.0.1:${t.port}/`);
+  const csp = res.headers.get('content-security-policy');
+  assert.match(csp, /script-src 'self' https:\/\/plausible\.io https:\/\/www\.redditstatic\.com;/);
+  assert.match(csp, /connect-src [^;]*https:\/\/alb\.reddit\.com/);
+  assert.match(csp, /img-src 'self' data: https:\/\/alb\.reddit\.com/);
+  const html = await res.text();
+  assert.match(html, /<body[^>]* data-reddit-pixel="a2_abc123"/);
+  assert.doesNotMatch(html, /<script(?![^>]*\ssrc=)/); // the loader is in site.js, not inline
+  await t.stop();
   t = { stop: async () => {} };
 });

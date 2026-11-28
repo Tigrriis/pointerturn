@@ -15,6 +15,8 @@ hands out the installer, and runs the licence API the add-in signs in to.
   licence back that it can check without contacting the server. See [Licence API](#licence-api).
 - **Download.** Signed-in users are sent to the installer, wherever it is hosted.
 - **Analytics.** Plausible, with three goals: `Signup`, `Purchase` and `Download`.
+- **Ad tracking.** Optionally, the Reddit pixel, so Reddit Ads can tell which ads led to a
+  sign-up or a sale. See [Reddit Ads tracking](#reddit-ads-tracking).
 
 It is a Node.js (Express) app with server-rendered pages and a Postgres database. The look comes
 from `../brand`; the files it needs are copied into `public/brand`.
@@ -58,6 +60,7 @@ All settings are environment variables. `.env.example` lists them with comments.
 | `STRIPE_AUTOMATIC_TAX` | No | `1` to have Stripe Tax work out GST at checkout |
 | `RESEND_API_KEY`, `EMAIL_FROM` | To send email | Resend API key and the From address (on a domain verified in Resend) |
 | `PLAUSIBLE_SCRIPT_URL` or `PLAUSIBLE_DOMAIN` | No | The script address from Plausible's installation page, or (older snippet) the site's domain |
+| `REDDIT_PIXEL_ID` | No | The pixel ID from Reddit Ads. See [Reddit Ads tracking](#reddit-ads-tracking) |
 | `ALLOWED_COUNTRIES` | No | Two-letter country codes PointerPath is offered in, e.g. `AU`. See [Restricting to a country](#restricting-to-a-country) |
 | `INSTALLER_VERSION`, and `INSTALLER_URL` or the `R2_*` settings with `INSTALLER_FILE` | To offer the download | The version shown beside the button, and where the file is. See [The installer download](#the-installer-download) |
 | `LICENCE_MAX_MACHINES` | No | Computers one licence can be active on at once. Default 2. Applies to licences sold after it is changed |
@@ -90,6 +93,34 @@ What to set up in the other services:
 4. **Plausible.** Add the site, set `PLAUSIBLE_SCRIPT_URL`, and add the goals `Signup`,
    `Purchase` and `Download`.
 5. **Installer.** See [The installer download](#the-installer-download).
+6. **Reddit Ads**, if you advertise there. See [Reddit Ads tracking](#reddit-ads-tracking).
+
+## Reddit Ads tracking
+
+With `REDDIT_PIXEL_ID` set, every page loads Reddit's pixel and tells it:
+
+| When | Reddit event |
+|---|---|
+| Any page is opened | `PageVisit` |
+| The "Check your email" page after signing up | `SignUp` |
+| The account page straight after paying | `Purchase`, with the price charged (first payment), its currency and the licence's number |
+| The download button is pressed | A custom event, `Download` |
+
+The pixel ID is in Reddit Ads under Events Manager (it looks like `a2_…` or `t2_…`). It is not a
+secret. Without it no Reddit code is loaded and nothing is sent.
+
+Things to know:
+
+- **The loader is in `public/js/site.js`**, not in the page, because the site's security policy
+  allows no inline scripts. The policy is widened for Reddit's hosts only while the pixel is on
+  (`src/app.js`). If Reddit's pixel starts using a host that isn't listed there, the browser's
+  console shows a "Content Security Policy" error naming it: add it to the list.
+- **A sale is reported from the buyer's browser**, on the page they come back to from Stripe.
+  A buyer who closes the tab at Stripe, or blocks trackers, isn't counted, so Reddit's count
+  runs a little under the real one. Renewals aren't reported. The licence's number goes with
+  each sale so that loading the page twice counts once.
+- **Unlike Plausible, the pixel sets cookies and identifies visitors to Reddit.** Say so in
+  the site's privacy policy.
 
 ## The installer download
 

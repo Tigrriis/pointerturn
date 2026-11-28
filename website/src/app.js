@@ -51,16 +51,24 @@ function createApp({ config, db, stripe, mailer, log = console }) {
     : config.plausible.domain
       ? 'https://plausible.io'
       : null;
+  // The Reddit pixel: its script comes from redditstatic.com, and it reports to Reddit's
+  // own hosts by image request or fetch, depending on the browser.
+  const reddit = config.reddit.pixelId
+    ? {
+        script: ['https://www.redditstatic.com'],
+        report: ['https://alb.reddit.com', 'https://pixel-config.reddit.com', 'https://conversions-config.reddit.com'],
+      }
+    : { script: [], report: [] };
   app.use(
     helmet({
       contentSecurityPolicy: {
         directives: {
           defaultSrc: ["'self'"],
-          scriptSrc: ["'self'", ...(plausibleOrigin ? [plausibleOrigin] : [])],
-          connectSrc: ["'self'", ...(plausibleOrigin ? [plausibleOrigin] : [])],
+          scriptSrc: ["'self'", ...(plausibleOrigin ? [plausibleOrigin] : []), ...reddit.script],
+          connectSrc: ["'self'", ...(plausibleOrigin ? [plausibleOrigin] : []), ...reddit.script, ...reddit.report],
           styleSrc: ["'self'", 'https://fonts.googleapis.com'],
           fontSrc: ["'self'", 'https://fonts.gstatic.com'],
-          imgSrc: ["'self'", 'data:'],
+          imgSrc: ["'self'", 'data:', ...reddit.report],
           // Buying and "Manage billing" are form posts that redirect to Stripe.
           formAction: ["'self'", 'https://checkout.stripe.com', 'https://billing.stripe.com'],
           frameAncestors: ["'none'"],
@@ -128,7 +136,9 @@ function createApp({ config, db, stripe, mailer, log = console }) {
       res.locals.assets = assets;
       res.locals.seats = seats;
       res.locals.path = req.path;
+      res.locals.redditPixel = config.reddit.pixelId;
       res.locals.pageEvent = null;
+      res.locals.pageEventData = null;
       // Where the visitor is, when PointerPath is restricted to some countries.
       req.region = geo.check(req);
       res.locals.region = { restricted: geo.restricted, where: geo.where, blocked: !req.region.allowed };
@@ -157,7 +167,7 @@ function createApp({ config, db, stripe, mailer, log = console }) {
     res.status(500);
     if (!res.locals.csrfToken) {
       // Failed before the page helpers were set up.
-      Object.assign(res.locals, { user: null, plausible: config.plausible, assets, seats, path: req.path, pageEvent: null, flash: null, csrfToken: '' });
+      Object.assign(res.locals, { user: null, plausible: config.plausible, assets, seats, path: req.path, redditPixel: config.reddit.pixelId, pageEvent: null, pageEventData: null, flash: null, csrfToken: '' });
       res.locals.region = { restricted: geo.restricted, where: geo.where, blocked: false };
     }
     res.render('message', { title: 'Something went wrong', body: 'That did not work. Try again in a moment.' });

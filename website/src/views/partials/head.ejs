@@ -20,7 +20,7 @@
 <% } %>
 <script defer src="/js/site.js<%= assets %>"></script>
 </head>
-<body<% if (pageEvent) { %> data-page-event="<%= pageEvent %>"<% } %><% if (plausible.scriptUrl) { %> data-plausible-init<% } %>>
+<body<% if (pageEvent) { %> data-page-event="<%= pageEvent %>"<% } %><% if (pageEvent && pageEventData) { %> data-page-event-data="<%= JSON.stringify(pageEventData) %>"<% } %><% if (plausible.scriptUrl) { %> data-plausible-init<% } %><% if (redditPixel) { %> data-reddit-pixel="<%= redditPixel %>"<% } %>>
 <header class="site-header">
 <div class="wrap site-header__row">
 <a class="logo" href="/"><img src="/brand/lockup.svg" alt="PointerPath" width="167" height="44"></a>
