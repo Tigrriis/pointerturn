@@ -77,7 +77,14 @@ namespace PointerPath.Core.Tests
             }
 
             Assert.Throws<ArgumentException>(() => c.Vehicle("Road train"));
-            Assert.Equal("AE CIV PLN - VEHICLE BLOCK", c.Layers.Block);
+            Assert.Equal("VEHICLE BLOCK", c.Layers.Block);
+
+            // The layers carry no office's prefix, each part has one of its own, and each has a style.
+            List<string> names = c.Layers.All().Select(kv => kv.Value).ToList();
+            Assert.Equal(names.Count, names.Distinct(StringComparer.OrdinalIgnoreCase).Count());
+            Assert.All(names, name => Assert.StartsWith("VEHICLE ", name));
+            Assert.All(names, name => Assert.True(c.LayerStyles.ContainsKey(name), name));
+            Assert.Equal(new TurnPathLayers().All().Select(kv => kv.Value), names);
             Assert.False(c.Draw.Block);
             Assert.Contains(c.Layers.All(), kv => kv.Key == "block");
             Assert.True(c.LayerStyles.ContainsKey(c.Layers.Block));
