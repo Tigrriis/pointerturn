@@ -64,33 +64,36 @@ namespace PointerPath.BricsCAD
             {
                 TextBox box = DialogKit.Box(280);
                 box.Text = current.TryGetValue(part, out string? name) ? name : "";
-                DialogKit.AddRow(layers, DialogKit.Caption(caption), box);
+                Label label = DialogKit.Caption(caption);
+                label.Margin = new Padding(0, 0, 10, 0);
+                DialogKit.AddRow(layers, label, box);
                 _layerBoxes[part] = box;
             }
 
-            DialogKit.AddRow(layers, DialogKit.Note("New layers get the styles from turn-paths.json; existing layers are not changed.", 420));
+            Label layerNote = DialogKit.Note("{vehicle} in a name is replaced by the vehicle's name. New layers get the styles from turn-paths.json; existing layers are not changed.", 420);
+            layerNote.Margin = new Padding(0, 6, 0, 0);
+            DialogKit.AddRow(layers, layerNote);
 
-            var ok = DialogKit.Button("OK");
-            ok.DialogResult = DialogResult.OK;
+            var ok = new PrimaryButton("OK") { DialogResult = DialogResult.OK };
             var cancel = DialogKit.Button("Cancel");
             cancel.DialogResult = DialogResult.Cancel;
-            FlowLayoutPanel buttons = DialogKit.Flow(ok, cancel);
-            buttons.Anchor = AnchorStyles.Right;
             AcceptButton = ok;
             CancelButton = cancel;
 
-            TableLayoutPanel root = DialogKit.Table(2);
-            GroupBox drawGroup = DialogKit.Group("Draw", draw);
-            drawGroup.Margin = new Padding(0, 0, 12, 10);
-            drawGroup.Anchor = AnchorStyles.Top | AnchorStyles.Left;
-            GroupBox layerGroup = DialogKit.Group("Layers ({vehicle} is replaced by the vehicle name)", layers);
-            layerGroup.Anchor = AnchorStyles.Top | AnchorStyles.Left;
-            root.Controls.Add(drawGroup, 0, 0);
-            root.Controls.Add(layerGroup, 1, 0);
-            root.Controls.Add(buttons, 0, 1);
-            root.SetColumnSpan(buttons, 2);
-            root.Dock = DockStyle.Fill;
-            Controls.Add(root);
+            // Two columns, each under its title: what to draw, and the layer for each part.
+            TableLayoutPanel content = DialogKit.Table(2);
+            Label drawTitle = DialogKit.Section("Draw");
+            Label layerTitle = DialogKit.Section("Layers");
+            draw.Margin = new Padding(0, 0, 28, 0);
+            draw.Anchor = AnchorStyles.Top | AnchorStyles.Left;
+            layers.Anchor = AnchorStyles.Top | AnchorStyles.Left;
+            content.Controls.Add(drawTitle, 0, 0);
+            content.Controls.Add(layerTitle, 1, 0);
+            content.Controls.Add(draw, 0, 1);
+            content.Controls.Add(layers, 1, 1);
+            content.RowCount = 2;
+
+            DialogKit.Compose(this, "Draw settings", "What is drawn for a turning path, and the layer each part goes on.", content, null, ok, cancel);
 
             FormClosing += (s, e) =>
             {
@@ -138,6 +141,7 @@ namespace PointerPath.BricsCAD
         private static CheckBox Tick(TableLayoutPanel table, string text, bool on)
         {
             CheckBox box = DialogKit.Check(text);
+            box.Margin = new Padding(0, 3, 0, 3);
             box.Checked = on;
             DialogKit.AddRow(table, box);
             return box;

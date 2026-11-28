@@ -2,19 +2,20 @@
   <title>HRV heavy rigid vehicle</title>
   <defs>
     <mask id="vehicle-hrv" maskUnits="userSpaceOnUse" x="0" y="0" width="152" height="52">
-      <polygon fill="#fff" points="2,2 116,2 116,38 2,38"/>
-      <polygon fill="#fff" points="2,37 150,37 150,42 2,42"/>
-      <polygon fill="#fff" points="119,42 119,9 140,9 147,20 150,22 150,42"/>
-      <polygon fill="#000" points="128,12 139,12 145,21 128,21"/>
-      <circle fill="#000" cx="24" cy="42" r="10.5"/>
+      <path fill="#fff" d="M2 4.5 Q2 2 4.5 2 L113 2 Q115.5 2 115.5 4.5 L115.5 36 Q115.5 38.5 113 38.5 L4.5 38.5 Q2 38.5 2 36 Z"/>
+      <path fill="#fff" d="M3.5 37.5 Q3.5 36 5 36 L147.5 36 Q149 36 149 37.5 L149 41 Q149 42.5 147.5 42.5 L5 42.5 Q3.5 42.5 3.5 41 Z"/>
+      <path fill="#fff" d="M120.5 42.5 Q119 42.5 119 41 L119 11.5 Q119 8.5 122 8.5 L135 8.5 Q139 8.5 141.3 11.76 L146.5 19.06 Q147.5 20.5 148.8 21.75 L148.8 21.75 Q150 23 150 24.77 L150 40 Q150 42.5 147.5 42.5 Z"/>
+      <path fill="#000" d="M127.5 13.4 Q127.5 12 128.9 12 L136.2 12 Q137.6 12 138.4 13.15 L143 19.75 Q143.8 20.9 142.4 20.9 L128.9 20.9 Q127.5 20.9 127.5 19.5 Z"/>
+      <path fill="#000" d="M147.2 31.8 Q147.2 31 148 31 L149.2 31 Q150 31 150 31.8 L150 33.7 Q150 34.5 149.2 34.5 L148 34.5 Q147.2 34.5 147.2 33.7 Z"/>
+      <circle fill="#000" cx="24" cy="42" r="10.2"/>
       <circle fill="#fff" cx="24" cy="42" r="8"/>
-      <circle fill="#000" cx="24" cy="42" r="3.04"/>
-      <circle fill="#000" cx="44" cy="42" r="10.5"/>
+      <circle fill="#000" cx="24" cy="42" r="3.36"/>
+      <circle fill="#000" cx="44" cy="42" r="10.2"/>
       <circle fill="#fff" cx="44" cy="42" r="8"/>
-      <circle fill="#000" cx="44" cy="42" r="3.04"/>
-      <circle fill="#000" cx="134" cy="42" r="10.5"/>
+      <circle fill="#000" cx="44" cy="42" r="3.36"/>
+      <circle fill="#000" cx="134" cy="42" r="10.2"/>
       <circle fill="#fff" cx="134" cy="42" r="8"/>
-      <circle fill="#000" cx="134" cy="42" r="3.04"/>
+      <circle fill="#000" cx="134" cy="42" r="3.36"/>
     </mask>
   </defs>
   <rect width="152" height="52" fill="#111A22" mask="url(#vehicle-hrv)"/>

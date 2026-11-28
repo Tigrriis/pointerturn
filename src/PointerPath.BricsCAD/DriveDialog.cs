@@ -21,20 +21,20 @@ namespace PointerPath.BricsCAD
             : base("PointerPath - Drive", "Drive", conventions, insunits, unitsWarning)
         {
             _detect = DialogKit.Check("Detect conflicts");
-            _detect.Margin = new Padding(3, 5, 3, 4);
+            _detect.Margin = new Padding(0, 5, 3, 4);
             _detect.Checked = conventions.CheckConflicts;
             ShowConflictLayers();
 
             _conflictSettings = DialogKit.Button("Conflict settings...");
-            _conflictSettings.Margin = new Padding(12, 0, 0, 2);
+            _conflictSettings.Margin = new Padding(12, 0, 0, 4);
             Tips.SetToolTip(_conflictSettings, "The layers the swept path is checked against.");
             _conflictSettings.Click += (s, e) => EditConflictSettings();
             FlowLayoutPanel conflicts = DialogKit.Flow(_detect, _conflictSettings);
             _detect.Anchor = AnchorStyles.Left;
 
             _stationary = DialogKit.Check("Allow turn wheels while stopped");
-            _stationary.Margin = new Padding(3, 2, 3, 4);
-            _stationary.Padding = new Padding(3, 1, 6, 1);
+            _stationary.Margin = new Padding(0, 2, 3, 0);
+            _stationary.Padding = new Padding(0, 2, 8, 2);
             _stationary.Checked = conventions.DriveTurnWheelsWhenStationary;
             Tips.SetToolTip(_stationary, "The wheels are set before each forward move, so every leg is on its turning circle from the first metre: tighter, but it is steering on the spot.");
             ShowStationary();
@@ -51,7 +51,7 @@ namespace PointerPath.BricsCAD
                 Remember();
             };
 
-            Build(conflicts, _stationary);
+            Build("Drive", "Choose the vehicle, then click where it goes next. A click behind it reverses.", conflicts, _stationary);
         }
 
         /// <summary>The layers a drive is checked against: no objects are picked in the drawing.</summary>
@@ -80,7 +80,7 @@ namespace PointerPath.BricsCAD
         private void ShowStationary()
         {
             _stationary.BackColor = _stationary.Checked ? DialogKit.WarningFill : Color.Transparent;
-            _stationary.ForeColor = _stationary.Checked ? DialogKit.Warning : SystemColors.ControlText;
+            _stationary.ForeColor = _stationary.Checked ? DialogKit.Warning : ForeColor;
         }
     }
 }

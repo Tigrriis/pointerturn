@@ -2,16 +2,17 @@
   <title>MRV medium rigid vehicle</title>
   <defs>
     <mask id="vehicle-mrv" maskUnits="userSpaceOnUse" x="0" y="0" width="152" height="52">
-      <polygon fill="#fff" points="15,5 103,5 103,38 15,38"/>
-      <polygon fill="#fff" points="15,37 137,37 137,42 15,42"/>
-      <polygon fill="#fff" points="106,42 106,11 127,11 134,22 137,24 137,42"/>
-      <polygon fill="#000" points="115,14 126,14 132,23 115,23"/>
-      <circle fill="#000" cx="41" cy="42" r="10.5"/>
+      <path fill="#fff" d="M15 7.5 Q15 5 17.5 5 L100 5 Q102.5 5 102.5 7.5 L102.5 36 Q102.5 38.5 100 38.5 L17.5 38.5 Q15 38.5 15 36 Z"/>
+      <path fill="#fff" d="M16.5 37.5 Q16.5 36 18 36 L134.5 36 Q136 36 136 37.5 L136 41 Q136 42.5 134.5 42.5 L18 42.5 Q16.5 42.5 16.5 41 Z"/>
+      <path fill="#fff" d="M107.5 42.5 Q106 42.5 106 41 L106 13.5 Q106 10.5 109 10.5 L122 10.5 Q126 10.5 128.3 13.76 L133.5 21.06 Q134.5 22.5 135.8 23.75 L135.8 23.75 Q137 25 137 26.77 L137 40 Q137 42.5 134.5 42.5 Z"/>
+      <path fill="#000" d="M114.5 15.4 Q114.5 14 115.9 14 L123.2 14 Q124.6 14 125.4 15.15 L130 21.75 Q130.8 22.9 129.4 22.9 L115.9 22.9 Q114.5 22.9 114.5 21.5 Z"/>
+      <path fill="#000" d="M134.2 31.8 Q134.2 31 135 31 L136.2 31 Q137 31 137 31.8 L137 33.7 Q137 34.5 136.2 34.5 L135 34.5 Q134.2 34.5 134.2 33.7 Z"/>
+      <circle fill="#000" cx="41" cy="42" r="10.2"/>
       <circle fill="#fff" cx="41" cy="42" r="8"/>
-      <circle fill="#000" cx="41" cy="42" r="3.04"/>
-      <circle fill="#000" cx="121" cy="42" r="10.5"/>
+      <circle fill="#000" cx="41" cy="42" r="3.36"/>
+      <circle fill="#000" cx="121" cy="42" r="10.2"/>
       <circle fill="#fff" cx="121" cy="42" r="8"/>
-      <circle fill="#000" cx="121" cy="42" r="3.04"/>
+      <circle fill="#000" cx="121" cy="42" r="3.36"/>
     </mask>
   </defs>
   <rect width="152" height="52" fill="#111A22" mask="url(#vehicle-mrv)"/>
