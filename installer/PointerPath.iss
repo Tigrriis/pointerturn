@@ -80,6 +80,14 @@ ArchitecturesInstallIn64BitMode=x64compatible
 CloseApplications=yes
 RestartApplications=no
 
+; Signing, when Build-Installer.ps1 is given -SignCommand: it defines Sign and the sign tool
+; named "sign" (ISCC /DSign=1 /Ssign=...). Setup then signs the uninstaller it makes, and itself.
+; The add-in's DLLs are signed before this, as they are staged.
+#ifdef Sign
+SignTool=sign
+SignedUninstaller=yes
+#endif
+
 OutputDir={#OutputDir}
 OutputBaseFilename=PointerPath-{#AppVersion}-setup
 Compression=lzma2

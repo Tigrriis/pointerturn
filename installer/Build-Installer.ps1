@@ -37,8 +37,18 @@
 .EXAMPLE
   .\installer\Build-Installer.ps1 -AllowMissing -SkipTests
 
+  Signing. Without -SignCommand the add-in and the installer are unsigned: Windows shows
+  "Unknown publisher" and SmartScreen warns. With it (or with it set once in the environment
+  variable POINTERPATH_SIGN_COMMAND), the script signs PointerPath's own DLLs before they go
+  into the installer, has Inno Setup sign the uninstaller and the installer, and checks every
+  signature. The command is whatever the certificate's provider says to run, with $f where
+  the file's name goes; see docs/packaging.md, "Signing". It needs Windows.
+
 .EXAMPLE
   .\installer\Build-Installer.ps1 -Unlicensed
+
+.EXAMPLE
+  .\installer\Build-Installer.ps1 -SignCommand 'signtool sign /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 /n "Arete Engineering Pty Ltd" $f'
 #>
 [CmdletBinding()]
 param(
@@ -65,7 +75,12 @@ param(
     [string]$ISCC,
 
     # Where the installer goes. Default: artifacts, in the repo.
-    [string]$OutputDir
+    [string]$OutputDir,
+
+    # The command that signs one file, with $f where the file's name goes (it is put in quotes
+    # for you). Give it in single quotes, so PowerShell leaves the $f alone. Default: the
+    # environment variable POINTERPATH_SIGN_COMMAND. Without either, nothing is signed.
+    [string]$SignCommand = $env:POINTERPATH_SIGN_COMMAND
 )
 
 $ErrorActionPreference = "Stop"
@@ -126,7 +141,52 @@ function Get-BricsCAD {
     return @($found | Sort-Object Version)
 }
 
+# Signs one file with -SignCommand, then checks that Windows sees a signature on it. Gives back who signed it.
+function Invoke-Sign([string]$file) {
+    # Run through a batch file: the command has quotes of its own, which PowerShell would mangle
+    # if it passed them on itself. A % in a batch file has to be doubled.
+    $line = $SignCommand.Replace('$f', '"' + $file + '"').Replace("%", "%%")
+    $batch = [IO.Path]::Combine($artifacts, "sign-one.cmd")
+    [IO.File]::WriteAllText($batch, "@echo off`r`n$line`r`nexit /b %errorlevel%`r`n", (New-Object Text.UTF8Encoding $false))
+    try {
+        # What the sign tool says goes to the screen, not into what this function returns.
+        & cmd.exe /d /c $batch | Out-Host
+        if ($LASTEXITCODE -ne 0) { Stop-Build "Signing $file failed (see above). No installer was built." }
+    }
+    finally {
+        Remove-Item $batch -Force -ErrorAction SilentlyContinue
+    }
+
+    return (Test-Signed $file)
+}
+
+# Stops the build if a file that should be signed isn't; warns about a signature that won't last.
+function Test-Signed([string]$file) {
+    $signature = Get-AuthenticodeSignature -FilePath $file
+    if ($signature.Status -eq "NotSigned" -or $signature.Status -eq "HashMismatch" -or -not $signature.SignerCertificate) {
+        Stop-Build "The sign command ran, but $file has no good signature ($($signature.Status): $($signature.StatusMessage)). No installer was built."
+    }
+
+    if ($signature.Status -ne "Valid") {
+        # A test certificate, or one whose issuer this PC doesn't know.
+        Write-Warning "$(Split-Path -Leaf $file) is signed, but this PC doesn't trust the signature ($($signature.Status): $($signature.StatusMessage))."
+    }
+
+    if (-not $signature.TimeStamperCertificate) {
+        Write-Warning "$(Split-Path -Leaf $file) has no timestamp: its signature stops counting when the certificate expires. Add a timestamp server to the sign command (signtool: /tr <url> /td SHA256)."
+    }
+
+    return $signature.SignerCertificate.Subject
+}
+
 if (-not (Get-Command dotnet -ErrorAction SilentlyContinue)) { Stop-Build "The .NET SDK (dotnet) is not installed or not on PATH." }
+
+# ---------------------------------------------------------------- signing
+$signing = -not [string]::IsNullOrWhiteSpace($SignCommand)
+if ($signing) {
+    if (-not $onWindows) { Stop-Build "-SignCommand: signing needs Windows (signtool and the certificate's own software run there)." }
+    if ($SignCommand -notmatch [regex]::Escape('$f')) { Stop-Build "-SignCommand has no `$f for the file's name. Give the command in single quotes, with `$f where the file goes." }
+}
 
 # ---------------------------------------------------------------- version
 if (-not $Version) {
@@ -231,6 +291,20 @@ if ($missing.Count -gt 0 -and -not $AllowMissing) {
     Stop-Build "No installer was built: it would be missing the add-in for $($missing -join ' and for '). See above, or add -AllowMissing to build it without (not for a release)."
 }
 
+# ---------------------------------------------------------------- sign the add-in
+# PointerPath's own DLLs, in every build that was staged. The others in those folders
+# (System.Text.Json and what it needs) are Microsoft's and already signed.
+$signedBy = $null
+if ($signing) {
+    Write-Step "Signing the add-in"
+    $ours = @(Get-ChildItem -Path $stage -Recurse -Filter "PointerPath.*.dll")
+    if ($ours.Count -eq 0) { Stop-Build "There are no PointerPath DLLs in $stage to sign." }
+    foreach ($dll in $ours) {
+        Write-Host $dll.FullName.Substring($stage.Length + 1)
+        $signedBy = Invoke-Sign $dll.FullName
+    }
+}
+
 # ---------------------------------------------------------------- Inno Setup
 Write-Step "Building the installer"
 if ($ISCC) {
@@ -262,7 +336,13 @@ $script = [IO.Path]::Combine($PSScriptRoot, "PointerPath.iss")
 $setup = [IO.Path]::Combine($OutputDir, "PointerPath-$Version-setup.exe")
 if (Test-Path $setup) { Remove-Item $setup -Force }
 
-if ($onWindows) {
+if ($signing) {
+    # Inno Setup signs the uninstaller it makes and then the installer, with the same command
+    # (PointerPath.iss: SignTool=sign). In its own syntax a quote is written $q.
+    $innoSign = "/Ssign=" + $SignCommand.Replace('"', '$q')
+    & $ISCC /Qp "/DAppVersion=$Version" "/DStageDir=$stage" "/DOutputDir=$OutputDir" "/DSign=1" $innoSign $script
+}
+elseif ($onWindows) {
     & $ISCC /Qp "/DAppVersion=$Version" "/DStageDir=$stage" "/DOutputDir=$OutputDir" $script
 }
 else {
@@ -274,6 +354,7 @@ else {
 }
 
 if ($LASTEXITCODE -ne 0 -or -not (Test-Path $setup)) { Stop-Build "Inno Setup failed (see above). No installer was built." }
+if ($signing) { $signedBy = Test-Signed $setup }
 
 # ---------------------------------------------------------------- done
 $size = [Math]::Round((Get-Item $setup).Length / 1MB, 1)
@@ -282,6 +363,12 @@ Write-Host ""
 Write-Host "Done: $setup ($size MB)" -ForegroundColor Green
 Write-Host "SHA-256: $hash"
 Write-Host "Holds the add-in for: $($built -join '; ')."
+if ($signing) {
+    Write-Host "Signed by: $signedBy"
+}
+else {
+    Write-Host "Not signed: Windows will show 'Unknown publisher' and SmartScreen will warn. See docs/packaging.md, Signing." -ForegroundColor Yellow
+}
 if ($missing.Count -gt 0) {
     Write-Host "NOT a release: it has no add-in for $($missing -join ' or for ')." -ForegroundColor Yellow
 }

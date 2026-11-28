@@ -110,6 +110,61 @@ on the DLLs, the bundle and the installer. Running a newer installer over an old
 place; it is the `AppId` in `PointerPath.iss` that makes Windows see them as the same product, so
 that must never change. Neither must the `UpgradeCode` in `PackageContents.xml`.
 
+## Signing
+
+Without a signature Windows shows "Unknown publisher" when the installer runs, SmartScreen warns
+on download, and some companies' policies block it. The build signs when it is given the command
+that signs one file:
+
+```powershell
+.\installer\Build-Installer.ps1 -SignCommand '<the sign command, with $f where the file goes>'
+```
+
+or, set once on the build PC, in the environment variable `POINTERPATH_SIGN_COMMAND`. Without
+either, nothing is signed, and the build says so at the end.
+
+With a sign command the build:
+
+1. **Signs PointerPath's own DLLs** (`PointerPath.Core.dll`, `PointerPath.BricsCAD.dll`,
+   `PointerPath.AutoCAD.dll`) in every build, as they are staged. The other DLLs beside them are
+   Microsoft's and already signed.
+2. **Has Inno Setup sign the uninstaller and then the installer** with the same command
+   (`SignTool=sign` in `PointerPath.iss`).
+3. **Checks every signature** and stops if a file came out unsigned. It warns if a signature has
+   no timestamp, or isn't trusted on the build PC (a test certificate).
+4. **Says who signed it** at the end, beside the SHA-256.
+
+The command is whatever the certificate's provider says to run. Three things about it:
+
+- **`$f` is the file.** It is put in quotes for you. Give the whole command in single quotes, so
+  PowerShell leaves the `$f` alone.
+- **It must start with a program** (`signtool`, or the full path of its `.exe`), not a batch file:
+  Inno Setup runs it directly.
+- **Keep the timestamp** (`/tr` and `/td` with signtool). A signature without one stops counting
+  the day the certificate expires.
+
+Two examples, to check against the provider's current instructions:
+
+```powershell
+# A certificate on a hardware token or in the Windows certificate store, picked by its name:
+-SignCommand 'signtool sign /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 /n "Arete Engineering Pty Ltd" $f'
+
+# Azure Artifact Signing (formerly Trusted Signing), after az login:
+-SignCommand 'signtool sign /fd SHA256 /tr http://timestamp.acs.microsoft.com /td SHA256 /dlib "C:\Tools\ArtifactSigning\Azure.CodeSigning.Dlib.dll" /dmdf "C:\Tools\ArtifactSigning\metadata.json" $f'
+```
+
+Neither holds a secret: a token asks for its PIN, and Azure signs in separately. Don't put a
+password in the command.
+
+Signing needs Windows (`signtool` comes with the Windows SDK), so a signed installer can't be
+built through Wine.
+
+**The certificate.** One in the company's name, from Azure Artifact Signing if it will take an
+Australian company, otherwise an OV code-signing certificate from a certificate authority, kept
+on a hardware token or the authority's signing service. An EV certificate no longer gets past
+SmartScreen any sooner. Either way SmartScreen may still warn for a while: a new certificate has
+no reputation until its downloads have built one.
+
 ## Checked, and not
 
 The installer was built and run under Wine, with registry keys made up to look like BricsCAD V23
@@ -146,9 +201,9 @@ Not checked, because it needs Windows and the real programs:
 
 ## Not done yet
 
-- **Code signing.** The installer and DLLs are unsigned, so Windows SmartScreen will warn on
-  download and some companies' policies will block it. Selling it needs a code-signing
-  certificate, and signing both the DLLs and the installer.
+- **A code-signing certificate.** The build can sign (see [Signing](#signing)), but there is no
+  certificate yet, so releases are unsigned, and the signing step has only been run against
+  stand-ins: not yet with a real certificate, signtool, or Inno Setup's own signing.
 - **A licence agreement** page in the installer.
 - **Accounts and licensing.** The add-in runs for anyone who installs it.
 - **Updates.** A user gets a new version by running a new installer.
