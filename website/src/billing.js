@@ -53,13 +53,17 @@ function createBilling({ stripe, db, config, mailer, log = console }) {
     if (cached && Date.now() - cached.at < PRICE_CACHE_MS) return cached.price;
     try {
       const p = await stripe.prices.retrieve(await priceId());
-      const amount = new Intl.NumberFormat('en-AU', {
-        style: 'currency',
-        currency: p.currency.toUpperCase(),
-        minimumFractionDigits: p.unit_amount % 100 === 0 ? 0 : 2,
-      }).format(p.unit_amount / 100);
+      const money = (cents) =>
+        new Intl.NumberFormat('en-AU', {
+          style: 'currency',
+          currency: p.currency.toUpperCase(),
+          minimumFractionDigits: cents % 100 === 0 ? 0 : 2,
+        }).format(cents / 100);
+      const wasCents = Math.round(config.stripe.priceWas * 100);
       const price = {
-        amount,
+        amount: money(p.unit_amount),
+        // Shown struck through, and only while it really is more than the price charged.
+        was: wasCents > p.unit_amount ? money(wasCents) : null,
         currency: p.currency.toUpperCase(),
         recurring: p.type === 'recurring',
         interval: p.recurring ? p.recurring.interval : null,

@@ -30,7 +30,7 @@ const statusText = { active: 'Active', past_due: 'Payment overdue', cancelled: '
 <% } else { %>
 <% if (licence) { %><p class="status status--<%= licence.status %>"><%= statusText[licence.status] %></p><% } %>
 <p>This account has no active licence.</p>
-<% if (price) { %><p class="price"><span class="price__amount"><%= price.amount %></span><% if (price.recurring) { %> <span class="price__unit">per <%= price.interval %></span><% } %></p>
+<% if (price) { %><p class="price"><% if (price.was) { %><s class="price__was"><span class="visually-hidden">Was </span><%= price.was %></s> <span class="visually-hidden">now </span><% } %><span class="price__amount"><%= price.amount %></span><% if (price.recurring) { %> <span class="price__unit">per <%= price.interval %></span><% } %></p>
 <p class="price__note"><%= [price.currency, price.tax].filter(Boolean).join(', ') %></p><% } %>
 <% if (billingEnabled) { %>
 <form method="post" action="/buy">

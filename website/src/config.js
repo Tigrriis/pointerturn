@@ -27,6 +27,9 @@ function loadConfig(env = process.env) {
       webhookSecret: env.STRIPE_WEBHOOK_SECRET || '',
       priceId: env.STRIPE_PRICE_ID || '',
       automaticTax: env.STRIPE_AUTOMATIC_TAX === '1',
+      // The full price, in dollars, to show struck through beside the price Stripe charges
+      // (a discount, or introductory pricing). Display only: nothing is charged from it.
+      priceWas: Number.parseFloat(env.PRICE_WAS) || 0,
     },
 
     resend: {

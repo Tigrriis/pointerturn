@@ -80,8 +80,8 @@ a:hover { color: #000; }
 .hero { display: flex; flex-wrap: wrap; align-items: center; gap: 48px 64px; padding-top: 32px; padding-bottom: 72px; }
 .hero__text { flex: 1 1 520px; min-width: 0; display: flex; flex-direction: column; gap: 28px; }
 .hero__art { flex: 1 1 380px; min-width: 0; display: flex; justify-content: center; }
-.hero h1 { font-size: clamp(42px, 5.4vw, 78px); line-height: 1.08; }
-.mark { background: var(--pt-accent); border-radius: var(--pt-radius-highlight); padding: 0 10px; margin-left: -10px; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+.hero h1 { font-size: clamp(36px, 4.5vw, 62px); line-height: 1.12; }
+.mark { background: var(--pt-accent); border-radius: var(--pt-radius-highlight); padding: 0 10px; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
 .lead { font-size: 20px; max-width: 540px; }
 .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 16px 28px; }
 
@@ -112,6 +112,7 @@ a:hover { color: #000; }
 .buy__text { flex: 1 1 380px; display: flex; flex-direction: column; gap: 12px; }
 .buy__text h2 { color: var(--pt-white); }
 .buy__text p { color: var(--pt-on-ink-muted); font-size: 18px; max-width: 520px; }
+.buy__text p + p { margin-top: -4px; }
 .buy__price { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
 .buy__price .button { margin-top: 12px; }
 .buy__price .price, .buy__price .price__unit { color: var(--pt-white); }
@@ -121,6 +122,10 @@ a:hover { color: #000; }
 .price__amount { font: 600 44px/1 var(--pt-font-display); letter-spacing: -0.03em; }
 .price__unit { font-size: 18px; font-weight: 500; }
 .price__note { font-size: 14px; color: var(--pt-graphite); }
+/* The price before a discount, struck through beside the price charged. */
+.price__was { font: 600 30px/1 var(--pt-font-display); letter-spacing: -0.03em; color: var(--pt-graphite); text-decoration-thickness: 2px; }
+.buy__price .price__was { color: #9AA3AB; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
 /* ---- Forms ---- */
 

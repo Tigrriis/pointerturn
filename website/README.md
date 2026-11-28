@@ -54,6 +54,7 @@ All settings are environment variables. `.env.example` lists them with comments.
 | `LICENCE_SIGNING_KEY` | In production | The private key that signs licences. Make one with `npm run licence-key` |
 | `BASE_URL` | Once you have a domain | The site's public address, used in emails and Stripe return links. On Render it defaults to the service's `onrender.com` address |
 | `STRIPE_SECRET_KEY`, `STRIPE_PRICE_ID`, `STRIPE_WEBHOOK_SECRET` | To sell | Stripe API key, the licence's Price ID, and the webhook's signing secret |
+| `PRICE_WAS` | No | The full price in dollars, shown struck through beside the price Stripe charges while that is lower. Display only |
 | `STRIPE_AUTOMATIC_TAX` | No | `1` to have Stripe Tax work out GST at checkout |
 | `RESEND_API_KEY`, `EMAIL_FROM` | To send email | Resend API key and the From address (on a domain verified in Resend) |
 | `PLAUSIBLE_SCRIPT_URL` or `PLAUSIBLE_DOMAIN` | No | The script address from Plausible's installation page, or (older snippet) the site's domain |
