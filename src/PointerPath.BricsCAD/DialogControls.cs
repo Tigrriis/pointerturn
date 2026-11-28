@@ -147,6 +147,10 @@ namespace PointerPath.BricsCAD
             base.OnCheckedChanged(e);
         }
 
+        /// <summary>The height of a line of text in a font, in pixels on this display.</summary>
+        private static int LineHeight(Graphics g, Font font) =>
+            Math.Max((int)Math.Ceiling(font.GetHeight(g)), TextRenderer.MeasureText(g, "Ag", font).Height);
+
         protected override void OnPaint(PaintEventArgs pevent)
         {
             Graphics g = pevent.Graphics;
@@ -181,10 +185,12 @@ namespace PointerPath.BricsCAD
             using (var bold = new Font(Font, FontStyle.Bold))
             using (var small = new Font(Font.FontFamily, Font.Size * 0.9f, FontStyle.Regular))
             {
-                Size detail = TextRenderer.MeasureText(g, _detail, small, Size.Empty, Centred);
-                Size name = TextRenderer.MeasureText(g, _name, bold, Size.Empty, Centred);
-                var detailAt = new Rectangle(0, Height - pad - detail.Height, Width, detail.Height);
-                var nameAt = new Rectangle(0, detailAt.Top - name.Height, Width, name.Height);
+                // Each line gets its font's full line height. (Measuring the text with the centring
+                // flags doesn't give it: asked for a single line centred in no height at all, Windows
+                // answers with next to none, and the two lines land on top of each other.)
+                int detailHeight = LineHeight(g, small), nameHeight = LineHeight(g, bold);
+                var detailAt = new Rectangle(0, Height - pad - detailHeight, Width, detailHeight);
+                var nameAt = new Rectangle(0, detailAt.Top - nameHeight, Width, nameHeight);
                 TextRenderer.DrawText(g, _detail, small, detailAt, DialogKit.Graphite, Centred);
                 TextRenderer.DrawText(g, _name, bold, nameAt, ink, Centred);
 

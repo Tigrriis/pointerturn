@@ -125,7 +125,7 @@ namespace PointerPath.Core.Vehicles
             WriteIndented = true,
         };
 
-        /// <summary>The built-in conventions: the two standard vehicles and office-style layer names.</summary>
+        /// <summary>The built-in conventions: the two standard vehicles and plain layer names, with no office's prefix.</summary>
         public static TurnPathConventions Default()
         {
             var c = new TurnPathConventions();
@@ -340,26 +340,26 @@ namespace PointerPath.Core.Vehicles
     /// <summary>Layer names for each part of a turning path. "{vehicle}" is replaced by the vehicle's name.</summary>
     public sealed class TurnPathLayers
     {
-        public string SweptPath { get; set; } = "AE CIV PLN - VEHICLE SWEPT PATH";
-        public string Clearance { get; set; } = "AE CIV PLN - VEHICLE CLEARANCE";
-        public string Vehicle { get; set; } = "AE CIV PLN - VEHICLE OUTLINE";
-        public string VehicleIntermediate { get; set; } = "AE CIV PLN - VEHICLE OUTLINE INTERMEDIATE";
-        public string Path { get; set; } = "AE CIV PLN - VEHICLE PATH";
-        public string WheelPaths { get; set; } = "AE CIV PLN - VEHICLE WHEEL PATHS";
-        public string Labels { get; set; } = "AE CIV PLN - VEHICLE TEXT";
-        public string Hatch { get; set; } = "AE CIV HTC - VEHICLE SWEPT PATH";
+        public string SweptPath { get; set; } = "VEHICLE SWEPT PATH";
+        public string Clearance { get; set; } = "VEHICLE CLEARANCE";
+        public string Vehicle { get; set; } = "VEHICLE OUTLINE";
+        public string VehicleIntermediate { get; set; } = "VEHICLE OUTLINE INTERMEDIATE";
+        public string Path { get; set; } = "VEHICLE PATH";
+        public string WheelPaths { get; set; } = "VEHICLE WHEEL PATHS";
+        public string Labels { get; set; } = "VEHICLE TEXT";
+        public string Hatch { get; set; } = "VEHICLE SWEPT PATH HATCH";
 
         /// <summary>Layer of the block reference when the result is made into a block.</summary>
-        public string Block { get; set; } = "AE CIV PLN - VEHICLE BLOCK";
+        public string Block { get; set; } = "VEHICLE BLOCK";
 
         /// <summary>Where the swept path or its clearance meets an obstruction.</summary>
-        public string Conflict { get; set; } = "AE CIV PLN - VEHICLE CONFLICT";
+        public string Conflict { get; set; } = "VEHICLE CONFLICT";
 
         /// <summary>Ground clearance templates, markers and section plots.</summary>
-        public string ClearanceCheck { get; set; } = "AE CIV PLN - VEHICLE GROUND CLEARANCE";
+        public string ClearanceCheck { get; set; } = "VEHICLE GROUND CLEARANCE";
 
         /// <summary>Where the vehicle grounds.</summary>
-        public string ClearanceFail { get; set; } = "AE CIV PLN - VEHICLE GROUND CLEARANCE FAIL";
+        public string ClearanceFail { get; set; } = "VEHICLE GROUND CLEARANCE FAIL";
 
         public TurnPathLayers Clone() => (TurnPathLayers)MemberwiseClone();
 

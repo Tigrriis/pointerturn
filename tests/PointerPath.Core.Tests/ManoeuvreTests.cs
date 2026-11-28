@@ -105,7 +105,12 @@ namespace PointerPath.Core.Tests
             Assert.True(LayerPattern.MatchesAny(fresh.ConflictLayers, "AE CIV PLN - KERB NEW"));
             Assert.True(LayerPattern.MatchesAny(fresh.ConflictLayers, "arch|A-Wall-Ext"));
             Assert.True(LayerPattern.MatchesAny(fresh.ConflictLayers, "S-COLUMNS"));
-            Assert.False(LayerPattern.MatchesAny(fresh.ConflictLayers, "AE CIV PLN - VEHICLE SWEPT PATH"));
+            foreach (KeyValuePair<string, string> own in fresh.Layers.All())
+            {
+                // Its own layers aren't obstructions.
+                Assert.False(LayerPattern.MatchesAny(fresh.ConflictLayers, own.Value), own.Value);
+            }
+
             Assert.False(LayerPattern.MatchesAny(fresh.ConflictLayers, "C-BOUNDARY"));
             fresh.ObstructionLayers = new List<string> { "MY-KERBS" };
             Assert.Equal(new[] { "MY-KERBS" }, fresh.ConflictLayers);

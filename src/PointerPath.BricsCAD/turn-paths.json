@@ -48,7 +48,7 @@
 // or in a copy of it, is left out when the file is read.
 //
 // Layers: {vehicle} in a layer name is replaced by the vehicle's name, e.g.
-// "AE CIV PLN - {vehicle} SWEPT PATH". layer_styles apply only when a layer doesn't exist yet;
+// "{vehicle} SWEPT PATH". layer_styles apply only when a layer doesn't exist yet;
 // existing layers are never changed. The PTPATH dialog can edit all of this per run and save it.
 //
 // To use your own copy, set "turn_paths_file" in %APPDATA%\PointerPath\settings.json. A copy saved
@@ -261,34 +261,34 @@
   },
 
   "layers": {
-    "swept_path": "AE CIV PLN - VEHICLE SWEPT PATH",
-    "clearance": "AE CIV PLN - VEHICLE CLEARANCE",
-    "vehicle": "AE CIV PLN - VEHICLE OUTLINE",
-    "vehicle_intermediate": "AE CIV PLN - VEHICLE OUTLINE INTERMEDIATE",
-    "path": "AE CIV PLN - VEHICLE PATH",
-    "wheel_paths": "AE CIV PLN - VEHICLE WHEEL PATHS",
-    "labels": "AE CIV PLN - VEHICLE TEXT",
-    "hatch": "AE CIV HTC - VEHICLE SWEPT PATH",
-    "block": "AE CIV PLN - VEHICLE BLOCK",
-    "conflict": "AE CIV PLN - VEHICLE CONFLICT",
-    "clearance_check": "AE CIV PLN - VEHICLE GROUND CLEARANCE",
-    "clearance_fail": "AE CIV PLN - VEHICLE GROUND CLEARANCE FAIL"
+    "swept_path": "VEHICLE SWEPT PATH",
+    "clearance": "VEHICLE CLEARANCE",
+    "vehicle": "VEHICLE OUTLINE",
+    "vehicle_intermediate": "VEHICLE OUTLINE INTERMEDIATE",
+    "path": "VEHICLE PATH",
+    "wheel_paths": "VEHICLE WHEEL PATHS",
+    "labels": "VEHICLE TEXT",
+    "hatch": "VEHICLE SWEPT PATH HATCH",
+    "block": "VEHICLE BLOCK",
+    "conflict": "VEHICLE CONFLICT",
+    "clearance_check": "VEHICLE GROUND CLEARANCE",
+    "clearance_fail": "VEHICLE GROUND CLEARANCE FAIL"
   },
 
   "hatch": { "pattern": "SOLID", "scale": 1, "angle": 0 },
 
   "layer_styles": {
-    "AE CIV PLN - VEHICLE SWEPT PATH": { "color": 1, "linetype": "Continuous", "lineweight": 0.35, "description": "Design vehicle swept path (body)" },
-    "AE CIV PLN - VEHICLE CLEARANCE": { "color": 1, "linetype": "DASHED", "lineweight": 0.25, "description": "Design vehicle swept path plus AS/NZS 2890.1 clearances" },
-    "AE CIV PLN - VEHICLE OUTLINE": { "color": 4, "linetype": "Continuous", "lineweight": 0.25, "description": "Design vehicle outline at the start and end" },
-    "AE CIV PLN - VEHICLE OUTLINE INTERMEDIATE": { "color": 8, "linetype": "Continuous", "lineweight": 0.13, "description": "Design vehicle outlines along the path" },
-    "AE CIV PLN - VEHICLE PATH": { "color": 8, "linetype": "DASHDOT", "lineweight": 0.13, "description": "Path driven by the design vehicle's reference point" },
-    "AE CIV PLN - VEHICLE WHEEL PATHS": { "color": 8, "linetype": "Continuous", "lineweight": 0.13, "description": "Design vehicle wheel paths" },
-    "AE CIV PLN - VEHICLE TEXT": { "color": 4, "lineweight": 0.18, "description": "Design vehicle labels" },
-    "AE CIV HTC - VEHICLE SWEPT PATH": { "color": 254, "rgb": [ 255, 220, 220 ], "lineweight": 0.13, "description": "Design vehicle swept area" },
-    "AE CIV PLN - VEHICLE BLOCK": { "color": 7, "lineweight": 0.25, "description": "Design vehicle turning path blocks" },
-    "AE CIV PLN - VEHICLE CONFLICT": { "color": 6, "lineweight": 0.7, "description": "Design vehicle conflicts with obstructions" },
-    "AE CIV PLN - VEHICLE GROUND CLEARANCE": { "color": 4, "lineweight": 0.25, "description": "Design vehicle ground clearance check (AS/NZS 2890.1 Appendix C)" },
-    "AE CIV PLN - VEHICLE GROUND CLEARANCE FAIL": { "color": 1, "lineweight": 0.5, "description": "Design vehicle ground clearance check: where it grounds" }
+    "VEHICLE SWEPT PATH": { "color": 1, "linetype": "Continuous", "lineweight": 0.35, "description": "Design vehicle swept path (body)" },
+    "VEHICLE CLEARANCE": { "color": 1, "linetype": "DASHED", "lineweight": 0.25, "description": "Design vehicle swept path plus AS/NZS 2890.1 clearances" },
+    "VEHICLE OUTLINE": { "color": 4, "linetype": "Continuous", "lineweight": 0.25, "description": "Design vehicle outline at the start and end" },
+    "VEHICLE OUTLINE INTERMEDIATE": { "color": 8, "linetype": "Continuous", "lineweight": 0.13, "description": "Design vehicle outlines along the path" },
+    "VEHICLE PATH": { "color": 8, "linetype": "DASHDOT", "lineweight": 0.13, "description": "Path driven by the design vehicle's reference point" },
+    "VEHICLE WHEEL PATHS": { "color": 8, "linetype": "Continuous", "lineweight": 0.13, "description": "Design vehicle wheel paths" },
+    "VEHICLE TEXT": { "color": 4, "lineweight": 0.18, "description": "Design vehicle labels" },
+    "VEHICLE SWEPT PATH HATCH": { "color": 254, "rgb": [ 255, 220, 220 ], "lineweight": 0.13, "description": "Design vehicle swept area" },
+    "VEHICLE BLOCK": { "color": 7, "lineweight": 0.25, "description": "Design vehicle turning path blocks" },
+    "VEHICLE CONFLICT": { "color": 6, "lineweight": 0.7, "description": "Design vehicle conflicts with obstructions" },
+    "VEHICLE GROUND CLEARANCE": { "color": 4, "lineweight": 0.25, "description": "Design vehicle ground clearance check (AS/NZS 2890.1 Appendix C)" },
+    "VEHICLE GROUND CLEARANCE FAIL": { "color": 1, "lineweight": 0.5, "description": "Design vehicle ground clearance check: where it grounds" }
   }
 }
