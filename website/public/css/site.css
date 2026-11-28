@@ -118,7 +118,7 @@ a:hover { color: #000; }
 .buy__price .price, .buy__price .price__unit { color: var(--pt-white); }
 .buy__price .price__note { color: var(--pt-on-ink-muted); }
 
-.price { display: flex; align-items: baseline; gap: 8px; color: var(--pt-ink); }
+.price { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 8px; color: var(--pt-ink); }
 .price__amount { font: 600 44px/1 var(--pt-font-display); letter-spacing: -0.03em; }
 .price__unit { font-size: 18px; font-weight: 500; }
 .price__note { font-size: 14px; color: var(--pt-graphite); }

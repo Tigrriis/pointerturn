@@ -49,7 +49,7 @@
 </div>
 <div class="buy__price">
 <% if (price) { %>
-<p class="price"><span class="price__amount"><%= price.amount %></span><% if (price.recurring) { %> <span class="price__unit">per <%= price.interval %></span><% } %></p>
+<p class="price"><span class="price__amount"><%= price.amount %></span> <span class="price__unit"><% if (price.recurring) { %>per <%= price.interval %> <% } %>for <%= seats %></span></p>
 <p class="price__note"><%= [price.currency, price.tax].filter(Boolean).join(', ') %></p>
 <% if (price.full) { %><p class="price__full">Final release price <%= price.full %></p><% } %>
 <% } %>

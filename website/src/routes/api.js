@@ -18,12 +18,15 @@ const STATUS = {
 
 const text = (value, max) => (typeof value === 'string' ? value.trim().slice(0, max) : '');
 
-module.exports = function api({ db, licences }) {
+module.exports = function api({ config, db, licences }) {
   const router = express.Router();
 
   const reply = (res, result) => {
     if (result.error) return res.status(STATUS[result.error] || 400).json(result);
     const { ok, ...body } = result;
+    // With each licence, the version currently offered for download, so the add-in can
+    // tell its user when theirs is older.
+    if (body.licence_token) body.latest_version = config.installer.version || null;
     res.json(body);
   };
 

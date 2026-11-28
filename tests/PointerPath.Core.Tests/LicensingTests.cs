@@ -343,6 +343,49 @@ namespace PointerPath.Core.Tests
             Assert.Equal(LicenceState.SignedOut, Manager().Check().State);
         }
 
+        // ------------------------------------------------------------ noticing a newer version
+
+        [Theory]
+        [InlineData("0.1.0", "0.2.0", "0.2.0")]
+        [InlineData("0.9.0", "0.10.0", "0.10.0")]
+        [InlineData("1.2.0", " v1.2.1 ", "v1.2.1")]
+        [InlineData("1.2.0.0", "1.3", "1.3")]
+        [InlineData("1.2.0", "1.2.0", null)]
+        [InlineData("1.2.0", "1.2.0.0", null)]
+        [InlineData("1.2.0", "1.1.9", null)]
+        [InlineData("1.2.0", "", null)]
+        [InlineData("1.2.0", null, null)]
+        [InlineData("1.2.0", "soon", null)]
+        [InlineData("", "1.3.0", null)]
+        public void ANewerVersionIsOneWithALaterNumber(string current, string? latest, string? expected)
+        {
+            Assert.Equal(expected, UpdateCheck.NewerVersion(current, latest));
+        }
+
+        [Fact]
+        public async Task TheVersionTheWebsiteOffersIsRememberedFromSignInAndRefresh()
+        {
+            LicenceManager manager = Manager();
+            Assert.Null(manager.LatestVersion);
+
+            _server.Activate = () => new LicenceReply { ActivationToken = "act-1", LicenceToken = Licence(), LatestVersion = "0.2.0" };
+            await manager.SignInAsync("ada@example.com", "pw", "DESK");
+            Assert.Equal("0.2.0", Manager().LatestVersion);
+
+            _server.Refresh = () => new LicenceReply { LicenceToken = Licence(), LatestVersion = "0.3.0" };
+            await manager.RefreshAsync();
+            Assert.Equal("0.3.0", Manager().LatestVersion);
+
+            // A reply that doesn't say, or no connection, leaves what is known alone.
+            _server.Refresh = () => new LicenceReply { LicenceToken = Licence() };
+            await manager.RefreshAsync();
+            _server.Refresh = () => new LicenceReply { Error = LicenceReply.Network };
+            await manager.RefreshAsync();
+            Assert.Equal("0.3.0", manager.LatestVersion);
+
+            Assert.Null(Manager(website: "").LatestVersion);
+        }
+
         // ------------------------------------------------------------ talking to the website
 
         [Fact]
@@ -351,9 +394,10 @@ namespace PointerPath.Core.Tests
             var handler = new StubHandler();
             var server = new LicenceServer(Website + "/", "PointerPath/test", handler);
 
-            handler.Respond(HttpStatusCode.OK, "{\"activation_token\":\"act-9\",\"licence_token\":\"a.b.c\",\"licence\":{\"id\":\"12\"}}");
+            handler.Respond(HttpStatusCode.OK, "{\"activation_token\":\"act-9\",\"licence_token\":\"a.b.c\",\"latest_version\":\"0.2.0\",\"licence\":{\"id\":\"12\"}}");
             LicenceReply ok = await server.ActivateAsync("ada@example.com", "pw", Machine, "DESK");
             Assert.True(ok.Ok);
+            Assert.Equal("0.2.0", ok.LatestVersion);
             Assert.Equal("act-9", ok.ActivationToken);
             Assert.Equal("a.b.c", ok.LicenceToken);
             Assert.Equal("https://pointerpath.test/api/v1/activate", handler.LastUrl);

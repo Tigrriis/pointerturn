@@ -42,6 +42,21 @@ namespace PointerPath.BricsCAD
         /// <summary>What this computer is called on the account page.</summary>
         public static string MachineName => $"{Environment.MachineName} ({Environment.UserName})";
 
+        /// <summary>The version of PointerPath that is running, e.g. "1.2.0".</summary>
+        public static string Version => typeof(Licence).Assembly.GetName().Version?.ToString(3) ?? "0.0.0";
+
+        /// <summary>
+        /// A sentence saying a newer version can be downloaded, or "" when this one is current
+        /// (or the website hasn't said). From what is saved here: no network.
+        /// </summary>
+        public static string UpdateNotice()
+        {
+            string? newer = UpdateCheck.NewerVersion(Version, Manager.LatestVersion);
+            return newer == null
+                ? ""
+                : $"PointerPath {newer} is available (this is {Version}). Download it from your account at {Manager.Website}/account.";
+        }
+
         /// <summary>
         /// True when the command may go ahead. When this computer isn't licensed, asks the
         /// website for a fresh licence if it was signed in before, and otherwise shows the
@@ -178,13 +193,12 @@ namespace PointerPath.BricsCAD
             System.Net.ServicePointManager.SecurityProtocol |= System.Net.SecurityProtocolType.Tls12;
 #endif
             string folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PointerPath");
-            string version = typeof(Licence).Assembly.GetName().Version?.ToString(3) ?? "0.0.0";
             return new LicenceManager(
                 LicenceBuild.Website,
                 new LicencePublicKey(LicenceBuild.PublicKeyX, LicenceBuild.PublicKeyY),
                 Path.Combine(folder, "licence.json"),
                 MachineId(),
-                new LicenceServer(LicenceBuild.Website, $"PointerPath/{version} ({Host.Name})"));
+                new LicenceServer(LicenceBuild.Website, $"PointerPath/{Version} ({Host.Name})"));
         }
 
         /// <summary>

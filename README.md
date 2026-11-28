@@ -37,7 +37,7 @@ This is a first cut as a separate add-in, not a finished product.
 
 | Part | State |
 |---|---|
-| Core (vehicles, simulation, swept path, solver, conflicts, ground clearance, licence check) | Built and unit-tested: 127 tests |
+| Core (vehicles, simulation, swept path, solver, conflicts, ground clearance, licence check) | Built and unit-tested: 140 tests |
 | BricsCAD add-in | Built against BricsCAD V26 (the .NET 8 build) and run in it: installed by the installer, it loaded, signed in, and the drawing commands ran. **The .NET Framework build, for V24 and V25, has not been run. Not yet worked through "First things to test"** |
 | AutoCAD add-in | The same source, compiled against Autodesk's AutoCAD 2021 and AutoCAD 2025 APIs: it builds clean for both. **Not yet run in AutoCAD.** Reading Civil 3D surfaces is written from the API reference and untried |
 | Installer | Built on Windows and used to install into a real BricsCAD V26, which then loaded the add-in. Under Wine, against stand-in registry keys: install for all users and for one user, upgrade, uninstall, and the BricsCAD registry entries. **On Windows, upgrading and uninstalling have not been tried, nor has BricsCAD V24 or V25, or AutoCAD.** Not code-signed |
@@ -201,6 +201,9 @@ on the website. A build made from source doesn't ask for one.
 - **Without a connection.** PointerPath checks the licence with the website in the background
   when the computer is online, about once a day. Offline, it keeps working for up to two weeks
   from the last check, then asks you to connect.
+- **New versions.** When a newer PointerPath has been published, the command line says so when
+  PointerPath loads, and `PTLICENCE` shows it too. Download the new installer from your account
+  page and run it over the one you have.
 - **Another computer.** A licence can be in use on a limited number of computers at once. To move
   it, run `PTLICENCE` and choose **Sign out** on the old computer, or sign that computer out on
   your account page on the website, then sign in on the new one.

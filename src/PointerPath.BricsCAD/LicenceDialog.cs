@@ -124,6 +124,14 @@ namespace PointerPath.BricsCAD
                 "The licence is checked again whenever this computer is online." +
                 (until.Length > 0 ? $" Without a connection, PointerPath keeps working until {until}." : "")));
 
+            string update = Licence.UpdateNotice();
+            if (update.Length > 0)
+            {
+                Label notice = Note(update);
+                notice.Font = new Font(Font, FontStyle.Bold);
+                _body.Controls.Add(notice);
+            }
+
             _message = new Label { AutoSize = true, MaximumSize = new Size(TextWidth, 0), ForeColor = Color.FromArgb(160, 30, 20), Margin = new Padding(3, 0, 3, 8), Visible = false };
             _body.Controls.Add(_message);
             _body.Controls.Add(Link("Your account", _manager.Website + "/account"));

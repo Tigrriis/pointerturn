@@ -27,6 +27,9 @@ namespace PointerPath.Core.Licensing
 
         public string? LicenceToken { get; set; }
 
+        /// <summary>The version of PointerPath the website currently offers for download, if it says.</summary>
+        public string? LatestVersion { get; set; }
+
         /// <summary>With "machine_limit": the names of the computers the licence is in use on.</summary>
         public List<string> Machines { get; } = new List<string>();
     }
@@ -119,6 +122,7 @@ namespace PointerPath.Core.Licensing
                     reply.Error = Text(root, "error");
                     reply.ActivationToken = Text(root, "activation_token");
                     reply.LicenceToken = Text(root, "licence_token");
+                    reply.LatestVersion = Text(root, "latest_version");
                     if (root.TryGetProperty("machines", out JsonElement machines) && machines.ValueKind == JsonValueKind.Array)
                     {
                         foreach (JsonElement machine in machines.EnumerateArray())

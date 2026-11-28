@@ -39,6 +39,7 @@ namespace PointerPath.BricsCAD
             // Where the licence stands, read from the user's profile (no network), and a
             // refresh in the background if the one held is getting old.
             string licence = "";
+            string update = "";
             try
             {
                 PointerPath.Core.Licensing.LicenceStatus status = Licence.Manager.Check();
@@ -47,6 +48,8 @@ namespace PointerPath.BricsCAD
                     licence = " Not signed in: run PTLICENCE to sign in with your PointerPath account.";
                 }
 
+                // A newer version, if the website mentioned one the last time it was reached.
+                update = Licence.UpdateNotice();
                 Licence.RefreshInBackground();
             }
             catch (System.Exception)
@@ -56,7 +59,8 @@ namespace PointerPath.BricsCAD
 
             CadApp.DocumentManager.MdiActiveDocument?.Editor.WriteMessage(
                 "\nPointerPath loaded. Commands: PTDRIVE, PTQDRIVE, PTTEMPLATE, PTLICENCE (or use the PointerPath ribbon tab). " +
-                "Typed only, while their dialogs are reworked: PTPATH, PTSOLVE, PTINOUT, PTEDIT, PTCLEARANCE." + licence + "\n");
+                "Typed only, while their dialogs are reworked: PTPATH, PTSOLVE, PTINOUT, PTEDIT, PTCLEARANCE." + licence + "\n" +
+                (update.Length > 0 ? update + "\n" : ""));
         }
     }
 

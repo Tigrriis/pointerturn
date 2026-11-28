@@ -184,11 +184,13 @@ Signs a computer in.
   "activation_token": "…",
   "licence_token": "<signed licence>",
   "licence_token_expires_at": "2026-11-28T04:00:00.000Z",
+  "latest_version": "0.2.0",
   "licence": { "id": "12", "kind": "perpetual", "status": "active", "current_period_end": null }
 }
 ```
 
-The add-in keeps both tokens and discards the password. Activating a computer that is already
+The add-in keeps both tokens and discards the password. `latest_version` is the site's `INSTALLER_VERSION`
+(or `null`): the add-in tells its user when it is later than the version they are running. Activating a computer that is already
 signed in keeps its place and replaces its activation token.
 
 | Status | `error` | Meaning |

@@ -30,6 +30,7 @@ test('home page renders with the price from Stripe', async () => {
   assert.doesNotMatch(res.text, /Final release price/);
   assert.match(res.text, /\$495/);
   assert.match(res.text, /plus GST/);
+  assert.match(res.text, /for two seats/);
 });
 
 test('sign up, confirm by email, and land signed in', async () => {
@@ -204,6 +205,7 @@ test('licence API: activate, verify the signature, machine limit, refresh, deact
 
   const first = await t.api('/activate', pc(1));
   assert.equal(first.status, 200);
+  assert.equal(first.body.latest_version, null); // no installer version is set in these tests
   const { body: key } = await t.api('/licence-key');
   const checked = verifyLicenceToken(first.body.licence_token, key.jwk);
   assert.equal(checked.ok, true);

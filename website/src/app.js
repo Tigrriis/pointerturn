@@ -35,6 +35,11 @@ function createApp({ config, db, stripe, mailer, log = console }) {
   // without it a new deploy's pages are shown with the previous deploy's styles.
   const assets = `?v=${(process.env.RENDER_GIT_COMMIT || String(Date.now())).slice(0, 10)}`;
 
+  // How many computers a licence covers, in words for the pricing text: "two seats".
+  const words = ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];
+  const n = config.licence.maxMachines;
+  const seats = `${words[n] || n} ${n === 1 ? 'seat' : 'seats'}`;
+
   const app = express();
   app.set('trust proxy', config.trustProxyHops); // Render terminates TLS in front of the app
   app.set('view engine', 'ejs');
@@ -121,6 +126,7 @@ function createApp({ config, db, stripe, mailer, log = console }) {
       res.locals.user = req.user;
       res.locals.plausible = config.plausible;
       res.locals.assets = assets;
+      res.locals.seats = seats;
       res.locals.path = req.path;
       res.locals.pageEvent = null;
       // Where the visitor is, when PointerPath is restricted to some countries.
@@ -151,7 +157,7 @@ function createApp({ config, db, stripe, mailer, log = console }) {
     res.status(500);
     if (!res.locals.csrfToken) {
       // Failed before the page helpers were set up.
-      Object.assign(res.locals, { user: null, plausible: config.plausible, assets, path: req.path, pageEvent: null, flash: null, csrfToken: '' });
+      Object.assign(res.locals, { user: null, plausible: config.plausible, assets, seats, path: req.path, pageEvent: null, flash: null, csrfToken: '' });
       res.locals.region = { restricted: geo.restricted, where: geo.where, blocked: false };
     }
     res.render('message', { title: 'Something went wrong', body: 'That did not work. Try again in a moment.' });

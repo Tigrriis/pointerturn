@@ -54,6 +54,14 @@ test('with a private bucket, a signed-in visitor is sent to a short-lived link o
     assert.match(link.searchParams.get('X-Amz-Signature'), /^[0-9a-f]{64}$/);
     // The secret itself is never in the link.
     assert.doesNotMatch(res.location, /test-secret/);
+
+    // The add-in is told which version is current whenever it is issued a licence.
+    const { id, email, password } = await t.newAccount('cad@example.com');
+    await t.webhook({ id: 'evt_dl', object: 'event', type: 'checkout.session.completed', data: { object: t.paidSession('cs_test_dl', id) } });
+    const activated = await t.api('/activate', { email, password, machine_id: 'm1' });
+    assert.equal(activated.body.latest_version, '0.1.0');
+    const refreshed = await t.api('/refresh', { activation_token: activated.body.activation_token });
+    assert.equal(refreshed.body.latest_version, '0.1.0');
   } finally {
     await t.stop();
   }

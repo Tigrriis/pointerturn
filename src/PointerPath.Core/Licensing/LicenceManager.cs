@@ -73,6 +73,26 @@ namespace PointerPath.Core.Licensing
 
         public string Website => _website;
 
+        /// <summary>
+        /// The version the website was offering for download the last time it issued this
+        /// computer a licence, or null if it hasn't said. Read from what is saved here.
+        /// </summary>
+        public string? LatestVersion
+        {
+            get
+            {
+                if (!IsConfigured)
+                {
+                    return null;
+                }
+
+                lock (_gate)
+                {
+                    return LicenceStore.Load(_storePath).LatestVersion;
+                }
+            }
+        }
+
         /// <summary>Where this computer stands, from what is saved here. Never touches the network.</summary>
         public LicenceStatus Check()
         {
@@ -156,6 +176,7 @@ namespace PointerPath.Core.Licensing
                 {
                     store.LicenceToken = reply.LicenceToken;
                     store.LastRefreshUtc = _utcNow();
+                    store.LatestVersion = string.IsNullOrWhiteSpace(reply.LatestVersion) ? store.LatestVersion : reply.LatestVersion;
                     store.Note = null;
                 }
                 else if (reply.Error == "invalid_activation")
@@ -215,6 +236,7 @@ namespace PointerPath.Core.Licensing
                     LicenceToken = reply.LicenceToken,
                     LastRefreshUtc = _utcNow(),
                     LastSeenUtc = _utcNow(),
+                    LatestVersion = string.IsNullOrWhiteSpace(reply.LatestVersion) ? null : reply.LatestVersion,
                 };
                 if (!TrySave(store))
                 {

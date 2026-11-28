@@ -18,6 +18,10 @@ namespace PointerPath.Core.Licensing
         [JsonPropertyName("licence_token")]
         public string? LicenceToken { get; set; }
 
+        /// <summary>The version the website was offering for download when the licence was last fetched.</summary>
+        [JsonPropertyName("latest_version")]
+        public string? LatestVersion { get; set; }
+
         /// <summary>When the licence was last fetched from the website.</summary>
         [JsonPropertyName("last_refresh")]
         public DateTime? LastRefreshUtc { get; set; }

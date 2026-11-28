@@ -57,6 +57,18 @@ Two details:
 - **The clock.** The latest time PointerPath has seen is saved with the licence. Setting the
   clock back to before it does not make an expired licence work again.
 
+## Noticing a newer version
+
+Each time the website issues a licence (at sign-in and at each refresh) it also says which
+version of PointerPath it currently offers for download: the site's `INSTALLER_VERSION`. The
+add-in keeps that with the saved licence. When it loads, and in the `PTLICENCE` dialog, it
+compares it with its own version and, if the website's is later, says that a newer version is
+available and where to get it. It doesn't download or install anything.
+
+Because it rides on the licence refresh, the notice appears the next time PointerPath loads
+after a refresh, so up to a day or so after a release. A build from source never contacts the
+website and never shows it.
+
 ## The code
 
 | | |
@@ -66,6 +78,7 @@ Two details:
 | `…/LicenceStore.cs` | The saved file |
 | `…/LicenceServer.cs` | The three calls to the website |
 | `…/LicenceManager.cs` | Where a computer stands; signing in, refreshing, signing out |
+| `…/UpdateCheck.cs` | Whether the version the website offers is later than the one running |
 | `src/PointerPath.BricsCAD/Licence.cs` | The check in front of the commands, the computer's identifier, the background refresh |
 | `src/PointerPath.BricsCAD/LicenceDialog.cs` | The sign-in dialog |
 
