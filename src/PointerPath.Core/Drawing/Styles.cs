@@ -18,5 +18,11 @@ namespace PointerPath.Core.Drawing
         public string Pattern { get; set; } = "SOLID";
         public double Scale { get; set; } = 1;
         public double Angle { get; set; }
+
+        /// <summary>
+        /// How transparent the hatch is, percent: 0 is solid, 90 the most the CAD programs allow.
+        /// What is under it (kerbs, an aerial photo) shows through.
+        /// </summary>
+        public int Transparency { get; set; } = 60;
     }
 }

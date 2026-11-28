@@ -1066,6 +1066,16 @@ namespace PointerPath.Core.Tests
             Assert.All(drafted.Where(d => d.Group == "clearance"), d => Assert.Equal(c.Layers.Clearance, d.Spec.Layer));
             Assert.Equal(4, drafted.Count(d => d.Group == "wheel_paths"));
             Assert.Single(drafted, d => d.Group == "hatch");
+
+            // The hatch goes under the path's own linework and is see-through, as much as the conventions say (never past 90%).
+            var hatch = (HatchSpec)drafted.Single(d => d.Group == "hatch").Spec;
+            Assert.True(hatch.UnderLinework);
+            Assert.Equal(60, hatch.TransparencyPercent);
+            Assert.Equal(60, new TurnPathConventions().Hatch.Transparency);
+            style.Hatch = new HatchStyle { Transparency = 100 };
+            Assert.Equal(90, ((HatchSpec)TurnPathDrafter.Draw(r, style).Single(d => d.Group == "hatch").Spec).TransparencyPercent);
+            style.Hatch = new HatchStyle { Transparency = 0 };
+            Assert.Equal(0, ((HatchSpec)TurnPathDrafter.Draw(r, style).Single(d => d.Group == "hatch").Spec).TransparencyPercent);
             Assert.Single(drafted, d => d.Group == "labels");
             Assert.Single(drafted, d => d.Group == "path");
             Assert.True(drafted.Count(d => d.Group == "vehicle_intermediate") >= 3);

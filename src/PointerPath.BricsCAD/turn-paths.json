@@ -275,7 +275,11 @@
     "clearance_fail": "VEHICLE GROUND CLEARANCE FAIL"
   },
 
-  "hatch": { "pattern": "SOLID", "scale": 1, "angle": 0 },
+  // The hatch of the swept area (Hatch the swept area, in Draw settings). It is drawn under the
+  // path's own linework and is see-through: transparency is a percentage, 0 = solid, 90 = the most
+  // there is. To see it on screen the CAD program's TRANSPARENCYDISPLAY must be on, and to plot it,
+  // "Plot transparency" ticked.
+  "hatch": { "pattern": "SOLID", "scale": 1, "angle": 0, "transparency": 60 },
 
   "layer_styles": {
     "VEHICLE SWEPT PATH": { "color": 1, "linetype": "Continuous", "lineweight": 0.35, "description": "Design vehicle swept path (body)" },
@@ -285,7 +289,7 @@
     "VEHICLE PATH": { "color": 8, "linetype": "DASHDOT", "lineweight": 0.13, "description": "Path driven by the design vehicle's reference point" },
     "VEHICLE WHEEL PATHS": { "color": 8, "linetype": "Continuous", "lineweight": 0.13, "description": "Design vehicle wheel paths" },
     "VEHICLE TEXT": { "color": 4, "lineweight": 0.18, "description": "Design vehicle labels" },
-    "VEHICLE SWEPT PATH HATCH": { "color": 254, "rgb": [ 255, 220, 220 ], "lineweight": 0.13, "description": "Design vehicle swept area" },
+    "VEHICLE SWEPT PATH HATCH": { "color": 1, "lineweight": 0.13, "description": "Design vehicle swept area" },
     "VEHICLE BLOCK": { "color": 7, "lineweight": 0.25, "description": "Design vehicle turning path blocks" },
     "VEHICLE CONFLICT": { "color": 6, "lineweight": 0.7, "description": "Design vehicle conflicts with obstructions" },
     "VEHICLE GROUND CLEARANCE": { "color": 4, "lineweight": 0.25, "description": "Design vehicle ground clearance check (AS/NZS 2890.1 Appendix C)" },

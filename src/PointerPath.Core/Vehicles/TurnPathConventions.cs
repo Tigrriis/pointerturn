@@ -110,7 +110,7 @@ namespace PointerPath.Core.Vehicles
 
         public TurnPathLayers Layers { get; set; } = new TurnPathLayers();
 
-        /// <summary>Hatch pattern for the swept area (its layer is Layers.Hatch).</summary>
+        /// <summary>Hatch pattern and transparency for the swept area (its layer is Layers.Hatch).</summary>
         public HatchStyle Hatch { get; set; } = new HatchStyle { Pattern = "SOLID" };
 
         /// <summary>Styles for layers that don't exist in the drawing yet. Existing layers are never changed.</summary>
@@ -141,7 +141,7 @@ namespace PointerPath.Core.Vehicles
             c.LayerStyles[c.Layers.Path] = new LayerStyle { Color = 8, Linetype = "DASHDOT", Lineweight = 0.13, Description = "Path driven by the design vehicle's reference point" };
             c.LayerStyles[c.Layers.WheelPaths] = new LayerStyle { Color = 8, Lineweight = 0.13, Description = "Design vehicle wheel paths" };
             c.LayerStyles[c.Layers.Labels] = new LayerStyle { Color = 4, Lineweight = 0.18, Description = "Design vehicle labels" };
-            c.LayerStyles[c.Layers.Hatch] = new LayerStyle { Color = 254, Rgb = new[] { 255, 220, 220 }, Lineweight = 0.13, Plot = true, Description = "Design vehicle swept area" };
+            c.LayerStyles[c.Layers.Hatch] = new LayerStyle { Color = 1, Lineweight = 0.13, Plot = true, Description = "Design vehicle swept area" };
             c.LayerStyles[c.Layers.Block] = new LayerStyle { Color = 7, Lineweight = 0.25, Description = "Design vehicle turning path blocks" };
             c.LayerStyles[c.Layers.Conflict] = new LayerStyle { Color = 6, Lineweight = 0.7, Description = "Design vehicle conflicts with obstructions" };
             c.LayerStyles[c.Layers.ClearanceCheck] = new LayerStyle { Color = 4, Lineweight = 0.25, Description = "Design vehicle ground clearance check (AS/NZS 2890.1 Appendix C)" };

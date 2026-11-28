@@ -110,8 +110,10 @@ namespace PointerPath.Core.Tests
             Assert.Equal(TextAlign.Center, text.Align);
             Assert.Null(((TextSpec)mm.ToDrawing(new TextSpec { Text = "x" })).Height);    // the drawing's default stays the drawing's default
 
-            var hatch = (HatchSpec)mm.ToDrawing(new HatchSpec { Pattern = "ANSI31", Scale = 0.5, Loops = { new PolylineSpec { Points = { new Point2(0, 0), new Point2(2, 0), new Point2(2, 2) }, Closed = true } } });
+            var hatch = (HatchSpec)mm.ToDrawing(new HatchSpec { Pattern = "ANSI31", Scale = 0.5, TransparencyPercent = 60, Loops = { new PolylineSpec { Points = { new Point2(0, 0), new Point2(2, 0), new Point2(2, 2) }, Closed = true } } });
             Assert.Equal(500, hatch.Scale, 9);
+            Assert.Equal(60, hatch.TransparencyPercent);
+            Assert.True(hatch.UnderLinework);
             Assert.Equal(new Point2(2000, 2000), hatch.Loops[0].Points[2]);
             Assert.Throws<NotSupportedException>(() => mm.ToDrawing(new MTextSpec { Text = "x" }));
 

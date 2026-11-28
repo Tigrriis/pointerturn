@@ -72,7 +72,8 @@ namespace PointerPath.Core.Vehicles
                     Pattern = string.IsNullOrWhiteSpace(style.Hatch.Pattern) ? "SOLID" : style.Hatch.Pattern,
                     Scale = style.Hatch.Scale > 0 ? style.Hatch.Scale : 1,
                     AngleDeg = style.Hatch.Angle,
-                    SendToBack = true,
+                    UnderLinework = true,
+                    TransparencyPercent = Math.Max(0, Math.Min(90, style.Hatch.Transparency)),
                 };
                 hatch.Loops.Add(r.ClosedOutline());
                 list.Add(new DraftedEntity("hatch", hatch));

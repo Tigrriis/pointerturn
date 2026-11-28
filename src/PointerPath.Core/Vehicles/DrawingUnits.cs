@@ -253,7 +253,8 @@ namespace PointerPath.Core.Vehicles
                         Scale = h.Scale * factor,
                         AngleDeg = h.AngleDeg,
                         Associative = h.Associative,
-                        SendToBack = h.SendToBack,
+                        UnderLinework = h.UnderLinework,
+                        TransparencyPercent = h.TransparencyPercent,
                     };
                     break;
                 default:

@@ -206,6 +206,29 @@ namespace PointerPath.BricsCAD
                     }
                 }
 
+                // Hatches go under everything else drawn here, whichever was made first: a later
+                // leg's hatch would otherwise lie over an earlier leg's lines.
+                var hatches = new ObjectIdCollection();
+                var others = new List<ObjectId>();
+                foreach (ItemResult made in results.Where(x => x.Ok && x.Handle != null))
+                {
+                    ObjectId id = ResolveHandle(made.Handle!);
+                    if (id.IsNull)
+                    {
+                        continue;
+                    }
+
+                    if (entities[made.Index] is HatchSpec hatch && hatch.UnderLinework)
+                    {
+                        hatches.Add(id);
+                    }
+                    else
+                    {
+                        others.Add(id);
+                    }
+                }
+
+                PutUnder(tr, space, hatches, others);
                 tr.Commit();
             }
 
@@ -343,6 +366,13 @@ namespace PointerPath.BricsCAD
                     var hatch = new Hatch();
                     hatch.PatternScale = h.Scale;
                     hatch.PatternAngle = Rad(h.AngleDeg);
+                    if (h.TransparencyPercent > 0)
+                    {
+                        // Alpha: 255 is solid. The programs go no further than 90% transparent.
+                        int percent = Math.Min(90, h.TransparencyPercent);
+                        hatch.Transparency = new Transparency((byte)Math.Round(255 * (100 - percent) / 100.0));
+                    }
+
                     return hatch;
                 }
 
@@ -531,12 +561,6 @@ namespace PointerPath.BricsCAD
             }
 
             hatch.EvaluateHatch(true);
-            if (h.SendToBack)
-            {
-                var space = (BlockTableRecord)tr.GetObject(hatch.OwnerId, OpenMode.ForRead);
-                var order = (DrawOrderTable)tr.GetObject(space.DrawOrderTableId, OpenMode.ForWrite);
-                order.MoveToBottom(new ObjectIdCollection { hatch.ObjectId });
-            }
 
             double area = 0;
             try
@@ -730,6 +754,23 @@ namespace PointerPath.BricsCAD
                 // Moves the entities out of model space into the block, keeping their coordinates and layers.
                 btr.AssumeOwnershipOf(ids);
 
+                // The block has a draw order of its own: put the hatches under the linework in it too.
+                var hatches = new ObjectIdCollection();
+                var others = new List<ObjectId>();
+                foreach (ObjectId id in ids)
+                {
+                    if (tr.GetObject(id, OpenMode.ForRead) is Hatch)
+                    {
+                        hatches.Add(id);
+                    }
+                    else
+                    {
+                        others.Add(id);
+                    }
+                }
+
+                PutUnder(tr, btr, hatches, others);
+
                 var space = (BlockTableRecord)tr.GetObject(Db.CurrentSpaceId, OpenMode.ForWrite);
                 var br = new BlockReference(P3(basePoint), btrId);
                 br.SetDatabaseDefaults(Db);
@@ -744,6 +785,32 @@ namespace PointerPath.BricsCAD
                 tr.Commit();
                 Flush();
                 return new BlockResult { BlockName = unique, Handle = br.Handle.ToString(), EntityCount = ids.Count };
+            }
+        }
+
+        /// <summary>
+        /// Puts hatches under the other entities they were drawn with, in the space or block that
+        /// holds them all: just below the lowest of those, so they stay above whatever else is
+        /// there (an aerial photo, say) and show it through their transparency. A drawing whose
+        /// draw order can't be changed keeps its hatches where they are, and says so.
+        /// </summary>
+        private void PutUnder(Transaction tr, BlockTableRecord owner, ObjectIdCollection hatches, List<ObjectId> others)
+        {
+            if (hatches.Count == 0 || others.Count == 0)
+            {
+                return;
+            }
+
+            try
+            {
+                // Entities are drawn in the order they were made (by handle) until told otherwise.
+                ObjectId lowest = others.OrderBy(id => id.Handle.Value).First();
+                var order = (DrawOrderTable)tr.GetObject(owner.DrawOrderTableId, OpenMode.ForWrite);
+                order.MoveBelow(hatches, lowest);
+            }
+            catch (System.Exception ex)
+            {
+                _doc.Editor.WriteMessage($"\nPointerPath: the hatch couldn't be put under the linework ({ex.Message}). Use DRAWORDER on it.\n");
             }
         }
 

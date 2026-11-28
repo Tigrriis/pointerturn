@@ -178,8 +178,14 @@ namespace PointerPath.Core.Drawing
         /// <summary>Keep the hatch linked to its boundary curves (handles only).</summary>
         public bool Associative { get; set; }
 
-        /// <summary>Put the hatch behind other objects (draw order), so it doesn't cover linework.</summary>
-        public bool SendToBack { get; set; } = true;
+        /// <summary>
+        /// Put the hatch under everything else drawn with it (draw order), so it never covers that
+        /// linework, however many hatches there are. It stays above what was already in the drawing.
+        /// </summary>
+        public bool UnderLinework { get; set; } = true;
+
+        /// <summary>How transparent the hatch is, percent: 0 is solid, 90 the most there is.</summary>
+        public int TransparencyPercent { get; set; }
     }
 
     public sealed class LayerSpec
