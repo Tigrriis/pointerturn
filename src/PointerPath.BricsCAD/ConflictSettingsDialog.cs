@@ -26,42 +26,30 @@ namespace PointerPath.BricsCAD
                 AcceptsReturn = true,
                 ScrollBars = ScrollBars.Vertical,
                 WordWrap = false,
-                Width = 380,
+                Width = 436,
                 Height = 170,
-                Margin = new Padding(3, 2, 3, 4),
+                Margin = new Padding(0, 0, 0, 0),
             };
             Show(conventions.ConflictLayers);
 
             Button defaults = DialogKit.Button("Defaults");
-            defaults.Margin = new Padding(3, 0, 0, 0);
+            defaults.Margin = new Padding(0);
             defaults.Click += (s, e) => Show(TurnPathConventions.DefaultConflictLayers);
-            var ok = DialogKit.Button("OK");
-            ok.DialogResult = DialogResult.OK;
+            var ok = new PrimaryButton("OK") { DialogResult = DialogResult.OK };
             var cancel = DialogKit.Button("Cancel");
             cancel.DialogResult = DialogResult.Cancel;
             CancelButton = cancel; // Enter makes a new line in the list, so OK is clicked
 
-            TableLayoutPanel buttons = DialogKit.Table(2);
-            buttons.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-            buttons.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
-            buttons.Controls.Add(defaults, 0, 0);
-            FlowLayoutPanel right = DialogKit.Flow(ok, cancel);
-            right.Anchor = AnchorStyles.Right;
-            buttons.Controls.Add(right, 1, 0);
-            buttons.Dock = DockStyle.Fill;
-            buttons.Margin = new Padding(0, 6, 0, 0);
-
-            TableLayoutPanel root = DialogKit.Table(1);
-            Label caption = DialogKit.Caption("Layers to check the swept path against, one to a line:");
-            caption.Margin = new Padding(3, 0, 3, 6);
-            DialogKit.AddRow(root, caption);
-            DialogKit.AddRow(root, _layers);
-            DialogKit.AddRow(root, DialogKit.Note(
+            TableLayoutPanel content = DialogKit.Table(1);
+            DialogKit.AddRow(content, DialogKit.Section("Layers, one to a line"));
+            DialogKit.AddRow(content, _layers);
+            Label note = DialogKit.Note(
                 "* and ? are wildcards, and capitals don't matter: *KERB* finds every layer with KERB in its name, in xrefs too. " +
-                "Frozen and off layers are ignored. Defaults puts the standard list back.", 380));
-            DialogKit.AddRow(root, buttons);
-            root.Dock = DockStyle.Fill;
-            Controls.Add(root);
+                "Frozen and off layers are ignored. Defaults puts the standard list back.", 436);
+            note.Margin = new Padding(0, 6, 0, 0);
+            DialogKit.AddRow(content, note);
+
+            DialogKit.Compose(this, "Conflict settings", "The layers the swept path is checked against when Detect conflicts is ticked.", content, defaults, ok, cancel);
 
             FormClosing += (s, e) =>
             {

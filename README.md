@@ -226,8 +226,8 @@ Two things carry over:
 
 `PTDRIVE` (ribbon: **Vehicles > Drive**) opens the Drive dialog:
 
-- **Vehicle**: a button each for the B85, B99, SRV, MRV (8.8 m) and HRV (12.5 m), with a picture
-  of the vehicle. Hover over one for its size and turn radius. The vehicle turns at its minimum radius and keeps its own
+- **Vehicle**: a card each for the B85, B99, SRV, MRV and HRV, with a picture of the vehicle and
+  its length. Hover over one for its size and turn radius. The vehicle turns at its minimum radius and keeps its own
   clearances, as `turn-paths.json` has them.
 - **Detect conflicts**: flags where the swept path or its clearance meets kerbs, walls and columns
   (see [Conflicts with kerbs, walls and columns](#conflicts-with-kerbs-walls-and-columns)), on the layers in
@@ -332,10 +332,11 @@ Everything you type stays in metres whatever the drawing: vehicle sizes, radii, 
 intervals and the label text height (0.3 is 300 in a millimetre drawing). Points you pick, the kerbs
 and walls on the obstruction layers, a line the vehicle follows and surface levels are read in the
 drawing's units, and the result is drawn at the drawing's scale. If the units look wrong for the
-size of the drawing (a "millimetre" drawing only 300 units across, say) the dialog says so in red
-and asks before carrying on. It asks once for each drawing file: once you have answered, yes or no,
+size of the drawing (a "millimetre" drawing only 300 units across, say) the dialog says so (a note
+on yellow in the Drive and Turning template dialogs, in red in the earlier ones) and asks before
+carrying on. It asks once for each drawing file: once you have answered, yes or no,
 that file isn't asked about again until the CAD program is restarted. The warning still shows in
-red in the dialogs, and Quick drive says it on the command line.
+the dialogs, and Quick drive says it on the command line.
 A path remembers the units it was drawn with; changing them in `PTEDIT` keeps it where it is and
 redraws the vehicle at the new scale.
 

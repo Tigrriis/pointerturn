@@ -11,8 +11,8 @@ namespace PointerPath.BricsCAD
 {
     /// <summary>
     /// What the simplified dialogs that start from a vehicle have in common (Drive, Turning
-    /// template): a button for each vehicle along the top, with its picture, the dialog's own options in the
-    /// middle, and Draw settings, Units and GO along the bottom. Every choice is kept as it is
+    /// template): a heading, a card for each vehicle with its picture, the dialog's own options,
+    /// and Draw settings, Units and GO in the strip along the bottom. Every choice is kept as it is
     /// made, so a dialog opens as it was left.
     ///
     /// The dialog edits the conventions it is given: the default vehicle, the drawing units,
@@ -24,18 +24,11 @@ namespace PointerPath.BricsCAD
     internal abstract class VehicleDialog : Form
     {
         /// <summary>
-        /// The vehicles offered, by their name in turn-paths.json, with the text on the button.
-        /// Later, once trailers are switched back on: the 19 m articulated vehicle, the A-double
-        /// and the B-double, as a second row.
+        /// The vehicles offered, by their name in turn-paths.json; each card shows the name and the
+        /// vehicle's length. Later, once trailers are switched back on: the 19 m articulated
+        /// vehicle, the A-double and the B-double, as a second row.
         /// </summary>
-        private static readonly (string Vehicle, string Caption)[] Offered =
-        {
-            ("B85", "B85"),
-            ("B99", "B99"),
-            ("SRV", "SRV"),
-            ("MRV", "MRV / 8.8"),
-            ("HRV", "HRV / 12.5"),
-        };
+        private static readonly string[] Offered = { "B85", "B99", "SRV", "MRV", "HRV" };
 
         private const int ButtonsPerRow = 5;
 
@@ -78,10 +71,8 @@ namespace PointerPath.BricsCAD
 
             Tips.SetToolTip(_units, "What the drawing is drawn in. Vehicle sizes, radii and clearances stay in metres.");
 
-            // Only says anything when there is something to say: doubtful units, or a save that failed.
-            _note = DialogKit.Note("", 440);
-            _note.Margin = new Padding(3, 8, 3, 0);
-            _note.Visible = false;
+            // Only shows when there is something to say: doubtful units, or a save that failed.
+            _note = DialogKit.CautionNote(ButtonsPerRow * 108 - 8);
         }
 
         protected TurnPathConventions Conventions { get; }
@@ -92,69 +83,59 @@ namespace PointerPath.BricsCAD
         protected bool Loading => _loading;
 
         /// <summary>
-        /// Lays the dialog out, with the dialog's own <paramref name="options"/> (already showing
-        /// what the conventions have) between the vehicles and the bottom row. Called at the end
-        /// of the constructor.
+        /// Lays the dialog out: the heading, the vehicles, the dialog's own <paramref name="options"/>
+        /// (already showing what the conventions have), and Draw settings, Units and GO along the
+        /// bottom. Called at the end of the constructor.
         /// </summary>
-        protected void Build(params Control[] options)
+        /// <param name="heading">The dialog's name, as its heading ("Drive").</param>
+        /// <param name="hint">A line under the heading saying what happens next.</param>
+        protected void Build(string heading, string hint, params Control[] options)
         {
             // ---------------------------------------------------------------- vehicle
             TableLayoutPanel vehicles = DialogKit.Table(ButtonsPerRow);
-            foreach (var (name, caption) in Offered)
+            foreach (string name in Offered)
             {
-                // The conventions decide what there is: a vehicle they don't have gets no button.
+                // The conventions decide what there is: a vehicle they don't have gets no card.
                 string? key = Conventions.Vehicles.Keys.FirstOrDefault(k => string.Equals(k, name, StringComparison.OrdinalIgnoreCase));
                 if (key == null)
                 {
                     continue;
                 }
 
-                RadioButton button = VehicleButton(caption, key);
-                Tips.SetToolTip(button, Describe(Conventions.Vehicles[key]));
-                vehicles.Controls.Add(button, _vehicles.Count % ButtonsPerRow, _vehicles.Count / ButtonsPerRow);
-                _vehicles.Add(button);
+                DesignVehicle vehicle = Conventions.Vehicles[key];
+                var card = new VehicleCard(key, $"{vehicle.Length:0.##} m", VehicleIcon(key)) { Tag = key };
+                Tips.SetToolTip(card, Describe(vehicle));
+                vehicles.Controls.Add(card, _vehicles.Count % ButtonsPerRow, _vehicles.Count / ButtonsPerRow);
+                _vehicles.Add(card);
             }
 
             vehicles.RowCount = (_vehicles.Count + ButtonsPerRow - 1) / ButtonsPerRow;
-            vehicles.Margin = new Padding(0, 0, 0, 10);
+            vehicles.Margin = new Padding(0, 0, 0, 6);
+
+            TableLayoutPanel content = DialogKit.Table(1);
+            DialogKit.AddRow(content, DialogKit.Section("Vehicle"));
+            DialogKit.AddRow(content, vehicles);
+            foreach (Control option in options)
+            {
+                DialogKit.AddRow(content, option);
+            }
+
+            DialogKit.AddRow(content, _note);
 
             // ----------------------------------------------------------------- bottom
             Button drawSettings = DialogKit.Button("Draw settings...");
-            drawSettings.Margin = new Padding(3, 0, 12, 0);
+            drawSettings.Margin = new Padding(0, 0, 14, 0);
             drawSettings.Click += (s, e) => EditDrawSettings();
 
-            Label unitsLabel = DialogKit.Caption("Units:");
-            unitsLabel.Margin = new Padding(3, 6, 4, 0);
+            Label unitsLabel = DialogKit.Caption("Units");
+            unitsLabel.Margin = new Padding(0, 7, 6, 0);
+            _units.Margin = new Padding(0, 3, 0, 0);
 
-            Button go = DialogKit.Button("GO");
+            var go = new PrimaryButton("GO") { DialogResult = DialogResult.OK };
             go.Font = new Font(Font, FontStyle.Bold);
-            go.MinimumSize = new Size(110, 32);
-            go.Anchor = AnchorStyles.Right;
-            go.DialogResult = DialogResult.OK;
             AcceptButton = go;
 
-            TableLayoutPanel bottom = DialogKit.Table(2);
-            bottom.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-            bottom.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
-            bottom.Controls.Add(DialogKit.Flow(drawSettings, unitsLabel, _units), 0, 0);
-            bottom.Controls.Add(go, 1, 0);
-            bottom.Dock = DockStyle.Fill;
-            bottom.Margin = new Padding(0, 8, 0, 0);
-
-            TableLayoutPanel root = DialogKit.Table(1);
-            Label vehicleCaption = DialogKit.Caption("Vehicle:");
-            vehicleCaption.Margin = new Padding(3, 0, 3, 6);
-            DialogKit.AddRow(root, vehicleCaption);
-            DialogKit.AddRow(root, vehicles);
-            foreach (Control option in options)
-            {
-                DialogKit.AddRow(root, option);
-            }
-
-            DialogKit.AddRow(root, bottom);
-            DialogKit.AddRow(root, _note);
-            root.Dock = DockStyle.Fill;
-            Controls.Add(root);
+            DialogKit.Compose(this, heading, hint, content, DialogKit.Flow(drawSettings, unitsLabel, _units), go);
 
             ShowChoices();
 
@@ -162,7 +143,6 @@ namespace PointerPath.BricsCAD
             {
                 button.CheckedChanged += (s, e) =>
                 {
-                    ShowSelected(button);
                     if (button.Checked && !_loading)
                     {
                         Conventions.DefaultVehicle = (string)button.Tag!;
@@ -245,11 +225,6 @@ namespace PointerPath.BricsCAD
                 Conventions.DefaultVehicle = (string)chosen.Tag!;
             }
 
-            foreach (RadioButton button in _vehicles)
-            {
-                ShowSelected(button);
-            }
-
             // "auto" follows the drawing, and stays "auto" until another unit is chosen. A drawing in
             // something not on the list (centimetres, say) gets an entry of its own.
             string setting;
@@ -315,82 +290,19 @@ namespace PointerPath.BricsCAD
             }
         }
 
-        /// <summary>Warns, in red, when the drawing's size makes the units unlikely.</summary>
+        /// <summary>Warns, in a note under the options, when the drawing's size makes the units unlikely.</summary>
         private void ShowUnitsDoubt() => Say(_unitsWarning.Doubt(SelectedUnits));
 
         private void Say(string? warning)
         {
             _note.Text = warning ?? "";
-            _note.ForeColor = DialogKit.Warning;
             _note.Visible = !string.IsNullOrEmpty(warning);
-        }
-
-        /// <summary>
-        /// A vehicle's button: a radio button that looks like a push button and stays down, with a
-        /// picture of the vehicle over its name.
-        /// </summary>
-        private RadioButton VehicleButton(string caption, string vehicle)
-        {
-            var button = new RadioButton
-            {
-                Text = caption,
-                Tag = vehicle,
-                Appearance = Appearance.Button,
-                FlatStyle = FlatStyle.Flat,
-                TextAlign = ContentAlignment.MiddleCenter,
-                Size = new Size(88, 50),
-                Margin = new Padding(3, 0, 5, 6),
-                Font = new Font(Font, FontStyle.Bold),
-                BackColor = SystemColors.Window,
-                ForeColor = DialogKit.Ink,
-            };
-
-            Image? icon = VehicleIcon(vehicle);
-            if (icon != null)
-            {
-                // The picture and the name are drawn here, to fit the button as it is on this display:
-                // left to the button, the picture's size and the button's can scale differently, and
-                // the name ends up under the picture.
-                button.Text = "";
-                button.AccessibleName = caption;
-                button.Height = 68;
-                button.Paint += (s, e) => PaintVehicle(button, icon, caption, e.Graphics);
-            }
-
-            return button;
-        }
-
-        /// <summary>
-        /// Draws a vehicle button's face over what the button has drawn of itself: the name along
-        /// the bottom, and the picture as large as fits in the space above it.
-        /// </summary>
-        private static void PaintVehicle(RadioButton button, Image icon, string caption, Graphics g)
-        {
-            Rectangle face = button.ClientRectangle;
-            int pad = Math.Max(4, face.Height / 12);
-            const TextFormatFlags Centred = TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.SingleLine | TextFormatFlags.NoPadding;
-
-            Size text = TextRenderer.MeasureText(g, caption, button.Font, Size.Empty, Centred);
-            var name = new Rectangle(face.Left, face.Bottom - pad - text.Height, face.Width, text.Height);
-            TextRenderer.DrawText(g, caption, button.Font, name, button.ForeColor, Centred);
-
-            Rectangle room = Rectangle.FromLTRB(face.Left + pad, face.Top + pad, face.Right - pad, name.Top - pad / 2);
-            if (room.Width <= 0 || room.Height <= 0)
-            {
-                return;
-            }
-
-            float scale = Math.Min((float)room.Width / icon.Width, (float)room.Height / icon.Height);
-            float width = icon.Width * scale, height = icon.Height * scale;
-            g.InterpolationMode = InterpolationMode.HighQualityBicubic;
-            g.PixelOffsetMode = PixelOffsetMode.HighQuality;
-            g.DrawImage(icon, room.Left + (room.Width - width) / 2, room.Top + (room.Height - height) / 2, width, height);
         }
 
         /// <summary>
         /// The vehicle's side view (tools/icons/make_vehicle_icons.py draws them), at the size it
         /// was drawn: several times the size it is shown at. Null for a vehicle without one: its
-        /// button is just its name.
+        /// card is just its name and length.
         /// </summary>
         private static Image? VehicleIcon(string vehicle)
         {
@@ -412,15 +324,6 @@ namespace PointerPath.BricsCAD
             {
                 return null; // the name alone
             }
-        }
-
-        /// <summary>The vehicle chosen is the one in the accent colour, with the heavier border.</summary>
-        private static void ShowSelected(RadioButton button)
-        {
-            button.BackColor = button.Checked ? DialogKit.Accent : SystemColors.Window;
-            button.FlatAppearance.CheckedBackColor = DialogKit.Accent;
-            button.FlatAppearance.BorderColor = button.Checked ? DialogKit.Ink : DialogKit.Line;
-            button.FlatAppearance.BorderSize = button.Checked ? 2 : 1;
         }
 
         private static string Describe(DesignVehicle v) =>

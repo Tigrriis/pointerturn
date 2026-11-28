@@ -2,16 +2,17 @@
   <title>SRV small rigid vehicle</title>
   <defs>
     <mask id="vehicle-srv" maskUnits="userSpaceOnUse" x="0" y="0" width="152" height="52">
-      <polygon fill="#fff" points="26,9 92,9 92,38 26,38"/>
-      <polygon fill="#fff" points="26,37 126,37 126,42 26,42"/>
-      <polygon fill="#fff" points="95,42 95,15 116,15 123,26 126,28 126,42"/>
-      <polygon fill="#000" points="104,18 115,18 121,27 104,27"/>
-      <circle fill="#000" cx="45" cy="42.5" r="10"/>
+      <path fill="#fff" d="M26 11.5 Q26 9 28.5 9 L89 9 Q91.5 9 91.5 11.5 L91.5 36 Q91.5 38.5 89 38.5 L28.5 38.5 Q26 38.5 26 36 Z"/>
+      <path fill="#fff" d="M27.5 37.5 Q27.5 36 29 36 L123.5 36 Q125 36 125 37.5 L125 41 Q125 42.5 123.5 42.5 L29 42.5 Q27.5 42.5 27.5 41 Z"/>
+      <path fill="#fff" d="M96.5 42.5 Q95 42.5 95 41 L95 17.5 Q95 14.5 98 14.5 L111 14.5 Q115 14.5 117.3 17.76 L122.5 25.06 Q123.5 26.5 124.8 27.75 L124.8 27.75 Q126 29 126 30.77 L126 40 Q126 42.5 123.5 42.5 Z"/>
+      <path fill="#000" d="M103.5 19.4 Q103.5 18 104.9 18 L112.2 18 Q113.6 18 114.4 19.15 L119 25.75 Q119.8 26.9 118.4 26.9 L104.9 26.9 Q103.5 26.9 103.5 25.5 Z"/>
+      <path fill="#000" d="M123.2 31.8 Q123.2 31 124 31 L125.2 31 Q126 31 126 31.8 L126 33.7 Q126 34.5 125.2 34.5 L124 34.5 Q123.2 34.5 123.2 33.7 Z"/>
+      <circle fill="#000" cx="45" cy="42.5" r="9.7"/>
       <circle fill="#fff" cx="45" cy="42.5" r="7.5"/>
-      <circle fill="#000" cx="45" cy="42.5" r="2.85"/>
-      <circle fill="#000" cx="110" cy="42.5" r="10"/>
+      <circle fill="#000" cx="45" cy="42.5" r="3.15"/>
+      <circle fill="#000" cx="110" cy="42.5" r="9.7"/>
       <circle fill="#fff" cx="110" cy="42.5" r="7.5"/>
-      <circle fill="#000" cx="110" cy="42.5" r="2.85"/>
+      <circle fill="#000" cx="110" cy="42.5" r="3.15"/>
     </mask>
   </defs>
   <rect width="152" height="52" fill="#111A22" mask="url(#vehicle-srv)"/>
