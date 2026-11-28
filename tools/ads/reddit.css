@@ -1,0 +1,177 @@
+/* The Reddit ad images. Laid out by tools/ads/make_reddit_ads.js, which draws each ad on a page
+   exactly the image's size (1080 px wide) and photographs it. Colours and type are the brand's
+   (brand/tokens.css is loaded first). */
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { width: 1080px; height: var(--h); overflow: hidden; font-family: var(--pt-font-body); -webkit-font-smoothing: antialiased; }
+p, ul, h1, figure { margin: 0; padding: 0; }
+svg { display: block; }
+
+.ad {
+  --bg: var(--pt-paper); --fg: var(--pt-ink); --muted: var(--pt-slate); --rule: var(--pt-line);
+  --mark-bg: var(--pt-accent); --mark-fg: var(--pt-ink);
+  --tick-bg: var(--pt-accent); --tick-fg: var(--pt-ink);
+  width: 1080px; height: var(--h); padding: 64px 64px 56px;
+  display: grid; gap: 0 44px;
+  background: var(--bg); color: var(--fg);
+}
+.ad--ink {
+  --bg: var(--pt-ink); --fg: var(--pt-white); --muted: var(--pt-on-ink-muted); --rule: #2C3944;
+}
+/* Text on cyan is always ink, so the highlight turns white and the ticks ink. */
+.ad--cyan {
+  --bg: var(--pt-accent); --fg: var(--pt-ink); --muted: var(--pt-ink); --rule: rgba(17, 26, 34, 0.28);
+  --mark-bg: var(--pt-white);
+  --tick-bg: var(--pt-ink); --tick-fg: var(--pt-accent);
+}
+
+/* ---- The parts ---- */
+
+.top { grid-area: top; display: flex; align-items: center; justify-content: space-between; }
+.top .logo svg { height: 60px; width: auto; }
+.pill {
+  padding: 12px 22px; border: 2px solid var(--rule); border-radius: var(--pt-radius-pill);
+  font-size: 24px; font-weight: 600; color: var(--fg);
+}
+
+.head { grid-area: head; display: flex; flex-direction: column; gap: 24px; min-width: 0; }
+h1 {
+  font-family: var(--pt-font-display); font-weight: 600; letter-spacing: -0.03em; line-height: 1.2;
+  font-size: var(--h1); text-wrap: balance;
+}
+.mark {
+  background: var(--mark-bg); color: var(--mark-fg); border-radius: 14px; padding: 0 12px; margin: 0 -2px;
+  white-space: nowrap; box-decoration-break: clone; -webkit-box-decoration-break: clone;
+}
+.sub { font-size: var(--sub); line-height: 1.32; font-weight: 500; color: var(--muted); text-wrap: pretty; }
+
+.facts { grid-area: facts; display: flex; flex-direction: column; gap: 20px; list-style: none; min-width: 0; }
+.facts li { position: relative; display: flex; align-items: center; gap: 18px; font-size: var(--fact); line-height: 1.22; font-weight: 600; }
+.facts li::before {
+  content: ""; flex: none; width: 40px; height: 40px; border-radius: 12px; background-color: var(--tick-bg);
+}
+.facts li::after {
+  content: ""; position: absolute; left: 13px; top: 50%; width: 9px; height: 17px; margin-top: -12px;
+  border: solid var(--tick-fg); border-width: 0 4px 4px 0; transform: rotate(42deg);
+}
+
+.art { grid-area: art; min-width: 0; min-height: 0; display: flex; align-items: center; justify-content: center; }
+
+.foot {
+  grid-area: foot; display: flex; align-items: center; justify-content: space-between; gap: 24px;
+  padding-top: 28px; border-top: 2px solid var(--rule);
+}
+.foot__price { display: flex; align-items: baseline; gap: 12px; font-size: 28px; font-weight: 500; color: var(--muted); }
+.foot__price b { font: 600 52px/1 var(--pt-font-display); letter-spacing: -0.03em; color: var(--fg); }
+.foot__note { font-size: 26px; font-weight: 500; color: var(--muted); }
+.foot__url { font: 600 30px/1 var(--pt-font-display); letter-spacing: -0.01em; color: var(--fg); white-space: nowrap; }
+
+/* ---- The drawing sheet: the swept path figure from the website's home page ---- */
+
+.sheet {
+  width: 100%; display: flex; flex-direction: column;
+  background: var(--pt-white); border: 1px solid var(--pt-line); border-radius: 24px; overflow: hidden;
+  box-shadow: 0 30px 50px -28px rgba(17, 26, 34, 0.45);
+  color: var(--pt-ink);
+}
+.sheet__drawing { padding: 22px 22px 0; }
+.sheet__drawing svg { width: 100%; height: auto; }
+.sheet__block { display: grid; grid-template-columns: 1.35fr 1fr 1fr; margin-top: 18px; border-top: 1px solid var(--pt-line); }
+.sheet__block > div { display: flex; flex-direction: column; gap: 4px; padding: 14px 16px; font-size: 21px; font-weight: 600; white-space: nowrap; }
+.sheet__block > div:first-child { padding-left: 22px; }
+.sheet__block > div + div { border-left: 1px solid var(--pt-line); }
+.sheet__block .label { font-size: 14px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--pt-graphite); }
+
+/* ---- The vehicle list ---- */
+
+.fleet {
+  width: 100%; align-self: stretch; display: flex; flex-direction: column;
+  background: var(--pt-white); border: 1px solid var(--pt-line); border-radius: 24px; overflow: hidden;
+  box-shadow: 0 30px 50px -28px rgba(17, 26, 34, 0.45);
+  color: var(--pt-ink);
+}
+.fleet__row { flex: 1; min-height: 0; display: flex; align-items: center; gap: 28px; padding: 0 30px; }
+.fleet__row + .fleet__row { border-top: 1px solid var(--pt-line); }
+.fleet__row svg { flex: none; height: var(--icon); width: auto; }
+.fleet__name { font: 600 var(--fleet-name)/1.1 var(--pt-font-display); letter-spacing: -0.02em; }
+.fleet__std { margin-left: auto; font-size: var(--fleet-std); font-weight: 600; color: var(--pt-graphite); white-space: nowrap; }
+
+/* ---- A carousel card that is all type ---- */
+
+.big { grid-area: art; align-self: center; display: flex; align-items: center; justify-content: space-between; gap: 40px; }
+.big__text { display: flex; flex-direction: column; gap: 26px; }
+.big__amount { font: 600 250px/0.9 var(--pt-font-display); letter-spacing: -0.045em; white-space: nowrap; }
+.big__amount small { font-size: 84px; letter-spacing: -0.03em; margin-left: 6px; }
+.big__unit { font: 600 64px/1.1 var(--pt-font-display); letter-spacing: -0.03em; }
+.big__sub { font-size: 34px; line-height: 1.3; font-weight: 500; color: var(--muted); }
+.big > svg { flex: none; height: 330px; width: auto; margin-right: 12px; }
+
+/* ---- 1:1 (1080 x 1080): text beside the art ---- */
+
+.r-1x1 .ad {
+  --h1: 66px; --sub: 30px; --fact: 28px; --icon: 52px; --fleet-name: 31px; --fleet-std: 21px;
+  grid-template-columns: minmax(0, 1fr) 440px;
+  /* The headline and the facts share the sheet's height, headline level with its top and facts
+     with its bottom, and the three sit midway between the logo and the footer. */
+  grid-template-rows: auto 1fr auto auto 1fr auto;
+  grid-template-areas: "top top" ". ." "head art" "facts art" ". ." "foot foot";
+}
+.r-1x1 .top { margin-bottom: 36px; }
+.r-1x1 .facts { align-self: end; padding-top: 32px; }
+.r-1x1 .head { gap: 18px; }
+.r-1x1 .foot { margin-top: 36px; }
+
+/* The vehicle list wants the width, so that ad stacks: headline above, list below. */
+.r-1x1 .ad--stack {
+  --h1: 68px; --sub: 30px;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto auto 1fr auto;
+  grid-template-areas: "top" "head" "art" "foot";
+}
+.r-1x1 .ad--stack .top, .r-1x1 .ad--type .top { margin-bottom: 44px; }
+.r-1x1 .ad--stack .head { gap: 14px; }
+.r-1x1 .ad--stack .art { padding-top: 32px; }
+.r-1x1 .ad--stack .foot { margin-top: 36px; }
+
+/* ---- 4:5 (1080 x 1350): headline across the top, facts beside the art ---- */
+
+.r-4x5 .ad {
+  --h1: 96px; --sub: 37px; --fact: 34px; --icon: 62px; --fleet-name: 38px; --fleet-std: 25px;
+  grid-template-columns: minmax(0, 1fr) 470px;
+  grid-template-rows: auto auto 1fr auto;
+  grid-template-areas: "top top" "head head" "facts art" "foot foot";
+}
+.r-4x5 .top { margin-bottom: 48px; }
+.r-4x5 .head { gap: 20px; }
+.r-4x5 .facts { align-self: center; gap: 34px; }
+.r-4x5 .facts li::before { width: 48px; height: 48px; border-radius: 14px; }
+.r-4x5 .facts li::after { left: 16px; width: 11px; height: 20px; margin-top: -14px; }
+.r-4x5 .art { padding-top: 44px; }
+.r-4x5 .foot { margin-top: 48px; }
+
+.r-4x5 .ad--stack {
+  --h1: 90px;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "top" "head" "art" "foot";
+}
+
+/* ---- Carousel cards (1:1 only): bigger type, one idea each ---- */
+
+.r-1x1 .ad--card { --h1: 68px; --sub: 33px; grid-template-columns: minmax(0, 1fr) 400px; }
+.r-1x1 .ad--card .head { align-self: center; grid-row: 3 / 5; gap: 24px; }
+.r-1x1 .ad--type {
+  --h1: 100px; --fact: 40px;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto auto 1fr auto;
+  grid-template-areas: "top" "head" "facts" "foot";
+}
+.r-1x1 .ad--type .facts { align-self: center; gap: 30px; padding-top: 0; }
+.r-1x1 .ad--type .facts li::before { width: 52px; height: 52px; border-radius: 15px; }
+.r-1x1 .ad--type .facts li { gap: 24px; }
+.r-1x1 .ad--type .facts li::after { left: 17px; width: 12px; height: 22px; margin-top: -16px; border-width: 0 5px 5px 0; }
+.r-1x1 .ad--price {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto 1fr auto;
+  grid-template-areas: "top" "art" "foot";
+}

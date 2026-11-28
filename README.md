@@ -60,6 +60,7 @@ src/PointerPath.BricsCAD/    The add-in: commands, dialogs, ribbon, drawing in t
 src/PointerPath.AutoCAD/     A project file only: builds the same source for AutoCAD
 tests/PointerPath.Core.Tests Unit tests (no CAD program needed)
 tools/icons/                 Generates the ribbon icons and the vehicle icons on the dialogs (Python + Pillow)
+tools/ads/                   Generates the advertising images in brand/ads (Node + Playwright)
 installer/                   The installer: Inno Setup script, AutoCAD bundle manifest, build script
 install/                     For developers: update from source (pull, build, copy) and autoload
 docs/architecture.md         Design notes, what is kept in the drawing, first things to test
