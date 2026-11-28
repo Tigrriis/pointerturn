@@ -18,6 +18,8 @@ a cyan accent, a lower-case wordmark).
 
 The wordmark is outlines, not text, so the SVGs need no font.
 
+The Reddit ad images, and the words that go with them, are in [`ads/reddit`](ads/reddit/README.md).
+
 ## Colour
 
 | Name | Value | Use |
