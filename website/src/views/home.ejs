@@ -9,14 +9,35 @@
 </div>
 </div>
 <div class="hero__art">
-<figure class="sheet">
-<%- include('partials/sweep') %>
-<figcaption class="sheet__block">
-<div><span class="label">Vehicle</span><span>8.8 m MRV</span></div>
-<div><span class="label">Radius</span><span>10 m</span></div>
-<div><span class="label">Units</span><span>Metres</span></div>
-</figcaption>
+<%
+// Screenshots of PointerPath in BricsCAD, shown one at a time. The files are in
+// public/screenshots, all cropped to the same 4:3 shape.
+const shots = [
+  { file: 'parking-space.png', w: 892, h: 669, caption: 'A B85 car turning into a parking space, with its swept path and clearance.', alt: 'A plan of a car park. A car is drawn at three positions as it turns from the aisle into a parking space, with its swept path shaded and a dashed clearance line around it.' },
+  { file: 'swept-path.png', w: 968, h: 726, caption: 'The swept path of a B85 car turning around in a car park aisle.', alt: 'A CAD drawing of a car park. A car\u2019s swept path is shaded across the aisle between two rows of parking spaces, with its clearance lines either side.' },
+  { file: 'drive-dialog.png', w: 707, h: 530, caption: 'Choose a vehicle, then click where it goes next.', alt: 'PointerPath\u2019s Drive dialog over a CAD drawing, with buttons for five vehicles (B85, B99, SRV, MRV and HRV), a conflict detection option, a units setting and a Go button.' },
+  { file: 'vehicle-outlines.png', w: 874, h: 656, caption: 'The vehicle is drawn along its path, wheels and all.', alt: 'A CAD drawing of a car park with the outline of a car, showing its wheels and axles, drawn at three positions through a turn.' },
+  { file: 'any-route.png', w: 907, h: 680, caption: 'Swept paths follow whatever route you drive.', alt: 'Swept paths drawn in the shape of a yin-yang symbol: a full circle, an S-curve through the middle and two small loops.' },
+];
+%>
+<section class="sheet shots" aria-roledescription="carousel" aria-label="PointerPath in use" data-shots>
+<div class="shots__frame">
+<% shots.forEach((shot, i) => { %>
+<figure class="shots__slide<% if (i === 0) { %> is-active<% } %>" role="group" aria-roledescription="slide" aria-label="<%= i + 1 %> of <%= shots.length %>">
+<img src="/screenshots/<%= shot.file %><%= assets %>" width="<%= shot.w %>" height="<%= shot.h %>" alt="<%= shot.alt %>"<% if (i > 0) { %> loading="lazy"<% } %>>
+<figcaption><%= shot.caption %></figcaption>
 </figure>
+<% }) %>
+</div>
+<div class="shots__controls">
+<div class="shots__dots">
+<% shots.forEach((shot, i) => { %>
+<button class="shots__dot" type="button" aria-label="Show screenshot <%= i + 1 %> of <%= shots.length %>"<% if (i === 0) { %> aria-current="true"<% } %>></button>
+<% }) %>
+</div>
+<button class="shots__pause link-button" type="button">Pause</button>
+</div>
+</section>
 </div>
 </section>
 

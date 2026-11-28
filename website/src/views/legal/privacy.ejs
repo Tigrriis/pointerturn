@@ -1,0 +1,61 @@
+<%- include('../partials/head', { title }) %>
+<section class="wrap legal">
+<article class="panel prose">
+<h1>Privacy policy</h1>
+<p class="hint">Last updated 28 November 2026</p>
+
+<p>This is what <%= legal.name %><% if (legal.abn) { %> (ABN <%= legal.abn %>)<% } %> ("we", "us") collects when you use this website (<%= site %>) and the PointerPath add-in, what it is used for, and who else sees it.</p>
+
+<h2>What we collect</h2>
+<ul>
+<li><strong>Your account.</strong> Your email address and your password. The password is stored only as a one-way hash, which we cannot read back.<% if (region.restricted) { %> We also record that you confirmed you are in <%= region.where %>, and when.<% } %></li>
+<li><strong>Your licence.</strong> Whether you have a licence, when it was bought, and when it is paid until. Payment is taken by Stripe: your card details go to Stripe and never reach us. We keep the reference numbers Stripe gives us for you and your purchase, and the country of the billing address you gave Stripe.</li>
+<li><strong>Your computers.</strong> When you sign in to PointerPath on a computer, the add-in sends your email address and password, the computer's name and your Windows user name (shown on your account page so you can tell your computers apart), and an identifier for the computer. The identifier is a one-way hash, so it tells us nothing about the computer itself. After that the add-in checks its licence about once a day, and we record when it last did.</li>
+<li><strong>Where you are.</strong> <% if (region.restricted) { %>Because PointerPath is offered in <%= region.where %> only, we work out the country from your IP address when you visit, sign up, buy and sign in to the add-in, and keep the country with your account, purchase and computers. We don't keep the IP address for this.<% } else { %>We don't record your location.<% } %> Our hosting provider keeps short-term logs of requests to the site, which include IP addresses, for security and fault-finding.</li>
+<li><strong>Email you send us.</strong> If you write to us, we keep the correspondence.</li>
+</ul>
+<p>The add-in does not send us your drawings, or anything about what you do in your CAD software.</p>
+
+<h2>What it is used for</h2>
+<ul>
+<li>To run your account and licence, take payment, and let the add-in check that it is licensed.</li>
+<li>To email you about your account: confirming your address, password resets, your licence, and changes to PointerPath, its price or these policies.</li>
+<li>To keep the service secure and deal with misuse.</li>
+<li>To understand how the website is used and whether our advertising works, as described below.</li>
+</ul>
+<p>We don't sell your information.</p>
+
+<h2>Cookies, analytics and advertising</h2>
+<ul>
+<li><strong>Signing in.</strong> One cookie keeps you signed in to this website, for up to 30 days. The site doesn't work without it.</li>
+<% if (plausible.scriptUrl || plausible.domain) { %><li><strong>Plausible Analytics</strong> counts visits to the site. It uses no cookies and does not identify you.</li><% } %>
+<% if (redditPixel) { %><li><strong>The Reddit Pixel</strong> tells Reddit when a page here is visited, and when someone signs up, buys a licence (with the amount) or downloads the installer, so that we can see whether our Reddit ads work. Reddit sets its own cookies to do this and can link what it sees here to your Reddit account or device. Reddit handles that information under its own privacy policy. To stop it, use a tracker blocker or your browser's tracking protection, or change your ad settings in Reddit.</li><% } %>
+<li><strong>Fonts.</strong> The site's fonts are loaded from Google Fonts, so your browser contacts Google when it loads a page.</li>
+</ul>
+
+<h2>Who else handles it</h2>
+<p>We use other companies to run PointerPath, and they handle your information for us:</p>
+<ul>
+<li>Stripe, for payments.</li>
+<li>Render, which hosts this website and its database in Singapore.</li>
+<li>Cloudflare, which carries traffic to the site and holds the installer download.</li>
+<li>Resend, which delivers our email.</li>
+<% if (plausible.scriptUrl || plausible.domain) { %><li>Plausible, for visit counts.</li><% } %>
+<% if (redditPixel) { %><li>Reddit, for advertising measurement.</li><% } %>
+</ul>
+<p>These companies operate outside Australia, including in Singapore, the United States and Europe, so your information is stored and handled overseas. We may also disclose information where the law requires it.</p>
+
+<h2>How long we keep it</h2>
+<p>We keep your account and licence details while you have an account. Ask us and we will delete your account and what goes with it, apart from records of purchases, which we keep for as long as tax law requires.</p>
+
+<h2>Security</h2>
+<p>The site is served over an encrypted connection, passwords are hashed, and payment details are handled only by Stripe. No system is perfectly secure; if a breach is likely to cause you serious harm, we will tell you.</p>
+
+<h2>Seeing, correcting or deleting your information, and complaints</h2>
+<p>Email <a href="mailto:<%= legal.email %>"><%= legal.email %></a> to ask what we hold about you, to have it corrected or deleted, or to complain about how it has been handled. If you are not satisfied with our answer, you can complain to the Office of the Australian Information Commissioner at oaic.gov.au.</p>
+
+<h2>Changes</h2>
+<p>If this policy changes, the new version will be posted here with its date.</p>
+</article>
+</section>
+<%- include('../partials/foot') %>

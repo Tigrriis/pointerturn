@@ -87,6 +87,25 @@ a:hover { color: #000; }
 
 .sheet { width: 100%; max-width: 490px; margin: 0; padding: 20px 20px 0; background: var(--pt-white); border: 1px solid var(--pt-line); border-radius: var(--pt-radius-card); box-shadow: 0 28px 48px -28px rgba(17, 26, 34, 0.28); }
 .sweep { display: block; width: 100%; height: auto; }
+
+/* Screenshots, one at a time. The slides share one grid cell and fade between each other;
+   site.js moves is-active along. Without scripts the first one is shown and the controls hidden. */
+.shots { max-width: 560px; padding: 12px 12px 0; }
+.shots__frame { display: grid; }
+.shots__slide { grid-area: 1 / 1; margin: 0; opacity: 0; visibility: hidden; transition: opacity 0.5s ease, visibility 0s 0.5s; }
+.shots__slide.is-active { opacity: 1; visibility: visible; transition: opacity 0.5s ease; }
+.shots__slide img { display: block; width: 100%; height: auto; border: 1px solid var(--pt-line); border-radius: 6px; }
+.shots__slide figcaption { padding: 14px 8px 16px; font-size: 15px; font-weight: 500; }
+.shots__controls { display: none; align-items: center; justify-content: space-between; gap: 12px; margin: 0 -12px; padding: 4px 12px 4px 10px; border-top: 1px solid var(--pt-line); }
+.shots.is-ready .shots__controls { display: flex; }
+.shots__dots { display: flex; }
+.shots__dot { width: 32px; height: 40px; padding: 0; border: 0; background: none; cursor: pointer; display: grid; place-items: center; }
+.shots__dot::before { content: ""; width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid var(--pt-ink); }
+.shots__dot[aria-current="true"]::before { background: var(--pt-ink); }
+.shots__pause { font-size: 15px; padding: 8px; }
+@media (prefers-reduced-motion: reduce) {
+  .shots__slide, .shots__slide.is-active { transition: none; }
+}
 .sheet__block { display: grid; grid-template-columns: 1.4fr 1fr 1fr; margin: 16px -20px 0; border-top: 1px solid var(--pt-line); }
 .sheet__block > div { display: flex; flex-direction: column; gap: 4px; padding: 14px 16px; font-size: 15px; font-weight: 500; }
 .sheet__block > div:first-child { padding-left: 20px; }
@@ -172,6 +191,18 @@ a:hover { color: #000; }
 .site-footer__nav a { color: var(--pt-white); text-decoration: none; padding: 12px 0; }
 .site-footer__nav a:hover { text-decoration: underline; text-underline-offset: 6px; }
 .site-footer :focus-visible { outline-color: var(--pt-accent); }
+.site-footer__legal { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 28px; padding-top: 8px; padding-bottom: 20px; border-top: 1px solid rgba(255, 255, 255, 0.14); font-size: 15px; }
+.site-footer__legal nav { display: flex; flex-wrap: wrap; gap: 4px 24px; }
+.site-footer__legal a { color: var(--pt-on-ink-muted); text-decoration: none; padding: 10px 0; }
+.site-footer__legal a:hover { color: var(--pt-white); text-decoration: underline; text-underline-offset: 5px; }
+
+/* ---- Terms, privacy, refunds ---- */
+.legal { max-width: 800px; padding-top: 48px; padding-bottom: 96px; }
+.prose { display: flex; flex-direction: column; gap: 14px; }
+.prose h1 { font-size: clamp(30px, 4vw, 40px); }
+.prose h2 { font-size: 22px; margin-top: 18px; }
+.prose ul { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 8px; }
+.prose .hint { margin: 0; }
 
 @media (max-width: 600px) {
   .wrap { padding-left: 20px; padding-right: 20px; }

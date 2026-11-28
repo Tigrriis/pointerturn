@@ -20,12 +20,20 @@ function requireRegion(req, res, next) {
   });
 }
 
-module.exports = function site({ billing, downloads }) {
+module.exports = function site({ config, billing, downloads }) {
   const router = express.Router();
 
   router.get('/', async (req, res) => {
     res.render('home', { price: await billing.getPrice() });
   });
+
+  // Terms of use, privacy policy and refund policy. Open to everyone, wherever they are.
+  const policies = { terms: 'Terms of use', privacy: 'Privacy policy', refunds: 'Refund policy' };
+  for (const [page, title] of Object.entries(policies)) {
+    router.get(`/${page}`, (req, res) => {
+      res.render(`legal/${page}`, { title, legal: config.legal, offlineDays: config.licence.tokenDays, site: new URL(config.baseUrl).host });
+    });
+  }
 
   // The installer itself is hosted elsewhere; this hands it to signed-in users. From a
   // private bucket, each visitor gets a link of their own that works for a few minutes.

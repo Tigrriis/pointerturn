@@ -15,6 +15,8 @@ hands out the installer, and runs the licence API the add-in signs in to.
   licence back that it can check without contacting the server. See [Licence API](#licence-api).
 - **Download.** Signed-in users are sent to the installer, wherever it is hosted.
 - **Analytics.** Plausible, with three goals: `Signup`, `Purchase` and `Download`.
+- **Policies.** Terms of use, a privacy policy and a refund policy, at `/terms`, `/privacy` and
+  `/refunds`. See [The policy pages](#the-policy-pages).
 - **Ad tracking.** Optionally, the Reddit pixel, so Reddit Ads can tell which ads led to a
   sign-up or a sale. See [Reddit Ads tracking](#reddit-ads-tracking).
 
@@ -60,6 +62,7 @@ All settings are environment variables. `.env.example` lists them with comments.
 | `STRIPE_AUTOMATIC_TAX` | No | `1` to have Stripe Tax work out GST at checkout |
 | `RESEND_API_KEY`, `EMAIL_FROM` | To send email | Resend API key and the From address (on a domain verified in Resend) |
 | `PLAUSIBLE_SCRIPT_URL` or `PLAUSIBLE_DOMAIN` | No | The script address from Plausible's installation page, or (older snippet) the site's domain |
+| `LEGAL_NAME`, `LEGAL_ABN`, `CONTACT_EMAIL` | No | Who the policy pages say sells PointerPath, its ABN, and the contact address. See [The policy pages](#the-policy-pages) |
 | `REDDIT_PIXEL_ID` | No | The pixel ID from Reddit Ads. See [Reddit Ads tracking](#reddit-ads-tracking) |
 | `ALLOWED_COUNTRIES` | No | Two-letter country codes PointerPath is offered in, e.g. `AU`. See [Restricting to a country](#restricting-to-a-country) |
 | `INSTALLER_VERSION`, and `INSTALLER_URL` or the `R2_*` settings with `INSTALLER_FILE` | To offer the download | The version shown beside the button, and where the file is. See [The installer download](#the-installer-download) |
@@ -94,6 +97,30 @@ What to set up in the other services:
    `Purchase` and `Download`.
 5. **Installer.** See [The installer download](#the-installer-download).
 6. **Reddit Ads**, if you advertise there. See [Reddit Ads tracking](#reddit-ads-tracking).
+
+## The policy pages
+
+The terms of use, privacy policy and refund policy are the three files in `src/views/legal/`.
+They are linked from the footer of every page, from the sign-up form and beside the Buy button.
+
+- **The seller.** They name `LEGAL_NAME` (default: PointerPath, as a trading name) and give
+  `CONTACT_EMAIL` (default: `hello@pointerpath.app`) for questions and refund requests. Set
+  `LEGAL_ABN` and the ABN appears beside the name; until then none is shown.
+- **What they promise** is written into the pages: money back within 30 days of the first
+  payment, 30 days' notice of a price change, the laws of Tasmania. Change the text to change
+  the promise, and update the "Last updated" date at the top of the page.
+- **The privacy policy follows the settings.** It mentions Plausible, the Reddit pixel and
+  the country check only when each is switched on. If the site starts collecting something
+  else, or using another outside service, add it there.
+
+They were drafted without a lawyer. Have one read them before relying on them.
+
+## The home page screenshots
+
+The pictures at the top of the home page are in `public/screenshots/`, listed with their
+captions at the top of `src/views/home.ejs`. They are shown one at a time and change every
+five seconds; the dots and the Pause button are in `public/js/site.js`. To add one, crop it to
+4:3 (the others are, so the frame doesn't jump), put it in that folder and add it to the list.
 
 ## Reddit Ads tracking
 

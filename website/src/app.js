@@ -137,6 +137,7 @@ function createApp({ config, db, stripe, mailer, log = console }) {
       res.locals.seats = seats;
       res.locals.path = req.path;
       res.locals.redditPixel = config.reddit.pixelId;
+      res.locals.contactEmail = config.legal.email;
       res.locals.pageEvent = null;
       res.locals.pageEventData = null;
       // Where the visitor is, when PointerPath is restricted to some countries.
@@ -167,7 +168,7 @@ function createApp({ config, db, stripe, mailer, log = console }) {
     res.status(500);
     if (!res.locals.csrfToken) {
       // Failed before the page helpers were set up.
-      Object.assign(res.locals, { user: null, plausible: config.plausible, assets, seats, path: req.path, redditPixel: config.reddit.pixelId, pageEvent: null, pageEventData: null, flash: null, csrfToken: '' });
+      Object.assign(res.locals, { user: null, plausible: config.plausible, assets, seats, path: req.path, redditPixel: config.reddit.pixelId, contactEmail: config.legal.email, pageEvent: null, pageEventData: null, flash: null, csrfToken: '' });
       res.locals.region = { restricted: geo.restricted, where: geo.where, blocked: false };
     }
     res.render('message', { title: 'Something went wrong', body: 'That did not work. Try again in a moment.' });

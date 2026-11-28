@@ -44,6 +44,9 @@ services:
         sync: false
       - key: PLAUSIBLE_SCRIPT_URL
         sync: false
+      # The seller's ABN, shown on the terms, privacy and refund pages once it is set.
+      - key: LEGAL_ABN
+        sync: false
       # The Reddit Ads pixel ID, for conversion tracking. Not a secret; empty switches it off.
       - key: REDDIT_PIXEL_ID
         sync: false

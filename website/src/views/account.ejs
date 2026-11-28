@@ -38,6 +38,7 @@ const statusText = { active: 'Active', past_due: 'Payment overdue', cancelled: '
 <input type="hidden" name="_csrf" value="<%= csrfToken %>">
 <button class="button" type="submit"<% if (!user.email_verified_at) { %> disabled<% } %>>Buy a licence</button>
 </form>
+<p class="hint">Money back within 30 days if it isn't for you: see the <a href="/refunds">refund policy</a>. Buying means agreeing to the <a href="/terms">terms of use</a>.</p>
 <% } else { %>
 <p class="hint">Buying a licence is not available yet.</p>
 <% } %>

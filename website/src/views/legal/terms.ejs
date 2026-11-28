@@ -1,0 +1,76 @@
+<%- include('../partials/head', { title }) %>
+<section class="wrap legal">
+<article class="panel prose">
+<h1>Terms of use</h1>
+<p class="hint">Last updated 28 November 2026</p>
+
+<p>These terms cover the PointerPath add-in for BricsCAD and AutoCAD, and this website (<%= site %>). <% if (legal.name === 'PointerPath') { %>"We" and "us" mean the business that sells it, trading as PointerPath<% if (legal.abn) { %> (ABN <%= legal.abn %>)<% } %>.<% } else { %>PointerPath is sold by <%= legal.name %><% if (legal.abn) { %> (ABN <%= legal.abn %>)<% } %>, called "we" and "us" below.<% } %> By creating an account, buying a licence or using PointerPath, you agree to them.</p>
+
+<h2>1. PointerPath is in beta</h2>
+<p>PointerPath is a beta version. It is still being developed: features may be added, changed or removed, and it may contain errors. The beta price is lower than the price planned for the final release.</p>
+
+<h2>2. Your account</h2>
+<ul>
+<li>You need an account to buy a licence and to sign in to PointerPath. Give an email address you can be reached at.</li>
+<li>An account is for one person. Keep your password to yourself; you are responsible for what is done with your account.</li>
+<% if (region.restricted) { %><li>PointerPath is offered in <%= region.where %> only. By creating an account you confirm that you are in <%= region.where %> and will use PointerPath only in <%= region.where %>. Buying, downloading and signing in are switched off elsewhere.</li><% } %>
+</ul>
+
+<h2>3. Your licence</h2>
+<p>While your licence is active, you may install PointerPath and use it for your own work, including paid work for your clients. One licence covers <%= seats %>: PointerPath can be signed in on that many computers at a time, and you can sign a computer out from your account page to use its place on another.</p>
+<p>You may not:</p>
+<ul>
+<li>share your account, or sell, rent, lend or pass on your licence;</li>
+<li>get around, or help anyone else get around, the licence check or the limit on computers;</li>
+<li>remove notices that say who PointerPath belongs to.</li>
+</ul>
+<p>PointerPath checks its licence with this website from time to time. Without a connection it keeps working for up to <%= offlineDays %> days, then needs to connect again.</p>
+<p>We own PointerPath and everything in it. The drawings you make with it are yours.</p>
+
+<h2>4. Price and payment</h2>
+<ul>
+<li>The price, the currency, whether GST is added and how often you are charged are shown before you pay. Payment is taken by Stripe.</li>
+<li>A subscription renews and is charged automatically at the start of each period until you cancel it.</li>
+<li>You can cancel at any time from "Invoices and billing" on your account page. PointerPath keeps working until the end of the period you have paid for, and you are not charged again.</li>
+<li>If a payment fails, PointerPath may stop working until the payment is made.</li>
+<li>We may change the price. We will email you at least 30 days before a new price applies to your subscription. If you don't want to continue at the new price, cancel before it applies.</li>
+</ul>
+
+<h2>5. Refunds</h2>
+<p>See the <a href="/refunds">refund policy</a>, which is part of these terms.</p>
+
+<h2>6. Checking the results is your job</h2>
+<p>PointerPath is a design aid. It does not replace engineering judgement.</p>
+<ul>
+<li>The paths it draws come from a mathematical model of a vehicle and from what you give it: the vehicle, the route, the speed and settings, and the drawing and its units. Real vehicles and drivers differ.</li>
+<li>The built-in vehicles are based on the design vehicles described in AS/NZS 2890.1 and AS 2890.2. PointerPath is not published, endorsed or certified by Standards Australia or any road authority. Check the vehicle dimensions against the standard or guideline that applies to your job.</li>
+<li>You are responsible for checking PointerPath's output, for deciding whether it is suitable for your purpose, and for the designs and advice you produce with it.</li>
+</ul>
+
+<h2>7. Your rights and our liability</h2>
+<p>Nothing in these terms takes away rights you have under the Australian Consumer Law that cannot be excluded.</p>
+<p>Where the law allows us to limit what we owe you for failing to meet a consumer guarantee, it is limited to supplying PointerPath again or paying the cost of having it supplied again.</p>
+<p>Apart from that, and as far as the law allows:</p>
+<ul>
+<li>PointerPath is provided as it is, with no promise that it is free of errors, always available, or fit for a particular job;</li>
+<li>we are not liable for indirect or consequential loss, lost profit or lost work, or the cost of redesign, rework or delay;</li>
+<li>our total liability to you is limited to the amount you paid us for PointerPath in the 12 months before the claim arose.</li>
+</ul>
+
+<h2>8. Changes and availability</h2>
+<p>We may update PointerPath and this website, and they may be unavailable from time to time. If we ever stop offering PointerPath, we will give you at least 30 days' notice by email and will not charge you for any time after it ends.</p>
+
+<h2>9. Ending your licence</h2>
+<p>You can stop at any time by cancelling. We may suspend or end your licence if you break these terms, if a payment is reversed or disputed, or if you don't pay. If we end it for another reason, we will refund the unused part of what you have paid.</p>
+
+<h2>10. Changes to these terms</h2>
+<p>We may change these terms. We will post the new version here and, if the change matters to you, email you at least 14 days before it takes effect. Using PointerPath after that means you accept the new terms.</p>
+
+<h2>11. Law</h2>
+<p>These terms are governed by the laws of Tasmania, Australia, and the courts of Tasmania hear any dispute about them.</p>
+
+<h2>12. Contact</h2>
+<p>Questions about these terms: <a href="mailto:<%= legal.email %>"><%= legal.email %></a>.</p>
+</article>
+</section>
+<%- include('../partials/foot') %>

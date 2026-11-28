@@ -329,6 +329,37 @@ test('pages send a content security policy and no inline styles or scripts', asy
   assert.doesNotMatch(html, /<script(?![^>]*\ssrc=)/);
 });
 
+test('the terms, privacy and refund pages are open to everyone and linked from every page', async () => {
+  const b = t.browser();
+  const home = await b.get('/');
+  for (const [path, heading] of [['/terms', 'Terms of use'], ['/privacy', 'Privacy policy'], ['/refunds', 'Refund policy']]) {
+    assert.ok(home.text.includes(`href="${path}"`), `${path} is linked from the footer`);
+    const page = await b.get(path);
+    assert.equal(page.status, 200);
+    assert.ok(page.text.includes(`<h1>${heading}</h1>`));
+    assert.match(page.text, /hello@pointerpath\.app/);
+    assert.doesNotMatch(page.text, /ABN/); // no ABN is shown until LEGAL_ABN is set
+    assert.doesNotMatch(page.text, /\sstyle="/);
+  }
+  assert.match((await b.get('/refunds')).text, /within 30 days of your first payment/);
+  assert.match((await b.get('/terms')).text, /laws of Tasmania/);
+  // The privacy page names only the trackers that are switched on.
+  assert.doesNotMatch((await b.get('/privacy')).text, /Reddit|Plausible/);
+  assert.match((await b.get('/signup')).text, /href="\/terms"/);
+});
+
+test('the home page shows the screenshots, each of which exists', async () => {
+  const home = await t.browser().get('/');
+  const files = [...home.text.matchAll(/src="(\/screenshots\/[a-z-]+\.png)/g)].map((m) => m[1]);
+  assert.equal(files.length, 5);
+  for (const file of files) {
+    const res = await fetch(`http://127.0.0.1:${t.port}${file}`);
+    assert.equal(res.status, 200, file);
+    assert.equal(res.headers.get('content-type'), 'image/png');
+  }
+  assert.equal((home.text.match(/class="shots__dot"/g) || []).length, 5);
+});
+
 test('Plausible is loaded only when configured, and allowed by the security policy', async () => {
   const none = await (await fetch(`http://127.0.0.1:${t.port}/`)).text();
   assert.doesNotMatch(none, /plausible/i);
@@ -368,6 +399,9 @@ test('the Reddit pixel is loaded only when configured, and allowed by the securi
   assert.match(csp, /img-src 'self' data: https:\/\/alb\.reddit\.com/);
   const html = await res.text();
   assert.match(html, /<body[^>]* data-reddit-pixel="a2_abc123"/);
+  const privacy = await (await fetch(`http://127.0.0.1:${t.port}/privacy`)).text();
+  assert.match(privacy, /Reddit Pixel/);
+  assert.match(privacy, /Plausible Analytics/);
   assert.doesNotMatch(html, /<script(?![^>]*\ssrc=)/); // the loader is in site.js, not inline
   await t.stop();
   t = { stop: async () => {} };

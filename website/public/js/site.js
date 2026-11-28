@@ -83,3 +83,69 @@
     if (link) goal(link.getAttribute('data-event'));
   });
 })();
+
+// The screenshots on the home page: <section data-shots>. Shows one at a time, moving on
+// every few seconds until the visitor takes over with the dots or the Pause button.
+(function () {
+  var shots = document.querySelector('[data-shots]');
+  if (!shots) return;
+  var slides = shots.querySelectorAll('.shots__slide');
+  var dots = shots.querySelectorAll('.shots__dot');
+  var pause = shots.querySelector('.shots__pause');
+  if (slides.length < 2) return;
+
+  var current = 0;
+  var timer = null;
+  // People who have asked their device for less motion start with it paused.
+  var playing = !(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  var held = false; // the pointer or the keyboard focus is on it
+
+  function show(index) {
+    current = (index + slides.length) % slides.length;
+    for (var i = 0; i < slides.length; i++) {
+      slides[i].classList.toggle('is-active', i === current);
+      if (i === current) dots[i].setAttribute('aria-current', 'true');
+      else dots[i].removeAttribute('aria-current');
+    }
+  }
+
+  function run() {
+    clearInterval(timer);
+    timer = null;
+    if (playing && !held) {
+      timer = setInterval(function () {
+        show(current + 1);
+      }, 5000);
+    }
+    pause.textContent = playing ? 'Pause' : 'Play';
+  }
+
+  for (var d = 0; d < dots.length; d++) {
+    (function (index) {
+      dots[index].addEventListener('click', function () {
+        playing = false;
+        show(index);
+        run();
+      });
+    })(d);
+  }
+  pause.addEventListener('click', function () {
+    playing = !playing;
+    run();
+  });
+  ['mouseenter', 'focusin'].forEach(function (name) {
+    shots.addEventListener(name, function () {
+      held = true;
+      run();
+    });
+  });
+  ['mouseleave', 'focusout'].forEach(function (name) {
+    shots.addEventListener(name, function () {
+      held = false;
+      run();
+    });
+  });
+
+  shots.classList.add('is-ready');
+  run();
+})();

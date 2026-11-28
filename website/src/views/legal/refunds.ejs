@@ -1,0 +1,22 @@
+<%- include('../partials/head', { title }) %>
+<section class="wrap legal">
+<article class="panel prose">
+<h1>Refund policy</h1>
+<p class="hint">Last updated 28 November 2026</p>
+
+<h2>30-day money back</h2>
+<p>If PointerPath isn't for you, ask within 30 days of your first payment and we will refund that payment in full. You don't need to give a reason.</p>
+<p>The guarantee applies once per customer, to the first purchase. When a payment is refunded, the licence it paid for ends and PointerPath stops working on your computers.</p>
+
+<h2>After 30 days</h2>
+<p>You can cancel at any time from "Invoices and billing" on your account page. You are not charged again, and PointerPath keeps working until the end of the period you have paid for. We don't refund part of a period.</p>
+
+<h2>If something is wrong with PointerPath</h2>
+<p>This policy is on top of your rights under the Australian Consumer Law, which it does not limit. If PointerPath has a major problem, you are entitled to a refund whenever it happens. If the problem is not major, we will fix it within a reasonable time, and if we can't, you are entitled to a refund.</p>
+
+<h2>How to ask</h2>
+<p>Email <a href="mailto:<%= legal.email %>"><%= legal.email %></a> from the address on your account. Refunds go back to the card or account you paid with, and usually take 5 to 10 business days to appear.</p>
+<p class="hint"><% if (legal.name !== 'PointerPath' || legal.abn) { %>PointerPath is sold by <%= legal.name %><% if (legal.abn) { %> (ABN <%= legal.abn %>)<% } %>. <% } %>See also the <a href="/terms">terms of use</a>.</p>
+</article>
+</section>
+<%- include('../partials/foot') %>

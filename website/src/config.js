@@ -44,6 +44,14 @@ function loadConfig(env = process.env) {
       domain: env.PLAUSIBLE_DOMAIN || '',
     },
 
+    legal: {
+      // Who the terms, privacy and refund pages say sells PointerPath, and how to reach them.
+      name: (env.LEGAL_NAME || 'PointerPath').trim(),
+      // Shown beside the name once set, e.g. "12 345 678 901".
+      abn: (env.LEGAL_ABN || '').trim(),
+      email: (env.CONTACT_EMAIL || 'hello@pointerpath.app').trim(),
+    },
+
     reddit: {
       // The pixel ID from Reddit Ads, for measuring what its ads lead to. Not a secret: it
       // is in every page. Empty: no Reddit code is loaded at all.
